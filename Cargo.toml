@@ -1,0 +1,20 @@
+[package]
+name = "constitute-protocol"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "constitute_protocol"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+chacha20poly1305 = { version = "0.10", features = ["std"] }
+hex = "0.4"
+hkdf = "0.12"
+rand = "0.8"
+secp256k1 = { version = "0.29", features = ["rand", "global-context"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"

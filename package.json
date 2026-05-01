@@ -1,0 +1,22 @@
+{
+  "name": "constitute-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^1.3.0",
+    "@noble/curves": "^1.9.1",
+    "@noble/hashes": "^1.8.0"
+  }
+}
