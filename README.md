@@ -10,6 +10,7 @@ Shared non-UI protocol, crypto-envelope, service-access, broker, and record prim
 - CAAC v1 sealed envelopes for cryptography-assured access control
 - Service-access capability/status/signal contract names and codecs
 - Runtime broker message constants and validators
+- CAAC Storage primitive records for encrypted objects, encrypted index shards, key grants, pin leases, availability refs, graph edges, and encrypted detail refs
 - Shared record codecs where records are duplicated across repos
 - Rust/JS fixtures proving the shared contract stays aligned
 
@@ -19,5 +20,6 @@ Shared non-UI protocol, crypto-envelope, service-access, broker, and record prim
 - `constitute-account` owns browser-side identity/session/runtime authority.
 - `constitute-gateway` owns hosted-service admission and capability issuance policy.
 - `constitute-nvr` owns camera/media service behavior and capability enforcement.
+- `constitute-storage` owns the SQLite/files service implementation, pin/prune behavior, and local materialized search.
 
 Protocol code stays policy-neutral: it validates shapes and cryptographic envelopes, but downstream services decide whether a valid capability is sufficient for a specific operation.

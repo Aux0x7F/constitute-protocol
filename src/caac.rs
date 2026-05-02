@@ -247,13 +247,15 @@ pub fn verify_envelope_signature(envelope: &CaacEnvelope) -> Result<bool> {
     let sig_bytes = hex_to_bytes(&envelope.signature)?;
     let sig = Signature::from_slice(&sig_bytes).map_err(|_| anyhow!("invalid caac signature"))?;
     let pk_bytes = hex_to_bytes(&envelope.issuer_pk)?;
-    let pk = XOnlyPublicKey::from_slice(&pk_bytes).map_err(|_| anyhow!("invalid caac issuer pk"))?;
+    let pk =
+        XOnlyPublicKey::from_slice(&pk_bytes).map_err(|_| anyhow!("invalid caac issuer pk"))?;
     let secp = Secp256k1::new();
     Ok(secp.verify_schnorr(&sig, &msg, &pk).is_ok())
 }
 
 pub fn encode_envelope_base64(envelope: &CaacEnvelope) -> Result<String> {
-    let bytes = serde_json::to_vec(envelope).map_err(|_| anyhow!("caac envelope serialize failed"))?;
+    let bytes =
+        serde_json::to_vec(envelope).map_err(|_| anyhow!("caac envelope serialize failed"))?;
     Ok(B64.encode(bytes))
 }
 
@@ -275,7 +277,13 @@ fn derive_recipient_key(
     let sk = SecretKey::from_slice(&sk_bytes).map_err(|_| anyhow!("invalid caac issuer sk"))?;
     let recipient_public = parse_xonly_as_public_key(recipient_pk)?;
     let shared_point = ecdh::shared_secret_point(&recipient_public, &sk);
-    hkdf_key(&shared_point[..32], kind, envelope_id, &issuer_pk, recipient_pk)
+    hkdf_key(
+        &shared_point[..32],
+        kind,
+        envelope_id,
+        &issuer_pk,
+        recipient_pk,
+    )
 }
 
 fn derive_open_key(
@@ -289,7 +297,13 @@ fn derive_open_key(
     let sk = SecretKey::from_slice(&sk_bytes).map_err(|_| anyhow!("invalid caac recipient sk"))?;
     let issuer_public = parse_xonly_as_public_key(issuer_pk)?;
     let shared_point = ecdh::shared_secret_point(&issuer_public, &sk);
-    hkdf_key(&shared_point[..32], kind, envelope_id, issuer_pk, recipient_pk)
+    hkdf_key(
+        &shared_point[..32],
+        kind,
+        envelope_id,
+        issuer_pk,
+        recipient_pk,
+    )
 }
 
 fn hkdf_key(
