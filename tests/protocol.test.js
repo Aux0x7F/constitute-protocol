@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   BROKER,
+  LOGGING,
   ReplayCache,
   SERVICE_ACCESS_EVENTS,
   SERVICE_ACCESS_KINDS,
@@ -9,10 +10,12 @@ import {
   assertStorageChunkRef,
   assertStorageObjectManifest,
   assertStorageIndexShard,
+  assertLogEventEnvelope,
   buildUnsignedEvent,
   eventIdHex,
   makeStorageChunkRef,
   makeStorageObjectManifest,
+  makeLogEventEnvelope,
   openEnvelope,
   pubkeyFromSecretKey,
   sealEnvelope,
@@ -130,4 +133,42 @@ test("storage manifest helpers validate ciphertext-addressed objects", () => {
     createdAt: 1700000000,
   };
   assertStorageIndexShard(shard);
+});
+
+test("logging helpers validate safe event envelopes", () => {
+  const event = makeLogEventEnvelope({
+    occurredAt: 1700000000,
+    producer: {
+      service: "gateway",
+      component: "managed",
+      instanceId: "gateway-1",
+    },
+    category: LOGGING.CATEGORY.SERVICE_ACCESS,
+    severity: LOGGING.SEVERITY.INFO,
+    outcome: LOGGING.OUTCOME.SUCCEEDED,
+    subject: {
+      kind: "service",
+      id: "nvr",
+      display: "Security Cameras",
+    },
+    correlation: {
+      correlationId: "corr-1",
+    },
+    tags: ["service-access"],
+    safeFacts: {
+      service: "nvr",
+      operation: "request",
+      result: "accepted",
+    },
+  });
+  assertLogEventEnvelope(event);
+
+  const bad = structuredClone(event);
+  bad.safeFacts.serviceCapability = "secret";
+  bad.eventId = event.eventId;
+  assert.throws(() => assertLogEventEnvelope(bad), /unsafe log safe fact key/);
+
+  const mismatch = structuredClone(event);
+  mismatch.eventId = "bad";
+  assert.throws(() => assertLogEventEnvelope(mismatch), /log event id mismatch/);
 });

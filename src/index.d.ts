@@ -8,6 +8,7 @@ export const SERVICE_ACCESS_EVENTS: Readonly<Record<string, string>>;
 export const SERVICE_ACCESS_KINDS: Readonly<Record<string, string>>;
 export const STORAGE: Readonly<Record<string, string>>;
 export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
+export const LOGGING: Readonly<Record<string, unknown>>;
 
 export type CaacRecipient = {
   recipientPk: string;
@@ -138,6 +139,66 @@ export type StorageAvailabilityRef = {
   expiresAt?: number;
 };
 
+export type LogSeverity = "debug" | "info" | "notice" | "warning" | "error" | "critical";
+export type LogCategory =
+  | "system"
+  | "serviceAccess"
+  | "serviceSignal"
+  | "hostedService"
+  | "gatewayControl"
+  | "cameraDevice"
+  | "mediaProjection"
+  | "recording"
+  | "worker"
+  | "storage"
+  | "logging";
+export type LogOutcome = "observed" | "succeeded" | "failed" | "denied" | "degraded" | "recovered";
+export type LogRedactionClass = "safe" | "redacted" | "encryptedDetail" | "sensitiveOmitted";
+
+export type LogProducerRef = {
+  service: string;
+  component: string;
+  instanceId?: string;
+  gatewayPk?: string;
+  servicePk?: string;
+};
+
+export type LogSubjectRef = {
+  kind: string;
+  id?: string;
+  display?: string;
+};
+
+export type LogResourceRef = {
+  kind: string;
+  id?: string;
+  display?: string;
+};
+
+export type LogCorrelationRef = {
+  correlationId: string;
+  causationId?: string;
+  traceId?: string;
+};
+
+export type LogEventEnvelope = {
+  schemaVersion: 1;
+  eventId: string;
+  occurredAt: number;
+  receivedAt?: number;
+  producer: LogProducerRef;
+  category: LogCategory;
+  severity: LogSeverity;
+  outcome: LogOutcome;
+  subject?: LogSubjectRef;
+  resource?: LogResourceRef;
+  correlation?: LogCorrelationRef;
+  tags?: string[];
+  safeFacts: Record<string, unknown>;
+  detailRef?: EncryptedDetailRef;
+  redaction?: LogRedactionClass[];
+};
+
 export function bytesToHex(bytes: Uint8Array): string;
 export function hexToBytes(hex: string): Uint8Array;
 export function utf8ToBytes(value: string): Uint8Array;
@@ -192,3 +253,7 @@ export function makeStorageObjectManifest(input?: {
   encryptionAlg?: string;
 }): StorageObjectManifest;
 export function assertStorageIndexShard(shard: unknown): StorageIndexShard;
+export function logEventId(event: Partial<LogEventEnvelope>): string;
+export function rejectSensitiveSafeFacts(value: unknown): void;
+export function assertLogEventEnvelope(event: unknown): LogEventEnvelope;
+export function makeLogEventEnvelope(input: Partial<LogEventEnvelope>): LogEventEnvelope;
