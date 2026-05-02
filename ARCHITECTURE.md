@@ -10,6 +10,7 @@
 - broker message names and payload validators
 - service-access capability/status/request/signal contract shapes
 - CAAC Storage primitive records for encrypted content-addressed objects, encrypted index shards, key grants, pins, availability refs, graph edges, and encrypted detail refs
+- CAAC Logging primitive records for safe structured event envelopes, redaction classes, correlation refs, and encrypted detail references
 - shared record codecs where multiple repos previously duplicated the same shape
 - cross-language test vectors
 
@@ -20,6 +21,7 @@
 - gateway admission policy
 - NVR camera/media policy
 - storage service implementation or object policy
+- logging service observation, storage, query, or projection policy
 - app controllers or domain navigation
 
 ## CAAC v1
@@ -92,3 +94,15 @@ Protocol owns the reusable record shapes:
 - `EncryptedDetailRef`
 
 Storage data and index payloads are encrypted with symmetric keys. Those keys are wrapped and granted through CAAC capabilities, while key-wallet authority stays outside the storage service. Storage hosts and intermediaries may pin, sync, and share ciphertext without learning plaintext metadata or long-lived account secrets.
+
+## CAAC Logging
+
+Protocol owns shared log/event record shapes and validation only. Logging is blind by default:
+
+- producers create safe facts from their own plaintext context
+- producers encrypt sensitive detail before it enters a logging surface
+- log records carry searchable safe facts plus optional `EncryptedDetailRef`
+- `constitute-logging` must not receive or return decrypted detail
+- client/device wallets or explicitly authorized analyzer services handle decrypt/view
+
+Sensitive payloads, credentials, CAAC request bodies, service capability values, decrypted request bodies, raw secret material, and credential-bearing URLs are never valid safe facts.
