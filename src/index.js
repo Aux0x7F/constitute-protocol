@@ -55,6 +55,46 @@ export const STORAGE_KEY_GRANULARITY = Object.freeze({
   FIELD_FAMILY: "fieldFamily",
 });
 
+export const LOGGING = Object.freeze({
+  SCHEMA_VERSION: 1,
+  EVENT_ID_PREFIX: "constitute-log-event-v1",
+  SEVERITY: Object.freeze({
+    DEBUG: "debug",
+    INFO: "info",
+    NOTICE: "notice",
+    WARNING: "warning",
+    ERROR: "error",
+    CRITICAL: "critical",
+  }),
+  CATEGORY: Object.freeze({
+    SYSTEM: "system",
+    SERVICE_ACCESS: "serviceAccess",
+    SERVICE_SIGNAL: "serviceSignal",
+    HOSTED_SERVICE: "hostedService",
+    GATEWAY_CONTROL: "gatewayControl",
+    CAMERA_DEVICE: "cameraDevice",
+    MEDIA_PROJECTION: "mediaProjection",
+    RECORDING: "recording",
+    WORKER: "worker",
+    STORAGE: "storage",
+    LOGGING: "logging",
+  }),
+  OUTCOME: Object.freeze({
+    OBSERVED: "observed",
+    SUCCEEDED: "succeeded",
+    FAILED: "failed",
+    DENIED: "denied",
+    DEGRADED: "degraded",
+    RECOVERED: "recovered",
+  }),
+  REDACTION: Object.freeze({
+    SAFE: "safe",
+    REDACTED: "redacted",
+    ENCRYPTED_DETAIL: "encryptedDetail",
+    SENSITIVE_OMITTED: "sensitiveOmitted",
+  }),
+});
+
 export function bytesToHex(bytes) {
   return nobleBytesToHex(bytes);
 }
@@ -415,4 +455,105 @@ export function assertStorageIndexShard(shard) {
   if (!String(shard.ciphertextHash || "").trim()) throw new Error("storage index shard missing ciphertext hash");
   if (!Array.isArray(shard.chunks) || shard.chunks.length === 0) throw new Error("storage index shard has no chunks");
   return shard;
+}
+
+const SENSITIVE_SAFE_FACT_KEY_FRAGMENTS = [
+  "argv",
+  "body",
+  "caac",
+  "capability",
+  "credential",
+  "decrypted",
+  "password",
+  "payload",
+  "private",
+  "raw",
+  "rtsp",
+  "secret",
+  "servicecapability",
+  "token",
+];
+
+function withoutLogComputedFields(event) {
+  const clone = structuredClone(event || {});
+  delete clone.eventId;
+  delete clone.receivedAt;
+  return clone;
+}
+
+export function logEventId(event) {
+  return sha256Hex(`${LOGGING.EVENT_ID_PREFIX}|${canonicalJson(withoutLogComputedFields(event))}`);
+}
+
+export function rejectSensitiveSafeFacts(value) {
+  if (Array.isArray(value)) {
+    for (const item of value) rejectSensitiveSafeFacts(item);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  for (const [key, next] of Object.entries(value)) {
+    const lowered = String(key).toLowerCase();
+    if (SENSITIVE_SAFE_FACT_KEY_FRAGMENTS.some((fragment) => lowered.includes(fragment))) {
+      throw new Error(`unsafe log safe fact key: ${key}`);
+    }
+    rejectSensitiveSafeFacts(next);
+  }
+}
+
+export function assertLogEventEnvelope(event) {
+  if (!event || typeof event !== "object") throw new Error("log event must be an object");
+  if (event.schemaVersion !== LOGGING.SCHEMA_VERSION) throw new Error("unsupported log schema version");
+  if (!String(event.eventId || "").trim()) throw new Error("log event missing event id");
+  if (!Number(event.occurredAt || 0)) throw new Error("log event missing occurred timestamp");
+  if (!event.producer || typeof event.producer !== "object") throw new Error("log event missing producer");
+  if (!String(event.producer.service || "").trim()) throw new Error("log event missing producer service");
+  if (!String(event.producer.component || "").trim()) throw new Error("log event missing producer component");
+  const severities = Object.values(LOGGING.SEVERITY);
+  const categories = Object.values(LOGGING.CATEGORY);
+  const outcomes = Object.values(LOGGING.OUTCOME);
+  if (!severities.includes(event.severity)) throw new Error("invalid log severity");
+  if (!categories.includes(event.category)) throw new Error("invalid log category");
+  if (!outcomes.includes(event.outcome)) throw new Error("invalid log outcome");
+  if (!event.safeFacts || typeof event.safeFacts !== "object" || Array.isArray(event.safeFacts)) {
+    throw new Error("log safe facts must be an object");
+  }
+  rejectSensitiveSafeFacts(event.safeFacts);
+  if (event.eventId !== logEventId(event)) throw new Error("log event id mismatch");
+  return event;
+}
+
+export function makeLogEventEnvelope({
+  occurredAt = nowSeconds(),
+  receivedAt,
+  producer,
+  category = LOGGING.CATEGORY.SYSTEM,
+  severity = LOGGING.SEVERITY.INFO,
+  outcome = LOGGING.OUTCOME.OBSERVED,
+  subject,
+  resource,
+  correlation,
+  tags = [],
+  safeFacts = {},
+  detailRef,
+  redaction = [LOGGING.REDACTION.SAFE],
+} = {}) {
+  const event = {
+    schemaVersion: LOGGING.SCHEMA_VERSION,
+    eventId: "",
+    occurredAt,
+    producer,
+    category,
+    severity,
+    outcome,
+    tags,
+    safeFacts,
+    redaction,
+  };
+  if (receivedAt !== undefined) event.receivedAt = receivedAt;
+  if (subject) event.subject = subject;
+  if (resource) event.resource = resource;
+  if (correlation) event.correlation = correlation;
+  if (detailRef) event.detailRef = detailRef;
+  event.eventId = logEventId(event);
+  return assertLogEventEnvelope(event);
 }
