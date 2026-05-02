@@ -40,6 +40,21 @@ export const SERVICE_ACCESS_KINDS = Object.freeze({
   CLOSE: "service_access.close",
 });
 
+export const STORAGE = Object.freeze({
+  OBJECT_HASH_ALG: "sha256-ciphertext-v1",
+  CHUNK_HASH_ALG: "sha256-ciphertext-v1",
+  ENCRYPTION_ALG_XCHACHA20POLY1305: "xchacha20poly1305",
+  CAAC_KIND_KEY_GRANT: "storage.key_grant",
+  CAAC_KIND_SERVICE_ACCESS: "storage.service_access",
+});
+
+export const STORAGE_KEY_GRANULARITY = Object.freeze({
+  CONTAINER: "container",
+  SHARD: "shard",
+  ENTRY: "entry",
+  FIELD_FAMILY: "fieldFamily",
+});
+
 export function bytesToHex(bytes) {
   return nobleBytesToHex(bytes);
 }
@@ -312,4 +327,92 @@ export function makeServiceAccessContext({
     expiresAt,
   };
   return assertServiceAccessContext(context);
+}
+
+export function storageCiphertextHash(bytes) {
+  return sha256Hex(bytes instanceof Uint8Array ? bytes : utf8ToBytes(String(bytes ?? "")));
+}
+
+export function storageObjectId({ containerId = "", contentHash = "" } = {}) {
+  return sha256Hex(`constitute-storage-object-v1|${String(containerId).trim()}|${String(contentHash).trim()}`);
+}
+
+export function storageChunkId(hash) {
+  return sha256Hex(`constitute-storage-chunk-v1|${String(hash || "").trim()}`);
+}
+
+export function makeStorageChunkRef({ ciphertext, chunkId } = {}) {
+  const bytes = ciphertext instanceof Uint8Array ? ciphertext : utf8ToBytes(String(ciphertext ?? ""));
+  const hash = storageCiphertextHash(bytes);
+  return {
+    chunkId: chunkId || storageChunkId(hash),
+    hash,
+    hashAlg: STORAGE.CHUNK_HASH_ALG,
+    size: bytes.length,
+  };
+}
+
+export function assertStorageChunkRef(chunk, ciphertext) {
+  if (!chunk || typeof chunk !== "object") throw new Error("storage chunk ref must be an object");
+  if (chunk.hashAlg !== STORAGE.CHUNK_HASH_ALG) throw new Error("unsupported storage chunk hash algorithm");
+  const bytes = ciphertext instanceof Uint8Array ? ciphertext : utf8ToBytes(String(ciphertext ?? ""));
+  if (Number(chunk.size) !== bytes.length) throw new Error("storage chunk size mismatch");
+  if (chunk.hash !== storageCiphertextHash(bytes)) throw new Error("storage chunk hash mismatch");
+  if (chunk.chunkId !== storageChunkId(chunk.hash)) throw new Error("storage chunk id mismatch");
+  return chunk;
+}
+
+export function assertStorageObjectManifest(manifest) {
+  if (!manifest || typeof manifest !== "object") throw new Error("storage manifest must be an object");
+  if (!String(manifest.containerId || "").trim()) throw new Error("storage manifest missing container id");
+  if (!String(manifest.contentHash || "").trim()) throw new Error("storage manifest missing content hash");
+  if (manifest.hashAlg !== STORAGE.OBJECT_HASH_ALG) throw new Error("unsupported storage object hash algorithm");
+  if (manifest.encryptionAlg !== STORAGE.ENCRYPTION_ALG_XCHACHA20POLY1305) {
+    throw new Error("unsupported storage object encryption algorithm");
+  }
+  if (!String(manifest.keyRef || "").trim()) throw new Error("storage manifest missing key ref");
+  if (!Array.isArray(manifest.chunks) || manifest.chunks.length === 0) {
+    throw new Error("storage manifest has no chunks");
+  }
+  if (manifest.objectId !== storageObjectId({ containerId: manifest.containerId, contentHash: manifest.contentHash })) {
+    throw new Error("storage object id mismatch");
+  }
+  return manifest;
+}
+
+export function makeStorageObjectManifest({
+  containerId,
+  keyRef,
+  chunks,
+  createdAt = nowSeconds(),
+  mediaType = "application/octet-stream",
+  tags = [],
+  encryptionAlg = STORAGE.ENCRYPTION_ALG_XCHACHA20POLY1305,
+} = {}) {
+  const chunkRefs = chunks || [];
+  const contentHash = storageCiphertextHash(utf8ToBytes(canonicalJson(chunkRefs.map((chunk) => chunk.hash))));
+  const manifest = {
+    objectId: storageObjectId({ containerId, contentHash }),
+    containerId,
+    contentHash,
+    hashAlg: STORAGE.OBJECT_HASH_ALG,
+    encryptionAlg,
+    keyRef,
+    chunks: chunkRefs,
+    createdAt,
+    mediaType,
+    tags,
+  };
+  return assertStorageObjectManifest(manifest);
+}
+
+export function assertStorageIndexShard(shard) {
+  if (!shard || typeof shard !== "object") throw new Error("storage index shard must be an object");
+  if (!String(shard.shardId || "").trim()) throw new Error("storage index shard missing id");
+  if (!String(shard.containerId || "").trim()) throw new Error("storage index shard missing container id");
+  if (!String(shard.keyRef || "").trim()) throw new Error("storage index shard missing key ref");
+  if (shard.hashAlg !== STORAGE.OBJECT_HASH_ALG) throw new Error("unsupported storage index shard hash algorithm");
+  if (!String(shard.ciphertextHash || "").trim()) throw new Error("storage index shard missing ciphertext hash");
+  if (!Array.isArray(shard.chunks) || shard.chunks.length === 0) throw new Error("storage index shard has no chunks");
+  return shard;
 }

@@ -5,11 +5,19 @@ import {
   ReplayCache,
   SERVICE_ACCESS_EVENTS,
   SERVICE_ACCESS_KINDS,
+  STORAGE,
+  assertStorageChunkRef,
+  assertStorageObjectManifest,
+  assertStorageIndexShard,
   buildUnsignedEvent,
   eventIdHex,
+  makeStorageChunkRef,
+  makeStorageObjectManifest,
   openEnvelope,
   pubkeyFromSecretKey,
   sealEnvelope,
+  storageCiphertextHash,
+  storageObjectId,
   signEvent,
   verifyEnvelopeSignature,
   verifyEvent,
@@ -91,4 +99,35 @@ test("exports current service-access vocabulary only", () => {
   assert.equal(SERVICE_ACCESS_EVENTS.SIGNAL, "gateway_service_signal");
   assert.equal(SERVICE_ACCESS_EVENTS.GRANT, "gateway.service_access");
   assert.equal(SERVICE_ACCESS_KINDS.INVOCATION, "service_access.invocation");
+});
+
+test("storage manifest helpers validate ciphertext-addressed objects", () => {
+  const ciphertext = new TextEncoder().encode("encrypted bytes");
+  const chunk = makeStorageChunkRef({ ciphertext });
+  assertStorageChunkRef(chunk, ciphertext);
+  const manifest = makeStorageObjectManifest({
+    containerId: "container-a",
+    keyRef: "container-a:key",
+    chunks: [chunk],
+    createdAt: 1700000000,
+    tags: ["proof"],
+  });
+  assert.equal(manifest.hashAlg, STORAGE.OBJECT_HASH_ALG);
+  assert.equal(manifest.encryptionAlg, STORAGE.ENCRYPTION_ALG_XCHACHA20POLY1305);
+  assert.equal(manifest.objectId, storageObjectId({ containerId: "container-a", contentHash: manifest.contentHash }));
+  assertStorageObjectManifest(manifest);
+
+  const shard = {
+    shardId: "shard-a",
+    containerId: "container-a",
+    shardType: "safe-log-facts",
+    keyRef: "container-a:shard-a",
+    ciphertextHash: storageCiphertextHash(ciphertext),
+    hashAlg: STORAGE.OBJECT_HASH_ALG,
+    chunks: [chunk],
+    objectRefs: [manifest.objectId],
+    graphEdges: [],
+    createdAt: 1700000000,
+  };
+  assertStorageIndexShard(shard);
 });

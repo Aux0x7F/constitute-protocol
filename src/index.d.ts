@@ -6,6 +6,8 @@ export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_ACCESS_EVENTS: Readonly<Record<string, string>>;
 export const SERVICE_ACCESS_KINDS: Readonly<Record<string, string>>;
+export const STORAGE: Readonly<Record<string, string>>;
+export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
 
 export type CaacRecipient = {
   recipientPk: string;
@@ -36,6 +38,104 @@ export type ServiceAccessContext = {
   serviceCapability: CaacEnvelope;
   issuedAt: number;
   expiresAt: number;
+};
+
+export type StorageKeyGranularity = "container" | "shard" | "entry" | "fieldFamily";
+
+export type StorageContainer = {
+  containerId: string;
+  ownerPk: string;
+  createdAt: number;
+  keyGranularity?: StorageKeyGranularity[];
+  defaultRetentionClass?: string;
+  labels?: string[];
+};
+
+export type StorageChunkRef = {
+  chunkId: string;
+  hash: string;
+  hashAlg: string;
+  size: number;
+};
+
+export type StorageObjectManifest = {
+  objectId: string;
+  containerId: string;
+  contentHash: string;
+  hashAlg: string;
+  encryptionAlg: string;
+  keyRef: string;
+  chunks: StorageChunkRef[];
+  createdAt: number;
+  mediaType?: string;
+  logicalDeletedAt?: number;
+  tags?: string[];
+};
+
+export type EncryptedDetailRef = {
+  objectId: string;
+  containerId: string;
+  keyRef: string;
+  manifestHash: string;
+  summaryTags?: string[];
+};
+
+export type StorageGraphEdge = {
+  edgeId: string;
+  containerId: string;
+  fromRef: string;
+  relation: string;
+  toRef: string;
+  detailRef?: EncryptedDetailRef;
+  createdAt: number;
+};
+
+export type StorageIndexShard = {
+  shardId: string;
+  containerId: string;
+  shardType: string;
+  keyRef: string;
+  ciphertextHash: string;
+  hashAlg: string;
+  chunks: StorageChunkRef[];
+  objectRefs?: string[];
+  graphEdges?: StorageGraphEdge[];
+  createdAt: number;
+};
+
+export type StorageKeyGrant = {
+  grantId: string;
+  containerId: string;
+  keyRef: string;
+  scope: string;
+  recipientPk: string;
+  issuerPk: string;
+  wrappingAlg: string;
+  wrappedKey: string;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type StoragePinLease = {
+  pinId: string;
+  containerId: string;
+  objectId?: string;
+  chunkHash?: string;
+  pinnedBy: string;
+  retentionClass: string;
+  createdAt: number;
+  expiresAt?: number;
+  lastAccessedAt?: number;
+};
+
+export type StorageAvailabilityRef = {
+  availabilityId: string;
+  storageHostId: string;
+  retentionClass: string;
+  objectId?: string;
+  chunkHash?: string;
+  exportedAt: number;
+  expiresAt?: number;
 };
 
 export function bytesToHex(bytes: Uint8Array): string;
@@ -76,3 +176,19 @@ export class ReplayCache {
 export function serviceAccessContextId(input?: Record<string, unknown>): string;
 export function assertServiceAccessContext(value: unknown): ServiceAccessContext;
 export function makeServiceAccessContext(input: Partial<ServiceAccessContext>): ServiceAccessContext;
+export function storageCiphertextHash(bytes: string | Uint8Array): string;
+export function storageObjectId(input?: { containerId?: string; contentHash?: string }): string;
+export function storageChunkId(hash: string): string;
+export function makeStorageChunkRef(input?: { ciphertext?: string | Uint8Array; chunkId?: string }): StorageChunkRef;
+export function assertStorageChunkRef(chunk: unknown, ciphertext: string | Uint8Array): StorageChunkRef;
+export function assertStorageObjectManifest(manifest: unknown): StorageObjectManifest;
+export function makeStorageObjectManifest(input?: {
+  containerId?: string;
+  keyRef?: string;
+  chunks?: StorageChunkRef[];
+  createdAt?: number;
+  mediaType?: string;
+  tags?: string[];
+  encryptionAlg?: string;
+}): StorageObjectManifest;
+export function assertStorageIndexShard(shard: unknown): StorageIndexShard;
