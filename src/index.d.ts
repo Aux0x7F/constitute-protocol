@@ -4,11 +4,14 @@ export const DEFAULT_CAPABILITY_TTL_SECONDS: number;
 export const MAX_CAPABILITY_TTL_SECONDS: number;
 export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
+export const SERVICE_EXCHANGE: Readonly<Record<string, unknown>>;
 export const SERVICE_ACCESS_EVENTS: Readonly<Record<string, string>>;
 export const SERVICE_ACCESS_KINDS: Readonly<Record<string, string>>;
 export const STORAGE: Readonly<Record<string, string>>;
 export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
 export const LOGGING: Readonly<Record<string, unknown>>;
+export const PROJECTION: Readonly<Record<string, unknown>>;
+export const DIAGNOSTICS: Readonly<Record<string, unknown>>;
 
 export type CaacRecipient = {
   recipientPk: string;
@@ -154,6 +157,8 @@ export type LogCategory =
   | "logging";
 export type LogOutcome = "observed" | "succeeded" | "failed" | "denied" | "degraded" | "recovered";
 export type LogRedactionClass = "safe" | "redacted" | "encryptedDetail" | "sensitiveOmitted";
+export type LogVerbosityClass = "critical" | "normal" | "verbose" | "noise";
+export type LogRetentionClass = "forever" | "long" | "rolling" | "short" | "ephemeral";
 
 export type LogProducerRef = {
   service: string;
@@ -197,6 +202,139 @@ export type LogEventEnvelope = {
   safeFacts: Record<string, unknown>;
   detailRef?: EncryptedDetailRef;
   redaction?: LogRedactionClass[];
+};
+
+export type ProjectionFreshnessState = "fresh" | "stale" | "missing" | "error";
+
+export type ProjectionCursor = {
+  value: string;
+  updatedAt: number;
+};
+
+export type ProjectionFreshness = {
+  state: ProjectionFreshnessState;
+  updatedAt: number;
+  staleAfter?: number;
+  reason?: string;
+};
+
+export type ProjectionChannel = {
+  channelId: string;
+  service: string;
+  projectionKind: string;
+  capabilityScope: string;
+};
+
+export type ServiceProjectionRequest = {
+  requestId: string;
+  channelId: string;
+  service: string;
+  cursor?: string;
+  limit?: number;
+  filters?: Record<string, unknown>;
+  policy?: ProjectionPolicy;
+};
+
+export type HostedServiceDescriptor = {
+  service: string;
+  servicePk: string;
+  hostGatewayPk: string;
+  display?: Record<string, unknown>;
+  capabilities?: string[];
+  projectionChannels?: string[];
+  invocationKinds?: string[];
+  transportHints?: Record<string, unknown>;
+  healthSummary?: Record<string, unknown>;
+};
+
+export type ServiceExchangeFrame = {
+  frameId: string;
+  schemaVersion: number;
+  kind: string;
+  issuerPk: string;
+  recipientServicePk: string;
+  hostGatewayPk: string;
+  issuedAt: number;
+  expiresAt: number;
+  traceId?: string;
+  requestId?: string;
+  correlationId?: string;
+  routeHint?: Record<string, unknown>;
+  sealedPayload?: Record<string, unknown>;
+  signature: string;
+};
+
+export type ProjectionRecord = {
+  channelId: string;
+  service: string;
+  servicePk: string;
+  producer?: Record<string, unknown>;
+  cursor?: ProjectionCursor;
+  freshness: ProjectionFreshness;
+  scope?: Record<string, unknown>;
+  payloadSchema?: string;
+  payload: Record<string, unknown>;
+  safeFacts?: Record<string, unknown>;
+  encryptedDetailRefs?: unknown[];
+  diagnostics?: unknown[];
+};
+
+export type ProjectionSyncState = "idle" | "syncing" | "degraded" | "stale" | "blocked" | "completeEnough";
+
+export type ProjectionPolicy = {
+  policyId: string;
+  channelId: string;
+  service: string;
+  scope?: Record<string, unknown>;
+  rollingWindowHours?: number;
+  maxVerbosityClass?: LogVerbosityClass;
+  minSeverity?: LogSeverity;
+  excludedVerbosityClasses?: LogVerbosityClass[];
+  syncDepthTarget?: Record<string, unknown>;
+  retentionTarget?: Record<string, unknown>;
+};
+
+export type ProjectionCoverage = {
+  materializedCount: number;
+  targetCount?: number;
+  completionRatio: number;
+  completeSeverityBands?: string[];
+  oldestObservedAt?: number;
+  newestObservedAt?: number;
+  syncState: ProjectionSyncState;
+};
+
+export type ProjectionObserverUpdate = {
+  projectionKey: string;
+  changedCount: number;
+  coverage: ProjectionCoverage;
+  freshness: ProjectionFreshness;
+  diagnostics?: unknown[];
+};
+
+export type DiagnosticEvent = {
+  diagnosticId: string;
+  schemaVersion: number;
+  occurredAt: number;
+  level: string;
+  surface?: string;
+  component?: string;
+  operation: string;
+  stage?: string;
+  traceId?: string;
+  requestId?: string;
+  correlationId?: string;
+  channelId?: string;
+  service?: string;
+  servicePk?: string;
+  hostGatewayPk?: string;
+  routeKind?: string;
+  durationMs?: number;
+  counts?: Record<string, number>;
+  safeFacts?: Record<string, unknown>;
+  errorCode?: string;
+  errorMessage?: string;
+  encryptedDetailRefs?: unknown[];
 };
 
 export function bytesToHex(bytes: Uint8Array): string;
@@ -257,3 +395,19 @@ export function logEventId(event: Partial<LogEventEnvelope>): string;
 export function rejectSensitiveSafeFacts(value: unknown): void;
 export function assertLogEventEnvelope(event: unknown): LogEventEnvelope;
 export function makeLogEventEnvelope(input: Partial<LogEventEnvelope>): LogEventEnvelope;
+export function rejectUnsafeSafeFacts(value: unknown): void;
+export function assertHostedServiceDescriptor(descriptor: unknown): HostedServiceDescriptor;
+export function assertServiceExchangeFrame(frame: unknown): ServiceExchangeFrame;
+export function makeServiceExchangeFrame(input: Partial<ServiceExchangeFrame>): ServiceExchangeFrame;
+export function assertProjectionChannelId(channelId: unknown, descriptor?: Partial<HostedServiceDescriptor>): string;
+export function assertProjectionFreshness(freshness: unknown): ProjectionFreshness;
+export function assertServiceProjectionRequest(request: unknown, descriptor?: Partial<HostedServiceDescriptor>): ServiceProjectionRequest;
+export function assertProjectionPolicy(policy: unknown, descriptor?: Partial<HostedServiceDescriptor>): ProjectionPolicy;
+export function makeProjectionPolicy(input: Partial<ProjectionPolicy>): ProjectionPolicy;
+export function assertProjectionCoverage(coverage: unknown): ProjectionCoverage;
+export function makeProjectionCoverage(input: Partial<ProjectionCoverage>): ProjectionCoverage;
+export function assertProjectionObserverUpdate(update: unknown): ProjectionObserverUpdate;
+export function makeProjectionObserverUpdate(input: Partial<ProjectionObserverUpdate>): ProjectionObserverUpdate;
+export function assertProjectionRecord(result: unknown, descriptor?: Partial<HostedServiceDescriptor>): ProjectionRecord;
+export function makeProjectionRecord(input: Partial<ProjectionRecord>): ProjectionRecord;
+export function assertDiagnosticEvent(event: unknown): DiagnosticEvent;
