@@ -3,7 +3,9 @@ pub mod caac;
 pub mod crypto;
 pub mod logging;
 pub mod nostr;
+pub mod projection;
 pub mod records;
+pub mod service;
 pub mod service_access;
 pub mod storage;
 
@@ -12,6 +14,8 @@ pub use caac::*;
 pub use crypto::*;
 pub use logging::*;
 pub use nostr::*;
+pub use projection::*;
 pub use records::*;
+pub use service::*;
 pub use service_access::*;
 pub use storage::*;

@@ -57,6 +57,25 @@ pub enum LogRedactionClass {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub enum LogVerbosityClass {
+    Critical,
+    Normal,
+    Verbose,
+    Noise,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum LogRetentionClass {
+    Forever,
+    Long,
+    Rolling,
+    Short,
+    Ephemeral,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct LogProducerRef {
     pub service: String,
     pub component: String,

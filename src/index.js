@@ -18,6 +18,28 @@ export const BROKER = Object.freeze({
   SERVICE_ACCESS_CONTEXT_GET: "serviceAccessContext.get",
   SERVICE_ACCESS_CONTEXT_PUT: "serviceAccessContext.put",
   SERVICE_ACCESS_CONTEXT_DELETE: "serviceAccessContext.delete",
+  PROJECTION_GET: "projection.get",
+  PROJECTION_PUT: "projection.put",
+  PROJECTION_POLICY_PUT: "projection.policy.put",
+  SERVICE_PROJECTION_REQUEST: "service.projection.request",
+  SERVICE_PROJECTION_RESPONSE: "service.projection.response",
+});
+
+export const SERVICE_EXCHANGE = Object.freeze({
+  SCHEMA_VERSION: 1,
+  KIND: Object.freeze({
+    DESCRIBE_REQUEST: "service.describe.request",
+    DESCRIBE_RESPONSE: "service.describe.response",
+    PROJECTION_REQUEST: "service.projection.request",
+    PROJECTION_RESPONSE: "service.projection.response",
+    CONTROL_REQUEST: "service.control.request",
+    CONTROL_RESPONSE: "service.control.response",
+    INVOKE_REQUEST: "service.invoke.request",
+    INVOKE_RESPONSE: "service.invoke.response",
+    WATCH_REQUEST: "service.watch.request",
+    WATCH_EVENT: "service.watch.event",
+    CLOSE: "service.close",
+  }),
 });
 
 export const SERVICE_ACCESS_EVENTS = Object.freeze({
@@ -92,6 +114,53 @@ export const LOGGING = Object.freeze({
     REDACTED: "redacted",
     ENCRYPTED_DETAIL: "encryptedDetail",
     SENSITIVE_OMITTED: "sensitiveOmitted",
+  }),
+  VERBOSITY_CLASS: Object.freeze({
+    CRITICAL: "critical",
+    NORMAL: "normal",
+    VERBOSE: "verbose",
+    NOISE: "noise",
+  }),
+  RETENTION_CLASS: Object.freeze({
+    FOREVER: "forever",
+    LONG: "long",
+    ROLLING: "rolling",
+    SHORT: "short",
+    EPHEMERAL: "ephemeral",
+  }),
+});
+
+export const PROJECTION = Object.freeze({
+  CHANNEL: Object.freeze({
+    LOGGING_EVENTS: "logging.events",
+    LOGGING_HEALTH: "logging.health",
+    LOGGING_DASHBOARD: "logging.dashboard",
+    DIAGNOSTICS_EVENTS: "diagnostics.events",
+  }),
+  FRESHNESS: Object.freeze({
+    FRESH: "fresh",
+    STALE: "stale",
+    MISSING: "missing",
+    ERROR: "error",
+  }),
+  SYNC_STATE: Object.freeze({
+    IDLE: "idle",
+    SYNCING: "syncing",
+    DEGRADED: "degraded",
+    STALE: "stale",
+    BLOCKED: "blocked",
+    COMPLETE_ENOUGH: "completeEnough",
+  }),
+});
+
+export const DIAGNOSTICS = Object.freeze({
+  SCHEMA_VERSION: 1,
+  CHANNEL_EVENTS: "diagnostics.events",
+  LEVEL: Object.freeze({
+    DEBUG: "debug",
+    INFO: "info",
+    WARN: "warn",
+    ERROR: "error",
   }),
 });
 
@@ -556,4 +625,298 @@ export function makeLogEventEnvelope({
   if (detailRef) event.detailRef = detailRef;
   event.eventId = logEventId(event);
   return assertLogEventEnvelope(event);
+}
+
+const UNSAFE_SAFE_FACT_KEY_RE = /(password|credential|secret|token|capability|servicecapability|privatekey|secretkey|rtspurl|authorization|rawpayload|requestbody)/i;
+const UNSAFE_SAFE_FACT_VALUE_RE = /(rtsp:\/\/|authorization:|servicecapability|-----begin)/i;
+
+export function rejectUnsafeSafeFacts(value, path = "") {
+  if (value == null) return;
+  if (Array.isArray(value)) {
+    for (const item of value) rejectUnsafeSafeFacts(item, path);
+    return;
+  }
+  if (typeof value === "object") {
+    for (const [key, child] of Object.entries(value)) {
+      if (UNSAFE_SAFE_FACT_KEY_RE.test(key)) throw new Error(`unsafe safe fact key: ${path}${key}`);
+      rejectUnsafeSafeFacts(child, `${path}${key}.`);
+    }
+    return;
+  }
+  if (typeof value === "string" && UNSAFE_SAFE_FACT_VALUE_RE.test(value)) {
+    throw new Error("unsafe safe fact value");
+  }
+}
+
+export function assertHostedServiceDescriptor(descriptor) {
+  if (!descriptor || typeof descriptor !== "object") throw new Error("service descriptor must be an object");
+  if (!String(descriptor.service || "").trim()) throw new Error("service descriptor missing service");
+  if (!String(descriptor.servicePk || "").trim()) throw new Error("service descriptor missing servicePk");
+  if (!String(descriptor.hostGatewayPk || "").trim()) throw new Error("service descriptor missing hostGatewayPk");
+  if (descriptor.projectionChannels !== undefined && !Array.isArray(descriptor.projectionChannels)) {
+    throw new Error("service descriptor projectionChannels must be an array");
+  }
+  for (const channel of descriptor.projectionChannels || []) {
+    if (!String(channel || "").trim()) throw new Error("service descriptor contains empty projection channel");
+  }
+  return descriptor;
+}
+
+export function assertServiceExchangeFrame(frame) {
+  if (!frame || typeof frame !== "object") throw new Error("service exchange frame must be an object");
+  if (!String(frame.frameId || "").trim()) throw new Error("service exchange missing frameId");
+  if (!Number(frame.schemaVersion || 0)) throw new Error("service exchange missing schemaVersion");
+  if (!Object.values(SERVICE_EXCHANGE.KIND).includes(String(frame.kind || "").trim())) {
+    throw new Error("unsupported service exchange kind");
+  }
+  if (!String(frame.issuerPk || "").trim()) throw new Error("service exchange missing issuerPk");
+  if (!String(frame.recipientServicePk || "").trim()) throw new Error("service exchange missing recipientServicePk");
+  if (!String(frame.hostGatewayPk || "").trim()) throw new Error("service exchange missing hostGatewayPk");
+  if (!Number(frame.issuedAt || 0) || !Number(frame.expiresAt || 0) || Number(frame.expiresAt) <= Number(frame.issuedAt)) {
+    throw new Error("service exchange invalid time bounds");
+  }
+  if (!String(frame.signature || "").trim()) throw new Error("service exchange missing signature");
+  return frame;
+}
+
+export function makeServiceExchangeFrame(input = {}) {
+  const now = nowSeconds();
+  return assertServiceExchangeFrame({
+    frameId: String(input.frameId || `service-frame-${sha256Hex(`${now}:${Math.random()}`).slice(0, 24)}`),
+    schemaVersion: Number(input.schemaVersion || SERVICE_EXCHANGE.SCHEMA_VERSION),
+    kind: String(input.kind || ""),
+    issuerPk: String(input.issuerPk || ""),
+    recipientServicePk: String(input.recipientServicePk || ""),
+    hostGatewayPk: String(input.hostGatewayPk || ""),
+    issuedAt: Number(input.issuedAt || now),
+    expiresAt: Number(input.expiresAt || now + DEFAULT_REQUEST_TTL_SECONDS),
+    ...(input.traceId ? { traceId: String(input.traceId) } : {}),
+    ...(input.requestId ? { requestId: String(input.requestId) } : {}),
+    ...(input.correlationId ? { correlationId: String(input.correlationId) } : {}),
+    routeHint: input.routeHint && typeof input.routeHint === "object" ? input.routeHint : {},
+    sealedPayload: input.sealedPayload && typeof input.sealedPayload === "object" ? input.sealedPayload : {},
+    signature: String(input.signature || "unsigned-local-frame"),
+  });
+}
+
+export function assertProjectionChannelId(channelId, descriptor) {
+  const value = String(channelId || "").trim();
+  if (!value) throw new Error("projection missing channel id");
+  const descriptorChannels = Array.isArray(descriptor?.projectionChannels) ? descriptor.projectionChannels : [];
+  if (descriptorChannels.length > 0) {
+    if (!descriptorChannels.includes(value)) throw new Error("unsupported projection channel");
+    return value;
+  }
+  if (!Object.values(PROJECTION.CHANNEL).includes(value)) {
+    throw new Error("unsupported projection channel");
+  }
+  return value;
+}
+
+export function assertProjectionFreshness(freshness) {
+  if (!freshness || typeof freshness !== "object") throw new Error("projection freshness must be an object");
+  if (!Object.values(PROJECTION.FRESHNESS).includes(freshness.state)) throw new Error("invalid projection freshness state");
+  if (!Number(freshness.updatedAt || 0)) throw new Error("projection freshness missing updatedAt");
+  return freshness;
+}
+
+export function assertServiceProjectionRequest(request, descriptor) {
+  if (!request || typeof request !== "object") throw new Error("service projection request must be an object");
+  if (!String(request.requestId || "").trim()) throw new Error("service projection missing requestId");
+  assertProjectionChannelId(request.channelId, descriptor);
+  if (!String(request.service || "").trim()) throw new Error("service projection missing service");
+  const filters = request.filters ?? {};
+  if (!filters || typeof filters !== "object" || Array.isArray(filters)) {
+    throw new Error("service projection filters must be an object");
+  }
+  if (request.policy !== undefined) {
+    assertProjectionPolicy(request.policy, descriptor);
+    if (request.policy.channelId !== request.channelId) throw new Error("projection policy channel mismatch");
+    if (request.policy.service !== request.service) throw new Error("projection policy service mismatch");
+  }
+  return request;
+}
+
+export function assertProjectionPolicy(policy, descriptor) {
+  if (!policy || typeof policy !== "object") throw new Error("projection policy must be an object");
+  if (!String(policy.policyId || "").trim()) throw new Error("projection policy missing policyId");
+  assertProjectionChannelId(policy.channelId, descriptor);
+  if (!String(policy.service || "").trim()) throw new Error("projection policy missing service");
+  const scope = policy.scope ?? {};
+  if (!scope || typeof scope !== "object" || Array.isArray(scope)) throw new Error("projection policy scope must be an object");
+  if (policy.rollingWindowHours !== undefined && Number(policy.rollingWindowHours) <= 0) {
+    throw new Error("projection policy rolling window must be positive");
+  }
+  if (policy.maxVerbosityClass !== undefined && !Object.values(LOGGING.VERBOSITY_CLASS).includes(policy.maxVerbosityClass)) {
+    throw new Error("invalid projection policy verbosity class");
+  }
+  if (policy.minSeverity !== undefined && !Object.values(LOGGING.SEVERITY).includes(policy.minSeverity)) {
+    throw new Error("invalid projection policy severity");
+  }
+  const excluded = policy.excludedVerbosityClasses ?? [];
+  if (!Array.isArray(excluded)) throw new Error("projection policy excluded verbosity classes must be an array");
+  for (const value of excluded) {
+    if (!Object.values(LOGGING.VERBOSITY_CLASS).includes(value)) throw new Error("invalid projection policy excluded verbosity class");
+  }
+  for (const [field, value] of Object.entries({
+    syncDepthTarget: policy.syncDepthTarget ?? {},
+    retentionTarget: policy.retentionTarget ?? {},
+  })) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error(`projection policy ${field} must be an object`);
+    }
+  }
+  return policy;
+}
+
+export function makeProjectionPolicy({
+  policyId,
+  channelId,
+  service,
+  scope = {},
+  rollingWindowHours,
+  maxVerbosityClass,
+  minSeverity,
+  excludedVerbosityClasses = [],
+  syncDepthTarget = {},
+  retentionTarget = {},
+} = {}) {
+  return assertProjectionPolicy({
+    policyId,
+    channelId,
+    service,
+    scope,
+    ...(rollingWindowHours !== undefined ? { rollingWindowHours: Number(rollingWindowHours) } : {}),
+    ...(maxVerbosityClass ? { maxVerbosityClass } : {}),
+    ...(minSeverity ? { minSeverity } : {}),
+    excludedVerbosityClasses,
+    syncDepthTarget,
+    retentionTarget,
+  });
+}
+
+export function assertProjectionCoverage(coverage) {
+  if (!coverage || typeof coverage !== "object") throw new Error("projection coverage must be an object");
+  if (!Number.isFinite(Number(coverage.materializedCount)) || Number(coverage.materializedCount) < 0) {
+    throw new Error("projection coverage invalid materialized count");
+  }
+  if (coverage.targetCount !== undefined && (!Number.isFinite(Number(coverage.targetCount)) || Number(coverage.targetCount) < 0)) {
+    throw new Error("projection coverage invalid target count");
+  }
+  const ratio = Number(coverage.completionRatio);
+  if (!Number.isFinite(ratio) || ratio < 0 || ratio > 1) {
+    throw new Error("projection coverage completion ratio must be 0..1");
+  }
+  if (!Object.values(PROJECTION.SYNC_STATE).includes(coverage.syncState)) {
+    throw new Error("invalid projection sync state");
+  }
+  if (coverage.completeSeverityBands !== undefined && !Array.isArray(coverage.completeSeverityBands)) {
+    throw new Error("projection coverage severity bands must be an array");
+  }
+  return coverage;
+}
+
+export function makeProjectionCoverage({
+  materializedCount = 0,
+  targetCount,
+  completionRatio = 0,
+  completeSeverityBands = [],
+  oldestObservedAt,
+  newestObservedAt,
+  syncState = PROJECTION.SYNC_STATE.IDLE,
+} = {}) {
+  return assertProjectionCoverage({
+    materializedCount: Number(materializedCount),
+    ...(targetCount !== undefined ? { targetCount: Number(targetCount) } : {}),
+    completionRatio: Number(completionRatio),
+    completeSeverityBands,
+    ...(oldestObservedAt !== undefined ? { oldestObservedAt: Number(oldestObservedAt) } : {}),
+    ...(newestObservedAt !== undefined ? { newestObservedAt: Number(newestObservedAt) } : {}),
+    syncState,
+  });
+}
+
+export function assertProjectionObserverUpdate(update) {
+  if (!update || typeof update !== "object") throw new Error("projection observer update must be an object");
+  if (!String(update.projectionKey || "").trim()) throw new Error("projection observer update missing projection key");
+  if (!Number.isFinite(Number(update.changedCount)) || Number(update.changedCount) < 0) {
+    throw new Error("projection observer update invalid changed count");
+  }
+  assertProjectionCoverage(update.coverage);
+  assertProjectionFreshness(update.freshness);
+  if (update.diagnostics !== undefined && !Array.isArray(update.diagnostics)) {
+    throw new Error("projection observer diagnostics must be an array");
+  }
+  return update;
+}
+
+export function makeProjectionObserverUpdate({
+  projectionKey,
+  changedCount = 0,
+  coverage,
+  freshness,
+  diagnostics = [],
+} = {}) {
+  return assertProjectionObserverUpdate({
+    projectionKey,
+    changedCount: Number(changedCount),
+    coverage,
+    freshness,
+    diagnostics,
+  });
+}
+
+export function assertProjectionRecord(result, descriptor) {
+  if (!result || typeof result !== "object") throw new Error("projection record must be an object");
+  assertProjectionChannelId(result.channelId, descriptor);
+  if (!String(result.service || "").trim()) throw new Error("projection record missing service");
+  if (!String(result.servicePk || "").trim()) throw new Error("projection record missing servicePk");
+  assertProjectionFreshness(result.freshness);
+  const payload = result.payload ?? {};
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("projection record payload must be an object");
+  }
+  rejectUnsafeSafeFacts(result.safeFacts ?? {});
+  return result;
+}
+
+export function makeProjectionRecord({
+  channelId,
+  service,
+  servicePk,
+  producer = {},
+  cursor,
+  freshness,
+  scope = {},
+  payloadSchema,
+  payload = {},
+  safeFacts = {},
+  encryptedDetailRefs = [],
+  diagnostics = [],
+} = {}) {
+  return assertProjectionRecord({
+    channelId,
+    service,
+    servicePk,
+    producer,
+    ...(cursor ? { cursor } : {}),
+    freshness,
+    scope,
+    ...(payloadSchema ? { payloadSchema } : {}),
+    payload,
+    safeFacts,
+    encryptedDetailRefs,
+    diagnostics,
+  });
+}
+
+export function assertDiagnosticEvent(event) {
+  if (!event || typeof event !== "object") throw new Error("diagnostic event must be an object");
+  if (!String(event.diagnosticId || "").trim()) throw new Error("diagnostic missing diagnosticId");
+  if (!Number(event.schemaVersion || 0)) throw new Error("diagnostic missing schemaVersion");
+  if (!Number(event.occurredAt || 0)) throw new Error("diagnostic missing occurredAt");
+  if (!Object.values(DIAGNOSTICS.LEVEL).includes(String(event.level || "").trim())) throw new Error("invalid diagnostic level");
+  if (!String(event.operation || "").trim()) throw new Error("diagnostic missing operation");
+  rejectUnsafeSafeFacts(event.safeFacts ?? {});
+  return event;
 }
