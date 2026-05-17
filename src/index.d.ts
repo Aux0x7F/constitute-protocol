@@ -5,6 +5,7 @@ export const MAX_CAPABILITY_TTL_SECONDS: number;
 export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
+export const SURFACE_APP: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
 export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
 export const LOGGING: Readonly<Record<string, unknown>>;
@@ -1394,6 +1395,62 @@ export type MediaTransportObservation = {
   expiresAt?: number;
 };
 
+export type SurfaceModuleRole =
+  | "runtimeClient"
+  | "projectionModel"
+  | "platformAdapter"
+  | "serviceSurfaceAdapter"
+  | "productView"
+  | "operatorHelper"
+  | "releaseHelper";
+
+export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "operator" | "native" | "storage";
+export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
+export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
+
+export type SurfaceModuleClaim = {
+  moduleRef: string;
+  role: SurfaceModuleRole;
+  participantSide: SurfaceModuleParticipantSide;
+  fulfillmentMode: SurfaceModuleFulfillmentMode;
+  primitiveRefs: string[];
+  version: string;
+  buildId?: string;
+  requiredCapabilities?: string[];
+  sandbox?: Record<string, unknown>;
+  inputs?: string[];
+  outputs?: string[];
+  evidenceContract?: Record<string, unknown>;
+  lifecycle?: Record<string, unknown>;
+  materializationBudgetRef?: string;
+  fallbackRefs?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppContract = {
+  contractId: string;
+  schemaVersion: 1;
+  appId: string;
+  version: string;
+  displayName: string;
+  serviceRef?: string;
+  appRef?: string;
+  surfaceRef?: string;
+  requiredPrimitives?: string[];
+  requiredModuleRoles: SurfaceModuleRole[];
+  modules: SurfaceModuleClaim[];
+  projectionSubscriptions?: unknown[];
+  permissionRequirements?: unknown[];
+  capabilityRequirements?: unknown[];
+  materializationBudgets?: unknown[];
+  fallbackPolicy?: Record<string, unknown>;
+  updatePosture?: { state?: SurfaceAppUpdatePostureState; [key: string]: unknown };
+  releasePosture?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type AppRecipe = {
   recipeId: string;
   name: string;
@@ -1575,5 +1632,7 @@ export function assertStreamSessionClose(record: unknown): StreamSessionClose;
 export function assertMediaFulfillmentEvidence(record: unknown): MediaFulfillmentEvidence;
 export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
+export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
+export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;

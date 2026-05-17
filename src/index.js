@@ -29,6 +29,40 @@ export const SERVICE_SURFACE = Object.freeze({
   }),
 });
 
+export const SURFACE_APP = Object.freeze({
+  SCHEMA_VERSION: 1,
+  MODULE_ROLE: Object.freeze({
+    RUNTIME_CLIENT: "runtimeClient",
+    PROJECTION_MODEL: "projectionModel",
+    PLATFORM_ADAPTER: "platformAdapter",
+    SERVICE_SURFACE_ADAPTER: "serviceSurfaceAdapter",
+    PRODUCT_VIEW: "productView",
+    OPERATOR_HELPER: "operatorHelper",
+    RELEASE_HELPER: "releaseHelper",
+  }),
+  PARTICIPANT_SIDE: Object.freeze({
+    WINDOW: "window",
+    RUNTIME: "runtime",
+    SERVICE: "service",
+    OPERATOR: "operator",
+    NATIVE: "native",
+    STORAGE: "storage",
+  }),
+  FULFILLMENT_MODE: Object.freeze({
+    BUNDLED: "bundled",
+    SWARM_PACKAGE: "swarmPackage",
+    STORAGE_OBJECT: "storageObject",
+    NATIVE_INSTALLED: "nativeInstalled",
+    DEV_OVERLAY: "devOverlay",
+  }),
+  UPDATE_POSTURE: Object.freeze({
+    STATIC: "static",
+    COMPATIBLE: "compatible",
+    UPDATE_AVAILABLE: "updateAvailable",
+    BLOCKED: "blocked",
+  }),
+});
+
 export const STORAGE = Object.freeze({
   OBJECT_HASH_ALG: "sha256-ciphertext-v1",
   CHUNK_HASH_ALG: "sha256-ciphertext-v1",
@@ -3549,6 +3583,64 @@ export function assertAppRecipe(record) {
   requireArray(record.requiredCapabilities, "app recipe requiredCapabilities").forEach(assertCapabilityName);
   requireArray(record.requiredChannels, "app recipe requiredChannels");
   requireArray(record.roles, "app recipe roles");
+  return record;
+}
+
+export function assertSurfaceModuleClaim(record) {
+  if (!isObject(record)) throw new Error("surface module claim must be an object");
+  requireString(record.moduleRef, "surface module claim moduleRef");
+  requireString(record.role, "surface module claim role");
+  if (!Object.values(SURFACE_APP.MODULE_ROLE).includes(record.role)) throw new Error("invalid surface module role");
+  requireString(record.participantSide, "surface module claim participantSide");
+  if (!Object.values(SURFACE_APP.PARTICIPANT_SIDE).includes(record.participantSide)) throw new Error("invalid surface module participantSide");
+  requireString(record.fulfillmentMode, "surface module claim fulfillmentMode");
+  if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(record.fulfillmentMode)) throw new Error("invalid surface module fulfillmentMode");
+  requireString(record.version, "surface module claim version");
+  requireArray(record.primitiveRefs || [], "surface module claim primitiveRefs");
+  requireArray(record.requiredCapabilities || [], "surface module claim requiredCapabilities");
+  requireArray(record.inputs || [], "surface module claim inputs");
+  requireArray(record.outputs || [], "surface module claim outputs");
+  requireArray(record.fallbackRefs || [], "surface module claim fallbackRefs");
+  if (record.sandbox !== undefined && !isObject(record.sandbox)) throw new Error("surface module claim sandbox must be an object");
+  if (record.evidenceContract !== undefined && !isObject(record.evidenceContract)) throw new Error("surface module claim evidenceContract must be an object");
+  if (record.lifecycle !== undefined && !isObject(record.lifecycle)) throw new Error("surface module claim lifecycle must be an object");
+  if (record.materializationBudgetRef !== undefined) requireString(record.materializationBudgetRef, "surface module claim materializationBudgetRef");
+  if (!Number(record.issuedAt || 0)) throw new Error("surface module claim missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("surface module claim expires before issuedAt");
+  return record;
+}
+
+export function assertSurfaceAppContract(record) {
+  if (!isObject(record)) throw new Error("surface app contract must be an object");
+  requireString(record.contractId, "surface app contract contractId");
+  if (Number(record.schemaVersion || 0) !== SURFACE_APP.SCHEMA_VERSION) throw new Error("unsupported surface app contract schemaVersion");
+  requireString(record.appId, "surface app contract appId");
+  requireString(record.version, "surface app contract version");
+  requireString(record.displayName, "surface app contract displayName");
+  requireArray(record.requiredPrimitives || [], "surface app contract requiredPrimitives");
+  const requiredRoles = requireNonEmptyArray(record.requiredModuleRoles, "surface app contract requiredModuleRoles");
+  for (const role of requiredRoles) {
+    if (!Object.values(SURFACE_APP.MODULE_ROLE).includes(role)) throw new Error("invalid surface app required module role");
+  }
+  const modules = requireNonEmptyArray(record.modules, "surface app contract modules").map(assertSurfaceModuleClaim);
+  const coveredRoles = new Set(modules.map((module) => module.role));
+  for (const role of requiredRoles) {
+    if (!coveredRoles.has(role)) throw new Error(`surface app contract missing module role ${role}`);
+  }
+  requireArray(record.projectionSubscriptions || [], "surface app contract projectionSubscriptions");
+  requireArray(record.permissionRequirements || [], "surface app contract permissionRequirements");
+  requireArray(record.capabilityRequirements || [], "surface app contract capabilityRequirements");
+  requireArray(record.materializationBudgets || [], "surface app contract materializationBudgets");
+  if (record.fallbackPolicy !== undefined && !isObject(record.fallbackPolicy)) throw new Error("surface app contract fallbackPolicy must be an object");
+  if (record.updatePosture !== undefined) {
+    if (!isObject(record.updatePosture)) throw new Error("surface app contract updatePosture must be an object");
+    if (record.updatePosture.state !== undefined && !Object.values(SURFACE_APP.UPDATE_POSTURE).includes(record.updatePosture.state)) {
+      throw new Error("invalid surface app update posture state");
+    }
+  }
+  if (record.releasePosture !== undefined && !isObject(record.releasePosture)) throw new Error("surface app contract releasePosture must be an object");
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("surface app contract expires before issuedAt");
   return record;
 }
 
