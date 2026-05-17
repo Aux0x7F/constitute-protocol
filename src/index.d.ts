@@ -5,6 +5,8 @@ export const MAX_CAPABILITY_TTL_SECONDS: number;
 export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
+export const SURFACE_APP: Readonly<Record<string, unknown>>;
+export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
 export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
 export const LOGGING: Readonly<Record<string, unknown>>;
@@ -211,6 +213,7 @@ export type LogEventEnvelope = {
   tags?: string[];
   safeFacts: Record<string, unknown>;
   detailRef?: EncryptedDetailRef;
+  encryptedDetailRefs?: EncryptedDetailRef[];
   redaction?: LogRedactionClass[];
 };
 
@@ -651,6 +654,55 @@ export type DirectoryEntry = {
   capabilityRef?: string;
   channelId?: string;
   issuedAt: number;
+};
+
+export type ServiceRegistryClaimState = "claimed" | "retracted" | "expired" | "blocked";
+export type ServiceRegistryClaimKind = "service" | "member" | "capability" | "channel" | "surface";
+export type ServiceRegistryMaterializationState = "ready" | "partial" | "stale" | "blocked";
+
+export type ServiceRegistryClaim = {
+  kind?: "service.registry.claim";
+  claimId: string;
+  schemaVersion: 1;
+  claimKind: ServiceRegistryClaimKind;
+  state: ServiceRegistryClaimState;
+  ownerRef: string;
+  writerRef: string;
+  subjectRef: string;
+  scopeRef: string;
+  service?: string;
+  servicePk?: string;
+  serviceRef?: string;
+  memberRef?: string;
+  hostGatewayPk?: string;
+  capabilityRefs?: string[];
+  channelRefs?: string[];
+  nodeRefs?: string[];
+  surfaceRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+  retractedAt?: number;
+};
+
+export type ServiceRegistryMaterialization = {
+  kind?: "service.registry.materialization";
+  registryId: string;
+  schemaVersion: 1;
+  scopeRef: string;
+  state: ServiceRegistryMaterializationState;
+  revision: number;
+  claimRefs?: string[];
+  participantRefs?: string[];
+  serviceRefs?: string[];
+  services?: unknown[];
+  entries?: DirectoryEntry[];
+  coverage?: ProjectionCoverage;
+  freshness?: ProjectionFreshness;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
 };
 
 export type BootstrapCarrierRecord = {
@@ -1394,6 +1446,62 @@ export type MediaTransportObservation = {
   expiresAt?: number;
 };
 
+export type SurfaceModuleRole =
+  | "runtimeClient"
+  | "projectionModel"
+  | "platformAdapter"
+  | "serviceSurfaceAdapter"
+  | "productView"
+  | "operatorHelper"
+  | "releaseHelper";
+
+export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "operator" | "native" | "storage";
+export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
+export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
+
+export type SurfaceModuleClaim = {
+  moduleRef: string;
+  role: SurfaceModuleRole;
+  participantSide: SurfaceModuleParticipantSide;
+  fulfillmentMode: SurfaceModuleFulfillmentMode;
+  primitiveRefs: string[];
+  version: string;
+  buildId?: string;
+  requiredCapabilities?: string[];
+  sandbox?: Record<string, unknown>;
+  inputs?: string[];
+  outputs?: string[];
+  evidenceContract?: Record<string, unknown>;
+  lifecycle?: Record<string, unknown>;
+  materializationBudgetRef?: string;
+  fallbackRefs?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppContract = {
+  contractId: string;
+  schemaVersion: 1;
+  appId: string;
+  version: string;
+  displayName: string;
+  serviceRef?: string;
+  appRef?: string;
+  surfaceRef?: string;
+  requiredPrimitives?: string[];
+  requiredModuleRoles: SurfaceModuleRole[];
+  modules: SurfaceModuleClaim[];
+  projectionSubscriptions?: unknown[];
+  permissionRequirements?: unknown[];
+  capabilityRequirements?: unknown[];
+  materializationBudgets?: unknown[];
+  fallbackPolicy?: Record<string, unknown>;
+  updatePosture?: { state?: SurfaceAppUpdatePostureState; [key: string]: unknown };
+  releasePosture?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type AppRecipe = {
   recipeId: string;
   name: string;
@@ -1463,6 +1571,7 @@ export function assertStorageIndexShard(shard: unknown): StorageIndexShard;
 export function logEventId(event: Partial<LogEventEnvelope>): string;
 export function rejectSensitiveSafeFacts(value: unknown): void;
 export function assertLogEventEnvelope(event: unknown): LogEventEnvelope;
+export function assertEncryptedDetailRef(ref: unknown, context?: string): EncryptedDetailRef;
 export function makeLogEventEnvelope(input: Partial<LogEventEnvelope>): LogEventEnvelope;
 export function rejectUnsafeSafeFacts(value: unknown): void;
 export function assertHostedServiceDescriptor(descriptor: unknown): HostedServiceDescriptor;
@@ -1519,6 +1628,8 @@ export function assertRouteObservation(record: unknown): RouteObservation;
 export function assertStreamRoutePlan(record: unknown): StreamRoutePlan;
 export function assertMemberPresence(record: unknown, opts?: { now?: number }): MemberPresence;
 export function assertDirectoryEntry(record: unknown): DirectoryEntry;
+export function assertServiceRegistryClaim(record: unknown): ServiceRegistryClaim;
+export function assertServiceRegistryMaterialization(record: unknown): ServiceRegistryMaterialization;
 export function assertBootstrapCarrierRecord(record: unknown): BootstrapCarrierRecord;
 export function assertSwarmIdentity(record: unknown): SwarmIdentityRecord;
 export function assertSwarmDevice(record: unknown): SwarmDeviceRecord;
@@ -1575,5 +1686,7 @@ export function assertStreamSessionClose(record: unknown): StreamSessionClose;
 export function assertMediaFulfillmentEvidence(record: unknown): MediaFulfillmentEvidence;
 export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
+export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
+export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;

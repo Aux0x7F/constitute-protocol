@@ -141,6 +141,8 @@ pub struct LogEventEnvelope {
     pub safe_facts: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub detail_ref: Option<EncryptedDetailRef>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub encrypted_detail_refs: Vec<EncryptedDetailRef>,
     #[serde(default)]
     pub redaction: Vec<LogRedactionClass>,
 }
@@ -175,9 +177,34 @@ pub fn validate_log_event(event: &LogEventEnvelope) -> Result<()> {
         return Err(anyhow!("log safe facts must be an object"));
     }
     reject_sensitive_safe_facts(&event.safe_facts)?;
+    if let Some(detail_ref) = &event.detail_ref {
+        validate_encrypted_detail_ref(detail_ref, "log detailRef")?;
+    }
+    for detail_ref in &event.encrypted_detail_refs {
+        validate_encrypted_detail_ref(detail_ref, "log encryptedDetailRefs entry")?;
+    }
     let expected = log_event_id(event)?;
     if event.event_id != expected {
         return Err(anyhow!("log event id mismatch"));
+    }
+    Ok(())
+}
+
+pub fn validate_encrypted_detail_ref(detail_ref: &EncryptedDetailRef, context: &str) -> Result<()> {
+    if detail_ref.object_id.trim().is_empty() {
+        return Err(anyhow!("{} missing objectId", context));
+    }
+    if detail_ref.container_id.trim().is_empty() {
+        return Err(anyhow!("{} missing containerId", context));
+    }
+    if detail_ref.key_ref.trim().is_empty() {
+        return Err(anyhow!("{} missing keyRef", context));
+    }
+    if detail_ref.manifest_hash.trim().is_empty() {
+        return Err(anyhow!("{} missing manifestHash", context));
+    }
+    if detail_ref.summary_tags.iter().any(|tag| tag.trim().is_empty()) {
+        return Err(anyhow!("{} summaryTags must be non-empty strings", context));
     }
     Ok(())
 }
@@ -258,6 +285,7 @@ mod tests {
             tags: vec!["capability".to_string()],
             safe_facts,
             detail_ref: None,
+            encrypted_detail_refs: Vec::new(),
             redaction: vec![LogRedactionClass::Safe],
         };
         event.event_id = log_event_id(&event).expect("event id");
@@ -295,5 +323,25 @@ mod tests {
         let mut event = event(json!({ "operation": "request" }));
         event.event_id = "bad".to_string();
         assert!(validate_log_event(&event).is_err());
+    }
+
+    #[test]
+    fn validates_encrypted_detail_refs() {
+        let mut event = event(json!({ "operation": "request" }));
+        event.encrypted_detail_refs = vec![EncryptedDetailRef {
+            object_id: "object-log-detail-1".to_string(),
+            container_id: "container-log-detail".to_string(),
+            key_ref: "container-log-detail:key".to_string(),
+            manifest_hash: "sha256:manifest-log-detail".to_string(),
+            summary_tags: vec!["debug-detail".to_string()],
+        }];
+        event.redaction = vec![LogRedactionClass::Safe, LogRedactionClass::EncryptedDetail];
+        event.event_id = log_event_id(&event).expect("event id");
+        validate_log_event(&event).expect("valid detail ref");
+
+        let mut bad = event;
+        bad.encrypted_detail_refs[0].container_id = String::new();
+        bad.event_id = log_event_id(&bad).expect("event id");
+        assert!(validate_log_event(&bad).is_err());
     }
 }

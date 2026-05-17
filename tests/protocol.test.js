@@ -8,6 +8,8 @@ import {
   PROJECTION,
   ReplayCache,
   SERVICE_SURFACE,
+  SERVICE_REGISTRY,
+  SURFACE_APP,
   STORAGE,
   STREAM_SESSION_LIFECYCLE_PHASE,
   SWARM,
@@ -54,6 +56,8 @@ import {
   assertServiceNodeProjectionRecord,
   assertServiceNodeSetRequest,
   assertServiceSurfaceProjection,
+  assertServiceRegistryClaim,
+  assertServiceRegistryMaterialization,
   assertServiceProjectionRequest,
   assertRuntimeActivationRequest,
   assertRoutingScopePosture,
@@ -75,6 +79,8 @@ import {
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertSurfaceAppContract,
+  assertSurfaceModuleClaim,
   assertConsumerFloor,
   assertContributionLifecycle,
   assertSwarmActivation,
@@ -400,6 +406,209 @@ test("service surface helpers validate node projections and settable fields", ()
   }, surface), /not settable/);
 });
 
+test("service registry primitives validate participant claims and materialized directories", () => {
+  const issuedAt = 1700000000;
+  const servicePk = pubkeyFromSecretKey(SERVICE_SK);
+  const gatewayPk = pubkeyFromSecretKey(GATEWAY_SK);
+  const claim = assertServiceRegistryClaim({
+    kind: SWARM.RECORD_KIND.SERVICE_REGISTRY_CLAIM,
+    claimId: "service-registry-claim:nvr",
+    schemaVersion: SERVICE_REGISTRY.SCHEMA_VERSION,
+    claimKind: SERVICE_REGISTRY.CLAIM_KIND.SERVICE,
+    state: SERVICE_REGISTRY.CLAIM_STATE.CLAIMED,
+    ownerRef: `service:${servicePk}`,
+    writerRef: `gateway:${gatewayPk}`,
+    subjectRef: `service:${servicePk}`,
+    scopeRef: "zone:lab",
+    service: "nvr",
+    servicePk,
+    serviceRef: `service:nvr:${servicePk}`,
+    memberRef: servicePk,
+    hostGatewayPk: gatewayPk,
+    capabilityRefs: ["media.stream.preview"],
+    channelRefs: ["nvr.streams"],
+    nodeRefs: ["nvr.streams.preview"],
+    surfaceRefs: ["nvr.surface"],
+    evidenceRefs: ["swarm.edge.session:service"],
+    safeFacts: { service: "nvr" },
+    issuedAt,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(claim.claimKind, SERVICE_REGISTRY.CLAIM_KIND.SERVICE);
+
+  const materialized = assertServiceRegistryMaterialization({
+    kind: SWARM.RECORD_KIND.SERVICE_REGISTRY_MATERIALIZATION,
+    registryId: "service-registry:lab",
+    schemaVersion: SERVICE_REGISTRY.SCHEMA_VERSION,
+    scopeRef: "zone:lab",
+    state: SERVICE_REGISTRY.MATERIALIZATION_STATE.READY,
+    revision: 7,
+    claimRefs: [claim.claimId],
+    participantRefs: [claim.writerRef],
+    serviceRefs: [claim.serviceRef],
+    services: [
+      {
+        service: "nvr",
+        servicePk,
+        serviceRef: claim.serviceRef,
+        hostGatewayPk: gatewayPk,
+        surfaceChannel: "nvr.surface",
+        nodes: [
+          {
+            path: "streams",
+            nodeId: "nvr.streams.preview",
+            label: "Streams",
+            backingChannel: "nvr.streams",
+            fields: [
+              {
+                fieldId: "sourceId",
+                label: "Source",
+                valueKind: "string",
+                capabilities: [SERVICE_SURFACE.FIELD_CAPABILITY.READ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    entries: [
+      {
+        kind: SWARM.RECORD_KIND.DIRECTORY_ENTRY,
+        entryId: "directory:nvr-streams",
+        subjectRef: claim.subjectRef,
+        source: "memberRecord",
+        capabilityRef: "media.stream.preview",
+        channelId: "nvr.streams",
+        issuedAt,
+      },
+    ],
+    coverage: {
+      materializedCount: 1,
+      targetCount: 1,
+      completionRatio: 1,
+      syncState: PROJECTION.SYNC_STATE.COMPLETE_ENOUGH,
+    },
+    freshness: { state: PROJECTION.FRESHNESS.FRESH, updatedAt: issuedAt },
+    issuedAt,
+  });
+  assert.equal(materialized.services.length, 1);
+
+  assert.throws(() => assertServiceRegistryClaim({
+    ...claim,
+    kind: SWARM.RECORD_KIND.SERVICE_REGISTRY_CLAIM,
+    safeFacts: { servicePrivateUrl: "rtsp://camera" },
+  }), /unsafe safe fact key/);
+  assert.throws(() => assertServiceRegistryMaterialization({
+    ...materialized,
+    state: "complete",
+  }), /invalid service registry materialization state/);
+});
+
+test("surface app contracts validate module roles and fulfillment boundaries", () => {
+  const issuedAt = 1700000000;
+  const runtimeClient = assertSurfaceModuleClaim({
+    moduleRef: "constitute-ui/runtime-surface-client@0.1.0",
+    role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    version: "0.1.0",
+    primitiveRefs: ["runtime.attach"],
+    requiredCapabilities: ["runtime.snapshot.subscribe"],
+    inputs: ["runtime.snapshot"],
+    outputs: ["runtime.intent"],
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(runtimeClient.role, SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT);
+
+  const contract = assertSurfaceAppContract({
+    contractId: "surface-app:nvr-ui",
+    schemaVersion: SURFACE_APP.SCHEMA_VERSION,
+    appId: "constitute-nvr-ui",
+    version: "0.1.0",
+    displayName: "Security Cameras",
+    requiredPrimitives: [
+      "runtime.attach",
+      "projection.materialization",
+      "media.transport.path",
+    ],
+    requiredModuleRoles: [
+      SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+      SURFACE_APP.MODULE_ROLE.PROJECTION_MODEL,
+      SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
+      SURFACE_APP.MODULE_ROLE.SERVICE_SURFACE_ADAPTER,
+      SURFACE_APP.MODULE_ROLE.PRODUCT_VIEW,
+    ],
+    modules: [
+      runtimeClient,
+      {
+        moduleRef: "constitute-nvr-ui/nvr-projection-model@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.PROJECTION_MODEL,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        version: "0.1.0",
+        primitiveRefs: ["projection.materialization"],
+        inputs: ["runtime.snapshot"],
+        outputs: ["inventory.read-model"],
+        issuedAt,
+      },
+      {
+        moduleRef: "constitute-ui/media-webrtc-adapter@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        version: "0.1.0",
+        primitiveRefs: ["media.transport.path"],
+        inputs: ["stream.session.answer"],
+        outputs: ["media.transport.observation"],
+        issuedAt,
+      },
+      {
+        moduleRef: "constitute-nvr-ui/service-surface-adapter@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.SERVICE_SURFACE_ADAPTER,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        version: "0.1.0",
+        primitiveRefs: ["stream.session.intent"],
+        inputs: ["camera.selection"],
+        outputs: ["runtime.intent"],
+        issuedAt,
+      },
+      {
+        moduleRef: "constitute-nvr-ui/product-view@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.PRODUCT_VIEW,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        version: "0.1.0",
+        inputs: ["inventory.read-model", "media.render.posture"],
+        outputs: ["user.intent"],
+        issuedAt,
+      },
+    ],
+    projectionSubscriptions: [
+      { projectionId: "nvr.inventory", channelId: "nvr.inventory" },
+    ],
+    materializationBudgets: [
+      { budgetId: "nvr.preview", maxItems: 2, maxBytes: 1000000 },
+    ],
+    updatePosture: {
+      state: SURFACE_APP.UPDATE_POSTURE.STATIC,
+      checkedAt: issuedAt,
+    },
+    issuedAt,
+  });
+
+  assert.equal(contract.modules.length, 5);
+  assert.throws(() => assertSurfaceAppContract({
+    ...contract,
+    modules: contract.modules.filter((module) => module.role !== SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER),
+  }), /missing module role platformAdapter/);
+  assert.throws(() => assertSurfaceModuleClaim({
+    ...runtimeClient,
+    role: "runtimePolicy",
+  }), /invalid surface module role/);
+});
+
 test("storage manifest helpers validate ciphertext-addressed objects", () => {
   const ciphertext = new TextEncoder().encode("encrypted bytes");
   const chunk = makeStorageChunkRef({ ciphertext });
@@ -457,8 +666,17 @@ test("logging helpers validate safe event envelopes", () => {
       operation: "request",
       result: "accepted",
     },
+    encryptedDetailRefs: [{
+      objectId: "object-log-detail-1",
+      containerId: "container-log-detail",
+      keyRef: "container-log-detail:key",
+      manifestHash: "sha256:manifest-log-detail",
+      summaryTags: ["debug-detail"],
+    }],
+    redaction: [LOGGING.REDACTION.SAFE, LOGGING.REDACTION.ENCRYPTED_DETAIL],
   });
   assertLogEventEnvelope(event);
+  assert.equal(event.encryptedDetailRefs.length, 1);
 
   const bad = structuredClone(event);
   bad.safeFacts.privateToken = "secret";
@@ -473,6 +691,11 @@ test("logging helpers validate safe event envelopes", () => {
   const mismatch = structuredClone(event);
   mismatch.eventId = "bad";
   assert.throws(() => assertLogEventEnvelope(mismatch), /log event id mismatch/);
+
+  const badDetail = structuredClone(event);
+  badDetail.encryptedDetailRefs = [{ objectId: "object-only" }];
+  badDetail.eventId = event.eventId;
+  assert.throws(() => assertLogEventEnvelope(badDetail), /encryptedDetailRefs entry missing containerId/);
 });
 
 const TEST_COVERAGE = {
