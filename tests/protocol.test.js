@@ -79,6 +79,8 @@ import {
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertServiceManagerPosture,
+  assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
   assertConsumerFloor,
@@ -624,6 +626,113 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     ...runtimeClient,
     role: "runtimePolicy",
   }), /invalid surface module role/);
+});
+
+test("surface bootstrap contracts gate service manager release and secret posture", () => {
+  const issuedAt = 1700000000;
+  const serviceManager = assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+    serviceRefs: ["service:gateway"],
+    capabilityRefs: ["service.manage"],
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.RESOLVED,
+      secretRefs: ["secret:gateway-lab"],
+      authorityRefs: ["identity:operator"],
+    },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:gateway:2026-05-17",
+      releaseRef: "release:gateway:2026-05-17",
+      rollbackRef: "rollback:gateway:previous",
+      evidenceRefs: ["ci:gateway:build"],
+    },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(serviceManager.state, SURFACE_APP.SERVICE_MANAGER_POSTURE.READY);
+
+  const bootstrap = assertSurfaceAppBootstrapPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_POSTURE,
+    bootstrapId: "bootstrap:nvr-ui:lab",
+    contractId: "surface-app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    state: SURFACE_APP.BOOTSTRAP_POSTURE.READY,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    moduleRefs: ["constitute-ui/runtime-surface-client@0.1.0"],
+    serviceManagerRef: "manager:lab-gateway",
+    serviceManagerPosture: serviceManager,
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.STATIC,
+      evidenceRefs: ["build:nvr-ui:local"],
+    },
+    issuedAt,
+  });
+  assert.equal(bootstrap.state, SURFACE_APP.BOOTSTRAP_POSTURE.READY);
+
+  const contract = assertSurfaceAppContract({
+    contractId: "surface-app:nvr-ui",
+    schemaVersion: SURFACE_APP.SCHEMA_VERSION,
+    appId: "constitute-nvr-ui",
+    version: "0.1.0",
+    displayName: "Security Cameras",
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    modules: [
+      {
+        moduleRef: "constitute-ui/runtime-surface-client@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        version: "0.1.0",
+        primitiveRefs: ["runtime.attach"],
+        issuedAt,
+      },
+    ],
+    serviceManagerPosture: serviceManager,
+    bootstrapPosture: bootstrap,
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.STATIC,
+    },
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED,
+    },
+    issuedAt,
+  });
+  assert.equal(contract.bootstrapPosture.state, SURFACE_APP.BOOTSTRAP_POSTURE.READY);
+
+  assert.throws(() => assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:blocked",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.BLOCKED,
+    issuedAt,
+  }), /blocked state requires blockedReasons/);
+  assert.throws(() => assertSurfaceAppBootstrapPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_POSTURE,
+    bootstrapId: "bootstrap:bad",
+    contractId: "surface-app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    state: SURFACE_APP.BOOTSTRAP_POSTURE.READY,
+    sourceMode: "httpEval",
+    issuedAt,
+  }), /invalid surface app bootstrap sourceMode/);
+  assert.throws(() => assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:leaky",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.RESOLVED,
+      token: "inline-secret",
+    },
+    issuedAt,
+  }), /forbidden protocol field/);
 });
 
 test("storage manifest helpers validate ciphertext-addressed objects", () => {

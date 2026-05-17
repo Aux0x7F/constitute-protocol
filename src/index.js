@@ -61,6 +61,34 @@ export const SURFACE_APP = Object.freeze({
     UPDATE_AVAILABLE: "updateAvailable",
     BLOCKED: "blocked",
   }),
+  BOOTSTRAP_POSTURE: Object.freeze({
+    STATIC: "static",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+  }),
+  SERVICE_MANAGER_POSTURE: Object.freeze({
+    MANUAL: "manual",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+  }),
+  SECRET_BOUNDARY: Object.freeze({
+    NOT_REQUIRED: "notRequired",
+    RESOLVED: "resolved",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+  }),
+  RELEASE_POSTURE: Object.freeze({
+    STATIC: "static",
+    BUILD_READY: "buildReady",
+    RELEASE_READY: "releaseReady",
+    ROLLBACK_READY: "rollbackReady",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+  }),
 });
 
 export const STORAGE = Object.freeze({
@@ -1028,6 +1056,8 @@ export const SWARM = Object.freeze({
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
+    SERVICE_MANAGER_POSTURE: "service.manager.posture",
+    SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1069,6 +1099,8 @@ export const SWARM = Object.freeze({
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
+    SERVICE_MANAGER_POSTURE: "service.manager.posture",
+    SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -3710,6 +3742,91 @@ export function assertSurfaceModuleClaim(record) {
   return record;
 }
 
+function assertSurfaceSecretBoundary(record, name = "surface secret boundary") {
+  const boundary = assertOptionalObject(record, name);
+  if (!Object.keys(boundary).length) return boundary;
+  const state = requireString(boundary.state, `${name} state`);
+  if (!Object.values(SURFACE_APP.SECRET_BOUNDARY).includes(state)) throw new Error(`invalid ${name} state`);
+  assertOptionalReferenceList(boundary.secretRefs, `${name} secretRefs`);
+  assertOptionalReferenceList(boundary.authorityRefs, `${name} authorityRefs`);
+  assertOptionalReferenceList(boundary.evidenceRefs, `${name} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(boundary.blockedReasons, `${name} blockedReasons`);
+  if (state === SURFACE_APP.SECRET_BOUNDARY.BLOCKED && blockedReasons.length === 0) {
+    throw new Error(`${name} blocked state requires blockedReasons`);
+  }
+  rejectForbiddenKeys(boundary, new Set(["secret", "password", "token", "privateKey", "secretKey", "value", "contents"]), name);
+  return boundary;
+}
+
+function assertSurfaceReleasePosture(record, name = "surface release posture") {
+  const posture = assertOptionalObject(record, name);
+  if (!Object.keys(posture).length) return posture;
+  const state = requireString(posture.state, `${name} state`);
+  if (!Object.values(SURFACE_APP.RELEASE_POSTURE).includes(state)) throw new Error(`invalid ${name} state`);
+  if (posture.buildRef !== undefined) requireString(posture.buildRef, `${name} buildRef`);
+  if (posture.releaseRef !== undefined) requireString(posture.releaseRef, `${name} releaseRef`);
+  if (posture.rollbackRef !== undefined) requireString(posture.rollbackRef, `${name} rollbackRef`);
+  assertOptionalReferenceList(posture.evidenceRefs, `${name} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(posture.blockedReasons, `${name} blockedReasons`);
+  if (state === SURFACE_APP.RELEASE_POSTURE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error(`${name} blocked state requires blockedReasons`);
+  }
+  if (state === SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY && !String(posture.rollbackRef || "").trim()) {
+    throw new Error(`${name} rollbackReady state requires rollbackRef`);
+  }
+  return posture;
+}
+
+export function assertServiceManagerPosture(record) {
+  if (!isObject(record)) throw new Error("service manager posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE, "service manager posture");
+  requireString(record.managerId, "service manager posture managerId");
+  requireString(record.subjectRef, "service manager posture subjectRef");
+  requireString(record.managerRef, "service manager posture managerRef");
+  const state = requireString(record.state, "service manager posture state");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_POSTURE).includes(state)) throw new Error("invalid service manager posture state");
+  assertOptionalReferenceList(record.serviceRefs, "service manager posture serviceRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "service manager posture capabilityRefs");
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "service manager releasePosture");
+  if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "service manager rollbackPosture");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager posture blockedReasons");
+  if (state === SURFACE_APP.SERVICE_MANAGER_POSTURE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("service manager blocked state requires blockedReasons");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("service manager posture missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("service manager posture expires before issuedAt");
+  return record;
+}
+
+export function assertSurfaceAppBootstrapPosture(record) {
+  if (!isObject(record)) throw new Error("surface app bootstrap posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_POSTURE, "surface app bootstrap posture");
+  requireString(record.bootstrapId, "surface app bootstrap posture bootstrapId");
+  requireString(record.contractId, "surface app bootstrap posture contractId");
+  requireString(record.appId, "surface app bootstrap posture appId");
+  const state = requireString(record.state, "surface app bootstrap posture state");
+  if (!Object.values(SURFACE_APP.BOOTSTRAP_POSTURE).includes(state)) throw new Error("invalid surface app bootstrap posture state");
+  if (record.sourceMode !== undefined && !Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(record.sourceMode)) {
+    throw new Error("invalid surface app bootstrap sourceMode");
+  }
+  assertOptionalReferenceList(record.moduleRefs, "surface app bootstrap posture moduleRefs");
+  if (record.serviceManagerRef !== undefined) requireString(record.serviceManagerRef, "surface app bootstrap posture serviceManagerRef");
+  if (record.serviceManagerPosture !== undefined) assertServiceManagerPosture(record.serviceManagerPosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "surface app bootstrap secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "surface app bootstrap releasePosture");
+  if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "surface app bootstrap rollbackPosture");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app bootstrap posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app bootstrap posture blockedReasons");
+  if (state === SURFACE_APP.BOOTSTRAP_POSTURE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("surface app bootstrap blocked state requires blockedReasons");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app bootstrap posture missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("surface app bootstrap posture expires before issuedAt");
+  return record;
+}
+
 export function assertSurfaceAppContract(record) {
   if (!isObject(record)) throw new Error("surface app contract must be an object");
   requireString(record.contractId, "surface app contract contractId");
@@ -3739,7 +3856,11 @@ export function assertSurfaceAppContract(record) {
       throw new Error("invalid surface app update posture state");
     }
   }
-  if (record.releasePosture !== undefined && !isObject(record.releasePosture)) throw new Error("surface app contract releasePosture must be an object");
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "surface app contract secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "surface app contract releasePosture");
+  if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "surface app contract rollbackPosture");
+  if (record.serviceManagerPosture !== undefined) assertServiceManagerPosture(record.serviceManagerPosture);
+  if (record.bootstrapPosture !== undefined) assertSurfaceAppBootstrapPosture(record.bootstrapPosture);
   if (!Number(record.issuedAt || 0)) throw new Error("surface app contract missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("surface app contract expires before issuedAt");
   return record;
