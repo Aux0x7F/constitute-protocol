@@ -1,0 +1,606 @@
+{
+  "identity": {
+    "kind": "swarm.identity",
+    "identityId": "identity-lab",
+    "rootRefs": [
+      "root:device:owner-1"
+    ],
+    "recoveryRootRefs": [
+      "root:device:owner-1"
+    ],
+    "recoveryRouteRefs": [
+      "storage:identity-backup:gateway-a"
+    ],
+    "safeFacts": {
+      "display": "Lab identity",
+      "recoveryRootCount": 1,
+      "recoveryRouteCount": 1
+    },
+    "issuedAt": 1700000000000
+  },
+  "device": {
+    "kind": "swarm.device",
+    "deviceId": "device-browser-a",
+    "deviceRef": "device:browser:a",
+    "identityRef": "identity:lab",
+    "capabilityRefs": [
+      "runtime.diagnostics.observe",
+      "media.stream.preview"
+    ],
+    "authorityRefs": [
+      "grant:identity:runtime-session-a"
+    ],
+    "safeFacts": {
+      "deviceClass": "browserRuntime",
+      "storageAuthority": "cacheOnly"
+    },
+    "issuedAt": 1700000000001
+  },
+  "gatewayA": {
+    "kind": "swarm.gateway",
+    "gatewayId": "gateway-a",
+    "gatewayRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+    "ownerRefs": [
+      "identity:lab"
+    ],
+    "authorityRefs": [
+      "grant:gateway:admit-runtime-a"
+    ],
+    "safeFacts": {
+      "admissionAuthority": "gatewayOwner"
+    },
+    "issuedAt": 1700000000002
+  },
+  "gatewayB": {
+    "kind": "swarm.gateway",
+    "gatewayId": "gateway-b",
+    "gatewayRef": "gateway:lab:b",
+    "ownerRefs": [
+      "identity:second"
+    ],
+    "authorityRefs": [
+      "grant:gateway:host-identity-lab"
+    ],
+    "safeFacts": {
+      "hostsMultipleIdentities": true
+    },
+    "issuedAt": 1700000000003
+  },
+  "service": {
+    "kind": "swarm.service",
+    "serviceId": "service-nvr",
+    "serviceRef": "service:nvr:lab",
+    "service": "nvr",
+    "contractRef": "contract:nvr.streams:v1",
+    "capabilityRefs": [
+      "media.stream.preview",
+      "stream.session.offer"
+    ],
+    "channelRefs": [
+      "nvr.streams"
+    ],
+    "authorityRefs": [
+      "grant:service:nvr-executor-a"
+    ],
+    "safeFacts": {
+      "serviceClass": "swarmService",
+      "contractVersion": "v1"
+    },
+    "issuedAt": 1700000000004
+  },
+  "runtimeMember": {
+    "kind": "swarm.member",
+    "memberId": "runtime-member-a",
+    "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "memberKind": "runtime",
+    "capabilityRefs": [
+      "runtime.diagnostics.observe",
+      "media.stream.preview"
+    ],
+    "channelRefs": [
+      "runtime.diagnostics",
+      "nvr.streams"
+    ],
+    "authorityRefs": [
+      "grant:identity:runtime-session-a"
+    ],
+    "safeFacts": {
+      "memberSource": "runtimeSessionGrant"
+    },
+    "issuedAt": 1700000000005,
+    "expiresAt": 1700003600000
+  },
+  "serviceMember": {
+    "kind": "swarm.member",
+    "memberId": "nvr-member-a",
+    "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+    "memberKind": "service",
+    "capabilityRefs": [
+      "media.stream.preview",
+      "stream.session.offer"
+    ],
+    "channelRefs": [
+      "nvr.streams"
+    ],
+    "authorityRefs": [
+      "grant:service:nvr-executor-a",
+      "grant:gateway:admit-nvr-a"
+    ],
+    "safeFacts": {
+      "memberSource": "serviceGrant"
+    },
+    "issuedAt": 1700000000006,
+    "expiresAt": 1700003600000
+  },
+  "storageMember": {
+    "kind": "swarm.member",
+    "memberId": "browser-cache-a",
+    "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "memberKind": "storage",
+    "capabilityRefs": [
+      "storage.pin"
+    ],
+    "channelRefs": [
+      "storage.pin"
+    ],
+    "authorityRefs": [
+      "grant:runtime:cache-a"
+    ],
+    "storage": {
+      "memberKind": "browserIndexedDbCache",
+      "authorityDomain": "runtime"
+    },
+    "safeFacts": {
+      "cacheOnly": true
+    },
+    "issuedAt": 1700000000007,
+    "expiresAt": 1700003600000
+  },
+  "identityGrant": {
+    "kind": "swarm.grant",
+    "grantId": "grant:identity:runtime-session-a",
+    "issuerRef": "identity:lab",
+    "subjectRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "audienceRefs": [
+      "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "service:nvr:lab"
+    ],
+    "authorityDomain": "identity",
+    "contractRef": "contract:nvr.streams:v1",
+    "roleRefs": [
+      "role:requester:runtime-a"
+    ],
+    "capabilityRefs": [
+      "media.stream.preview",
+      "runtime.diagnostics.observe"
+    ],
+    "safeFacts": {
+      "grantClass": "runtimeSession"
+    },
+    "issuedAt": 1700000000010,
+    "expiresAt": 1700003600000
+  },
+  "gatewayGrant": {
+    "kind": "swarm.grant",
+    "grantId": "grant:gateway:admit-nvr-a",
+    "issuerRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+    "subjectRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+    "audienceRefs": [
+      "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13"
+    ],
+    "authorityDomain": "gateway",
+    "contractRef": "contract:nvr.streams:v1",
+    "roleRefs": [
+      "role:router:gateway-a"
+    ],
+    "capabilityRefs": [
+      "media.stream.preview"
+    ],
+    "safeFacts": {
+      "admission": "attachedSession"
+    },
+    "issuedAt": 1700000000011,
+    "expiresAt": 1700003600000
+  },
+  "serviceGrant": {
+    "kind": "swarm.grant",
+    "grantId": "grant:service:nvr-executor-a",
+    "issuerRef": "service:nvr:lab",
+    "subjectRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+    "audienceRefs": [
+      "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+    ],
+    "authorityDomain": "service",
+    "contractRef": "contract:nvr.streams:v1",
+    "roleRefs": [
+      "role:executor:nvr-a"
+    ],
+    "capabilityRefs": [
+      "media.stream.preview",
+      "stream.session.offer"
+    ],
+    "safeFacts": {
+      "serviceContractView": "nvrExecutor"
+    },
+    "issuedAt": 1700000000012,
+    "expiresAt": 1700003600000
+  },
+  "elevatedGrant": {
+    "kind": "swarm.grant",
+    "grantId": "grant:device:elevated-owner-a",
+    "issuerRef": "root:device:owner-1",
+    "subjectRef": "device:browser:a",
+    "audienceRefs": [
+      "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+    ],
+    "authorityDomain": "device",
+    "contractRef": "contract:owner.elevated:v1",
+    "roleRefs": [
+      "role:owner:device-a"
+    ],
+    "capabilityRefs": [
+      "runtime.diagnostics.command"
+    ],
+    "rootRefs": [
+      "root:device:owner-1"
+    ],
+    "elevated": true,
+    "safeFacts": {
+      "elevation": "ownerApproved"
+    },
+    "issuedAt": 1700000000013,
+    "expiresAt": 1700000300000
+  },
+  "requesterRole": {
+    "kind": "swarm.role",
+    "roleId": "role:requester:runtime-a",
+    "role": "requester",
+    "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "capabilityRefs": [
+      "media.stream.preview"
+    ],
+    "authorityRefs": [
+      "grant:identity:runtime-session-a"
+    ],
+    "issuedAt": 1700000000014
+  },
+  "routerRole": {
+    "kind": "swarm.role",
+    "roleId": "role:router:gateway-a",
+    "role": "router",
+    "memberRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+    "capabilityRefs": [
+      "media.stream.preview"
+    ],
+    "authorityRefs": [
+      "grant:gateway:admit-nvr-a"
+    ],
+    "issuedAt": 1700000000015
+  },
+  "executorRole": {
+    "kind": "swarm.role",
+    "roleId": "role:executor:nvr-a",
+    "role": "executor",
+    "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+    "capabilityRefs": [
+      "media.stream.preview",
+      "stream.session.offer"
+    ],
+    "authorityRefs": [
+      "grant:service:nvr-executor-a"
+    ],
+    "issuedAt": 1700000000016
+  },
+  "interaction": {
+    "kind": "swarm.interaction",
+    "interactionId": "interaction:nvr-preview:front-door",
+    "contractRef": "contract:nvr.streams:v1",
+    "interactionKind": "activation",
+    "state": "prepared",
+    "participants": [
+      {
+        "role": "requester",
+        "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+        "capabilityRefs": [
+          "media.stream.preview"
+        ],
+        "authorityRefs": [
+          "grant:identity:runtime-session-a"
+        ],
+        "contractView": {
+          "view": "runtimeActivation"
+        },
+        "safeFacts": {
+          "deviceClass": "browserRuntime"
+        }
+      },
+      {
+        "role": "coordinator",
+        "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+        "capabilityRefs": [
+          "media.stream.preview"
+        ],
+        "authorityRefs": [
+          "grant:identity:runtime-session-a"
+        ],
+        "contractView": {
+          "view": "runtimePreparedState"
+        },
+        "safeFacts": {
+          "sessionGrant": "present"
+        }
+      },
+      {
+        "role": "router",
+        "memberRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+        "capabilityRefs": [
+          "media.stream.preview"
+        ],
+        "authorityRefs": [
+          "grant:gateway:admit-nvr-a"
+        ],
+        "contractView": {
+          "view": "gatewayAdmission"
+        },
+        "safeFacts": {
+          "candidateTruthSource": "attachedSessionAdvertisement"
+        }
+      },
+      {
+        "role": "executor",
+        "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+        "capabilityRefs": [
+          "media.stream.preview",
+          "stream.session.offer"
+        ],
+        "authorityRefs": [
+          "grant:service:nvr-executor-a"
+        ],
+        "contractView": {
+          "view": "nvrExecutor"
+        },
+        "safeFacts": {
+          "serviceContract": "nvr"
+        }
+      },
+      {
+        "role": "storage",
+        "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+        "capabilityRefs": [
+          "storage.pin"
+        ],
+        "authorityRefs": [
+          "grant:runtime:cache-a"
+        ],
+        "contractView": {
+          "view": "cacheOnly"
+        },
+        "safeFacts": {
+          "identityAuthority": false
+        }
+      },
+      {
+        "role": "observer",
+        "memberRef": "aad3dae8e8fdb942cce1b6d7e8c4ac582c576f8c55cdf94f9e50e573bbb3b2b0",
+        "capabilityRefs": [
+          "logging.events.ingest"
+        ],
+        "authorityRefs": [
+          "grant:service:logging-observer-a"
+        ],
+        "contractView": {
+          "view": "safeEvidenceOnly"
+        },
+        "safeFacts": {
+          "controlPlane": false
+        }
+      }
+    ],
+    "capabilityRefs": [
+      "media.stream.preview"
+    ],
+    "channelRefs": [
+      "nvr.streams"
+    ],
+    "authority": {
+      "domains": [
+        "identity",
+        "gateway",
+        "service",
+        "runtime"
+      ],
+      "grantRefs": [
+        "grant:identity:runtime-session-a",
+        "grant:gateway:admit-nvr-a",
+        "grant:service:nvr-executor-a"
+      ]
+    },
+    "routingScope": {
+      "kind": "swarmZone",
+      "required": true,
+      "state": "syncing",
+      "zoneScope": {
+        "zoneId": "zone_lab",
+        "privacy": "rawIds",
+        "ttl": 30,
+        "maxHops": 2
+      },
+      "source": "retainedServiceBaseline",
+      "baselineRef": "projection:swarm.directory",
+      "updatedAt": 1700000000019
+    },
+    "safeFacts": {
+      "nodeRef": "camera.front-door",
+      "activationPrimitive": true
+    },
+    "issuedAt": 1700000000020
+  },
+  "activation": {
+    "kind": "swarm.activation",
+    "activationId": "activation:nvr-preview:front-door",
+    "interactionId": "interaction:nvr-preview:front-door",
+    "nodeRef": "camera.front-door",
+    "capabilityRef": "media.stream.preview",
+    "requesterRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "runtimeMemberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "state": "prepared",
+    "authoritySummary": {
+      "requester": {
+        "state": "ready",
+        "grantRef": "grant:identity:runtime-session-a"
+      },
+      "runtime": {
+        "state": "ready",
+        "grantRef": "grant:identity:runtime-session-a"
+      },
+      "gateway": {
+        "state": "waitingAdmission",
+        "grantRef": "grant:gateway:admit-nvr-a"
+      },
+      "service": {
+        "state": "waitingAcceptance",
+        "grantRef": "grant:service:nvr-executor-a"
+      },
+      "storage": {
+        "state": "cacheOnly",
+        "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13"
+      }
+    },
+    "safeFacts": {
+      "routeCritical": true
+    },
+    "issuedAt": 1700000000021,
+    "expiresAt": 1700000060000
+  },
+  "release": {
+    "kind": "swarm.release",
+    "releaseId": "release:nvr-preview:front-door",
+    "interactionId": "interaction:nvr-preview:front-door",
+    "releasedBy": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "reasonCode": "operator.closed",
+    "issuedAt": 1700000000030
+  },
+  "revocation": {
+    "kind": "swarm.revocation",
+    "revocationId": "revocation:grant:runtime-session-a",
+    "targetRef": "grant:identity:runtime-session-a",
+    "issuerRef": "identity:lab",
+    "authorityDomain": "identity",
+    "reasonCode": "device.removed",
+    "issuedAt": 1700000000040
+  },
+  "identityGraph": [
+    {
+      "kind": "swarm.identity",
+      "identityId": "identity-lab",
+      "rootRefs": [
+        "root:device:owner-1"
+      ],
+      "recoveryRootRefs": [
+        "root:device:owner-1"
+      ],
+      "recoveryRouteRefs": [
+        "storage:identity-backup:gateway-a"
+      ],
+      "safeFacts": {
+        "display": "Lab identity"
+      },
+      "issuedAt": 1700000000000
+    },
+    {
+      "kind": "swarm.device",
+      "deviceId": "device-browser-a",
+      "deviceRef": "device:browser:a",
+      "identityRef": "identity:lab",
+      "capabilityRefs": [
+        "runtime.diagnostics.observe"
+      ],
+      "authorityRefs": [
+        "grant:identity:runtime-session-a"
+      ],
+      "safeFacts": {
+        "deviceClass": "browserRuntime"
+      },
+      "issuedAt": 1700000000001
+    },
+    {
+      "kind": "swarm.gateway",
+      "gatewayId": "gateway-a",
+      "gatewayRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "ownerRefs": [
+        "identity:lab"
+      ],
+      "authorityRefs": [
+        "grant:gateway:admit-runtime-a"
+      ],
+      "safeFacts": {
+        "admissionAuthority": "gatewayOwner"
+      },
+      "issuedAt": 1700000000002
+    },
+    {
+      "kind": "swarm.service",
+      "serviceId": "service-nvr",
+      "serviceRef": "service:nvr:lab",
+      "service": "nvr",
+      "contractRef": "contract:nvr.streams:v1",
+      "capabilityRefs": [
+        "media.stream.preview"
+      ],
+      "channelRefs": [
+        "nvr.streams"
+      ],
+      "authorityRefs": [
+        "grant:service:nvr-executor-a"
+      ],
+      "safeFacts": {
+        "serviceClass": "swarmService"
+      },
+      "issuedAt": 1700000000004
+    },
+    {
+      "kind": "swarm.member",
+      "memberId": "nvr-member-a",
+      "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "memberKind": "service",
+      "capabilityRefs": [
+        "media.stream.preview"
+      ],
+      "channelRefs": [
+        "nvr.streams"
+      ],
+      "authorityRefs": [
+        "grant:service:nvr-executor-a"
+      ],
+      "safeFacts": {
+        "memberSource": "serviceGrant"
+      },
+      "issuedAt": 1700000000006,
+      "expiresAt": 1700003600000
+    },
+    {
+      "kind": "swarm.grant",
+      "grantId": "grant:service:nvr-executor-a",
+      "issuerRef": "service:nvr:lab",
+      "subjectRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "audienceRefs": [
+        "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+        "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+      ],
+      "authorityDomain": "service",
+      "contractRef": "contract:nvr.streams:v1",
+      "roleRefs": [
+        "role:executor:nvr-a"
+      ],
+      "capabilityRefs": [
+        "media.stream.preview"
+      ],
+      "safeFacts": {
+        "serviceContractView": "nvrExecutor"
+      },
+      "issuedAt": 1700000000012,
+      "expiresAt": 1700003600000
+    }
+  ]
+}

@@ -23,8 +23,8 @@ pub enum LogSeverity {
 #[serde(rename_all = "camelCase")]
 pub enum LogCategory {
     System,
-    ServiceAccess,
-    ServiceSignal,
+    Capability,
+    SwarmEdge,
     HostedService,
     GatewayControl,
     CameraDevice,
@@ -210,7 +210,7 @@ const SENSITIVE_SAFE_FACT_KEY_FRAGMENTS: &[&str] = &[
     "argv",
     "body",
     "caac",
-    "capability",
+    "capabilitygrant",
     "credential",
     "decrypted",
     "password",
@@ -241,7 +241,7 @@ mod tests {
                 gateway_pk: None,
                 service_pk: None,
             },
-            category: LogCategory::ServiceAccess,
+            category: LogCategory::Capability,
             severity: LogSeverity::Info,
             outcome: LogOutcome::Succeeded,
             subject: Some(LogSubjectRef {
@@ -255,7 +255,7 @@ mod tests {
                 causation_id: None,
                 trace_id: None,
             }),
-            tags: vec!["service-access".to_string()],
+            tags: vec!["capability".to_string()],
             safe_facts,
             detail_ref: None,
             redaction: vec![LogRedactionClass::Safe],
@@ -268,6 +268,7 @@ mod tests {
     fn validates_log_event() {
         let event = event(json!({
             "service": "nvr",
+            "capabilityRef": "media.stream.preview",
             "operation": "request",
             "result": "accepted"
         }));
@@ -276,11 +277,17 @@ mod tests {
 
     #[test]
     fn rejects_sensitive_safe_fact_keys() {
-        let event = event(json!({
+        let token_event = event(json!({
             "service": "nvr",
-            "serviceCapability": "secret"
+            "privateToken": "secret"
         }));
-        assert!(validate_log_event(&event).is_err());
+        assert!(validate_log_event(&token_event).is_err());
+
+        let grant_event = event(json!({
+            "service": "nvr",
+            "capabilityGrant": "delegatedAuthorityGrant"
+        }));
+        assert!(validate_log_event(&grant_event).is_err());
     }
 
     #[test]

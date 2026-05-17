@@ -9,7 +9,7 @@ use sha2::{Digest, Sha256};
 use crate::crypto::{bytes_to_hex, hex_to_bytes};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct NostrEvent {
+pub struct BootstrapNostrEvent {
     pub id: String,
     pub pubkey: String,
     pub created_at: u64,
@@ -20,7 +20,7 @@ pub struct NostrEvent {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct NostrUnsignedEvent {
+pub struct BootstrapNostrUnsignedEvent {
     pub pubkey: String,
     pub created_at: u64,
     pub kind: u32,
@@ -29,7 +29,7 @@ pub struct NostrUnsignedEvent {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
-pub struct NostrFilter {
+pub struct BootstrapNostrFilter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kinds: Option<Vec<u32>>,
     #[serde(rename = "#t", skip_serializing_if = "Option::is_none")]
@@ -55,14 +55,14 @@ pub fn pubkey_from_sk_hex(sk_hex: &str) -> Result<String> {
     Ok(xonly_pk_hex(&keypair))
 }
 
-pub fn build_unsigned_event(
+pub fn build_bootstrap_nostr_unsigned_event(
     pubkey: &str,
     kind: u32,
     tags: Vec<Vec<String>>,
     content: String,
     created_at: u64,
-) -> NostrUnsignedEvent {
-    NostrUnsignedEvent {
+) -> BootstrapNostrUnsignedEvent {
+    BootstrapNostrUnsignedEvent {
         pubkey: pubkey.to_string(),
         created_at,
         kind,
@@ -71,8 +71,11 @@ pub fn build_unsigned_event(
     }
 }
 
-pub fn sign_event(unsigned: &NostrUnsignedEvent, sk_hex: &str) -> Result<NostrEvent> {
-    let id = event_id_hex(unsigned)?;
+pub fn sign_bootstrap_nostr_event(
+    unsigned: &BootstrapNostrUnsignedEvent,
+    sk_hex: &str,
+) -> Result<BootstrapNostrEvent> {
+    let id = bootstrap_nostr_event_id_hex(unsigned)?;
     let hash = hex_to_bytes(&id)?;
     let msg = Message::from_digest_slice(&hash).map_err(|_| anyhow!("invalid message digest"))?;
     let secp = Secp256k1::new();
@@ -81,7 +84,7 @@ pub fn sign_event(unsigned: &NostrUnsignedEvent, sk_hex: &str) -> Result<NostrEv
     let keypair = Keypair::from_secret_key(&secp, &sk);
     let sig = secp.sign_schnorr_no_aux_rand(&msg, &keypair);
 
-    Ok(NostrEvent {
+    Ok(BootstrapNostrEvent {
         id,
         pubkey: unsigned.pubkey.clone(),
         created_at: unsigned.created_at,
@@ -92,15 +95,15 @@ pub fn sign_event(unsigned: &NostrUnsignedEvent, sk_hex: &str) -> Result<NostrEv
     })
 }
 
-pub fn verify_event(ev: &NostrEvent) -> Result<bool> {
-    let unsigned = NostrUnsignedEvent {
+pub fn verify_bootstrap_nostr_event(ev: &BootstrapNostrEvent) -> Result<bool> {
+    let unsigned = BootstrapNostrUnsignedEvent {
         pubkey: ev.pubkey.clone(),
         created_at: ev.created_at,
         kind: ev.kind,
         tags: ev.tags.clone(),
         content: ev.content.clone(),
     };
-    if event_id_hex(&unsigned)? != ev.id {
+    if bootstrap_nostr_event_id_hex(&unsigned)? != ev.id {
         return Ok(false);
     }
     let hash = hex_to_bytes(&ev.id)?;
@@ -113,7 +116,7 @@ pub fn verify_event(ev: &NostrEvent) -> Result<bool> {
     Ok(secp.verify_schnorr(&sig, &msg, &pk).is_ok())
 }
 
-pub fn event_id_hex(unsigned: &NostrUnsignedEvent) -> Result<String> {
+pub fn bootstrap_nostr_event_id_hex(unsigned: &BootstrapNostrUnsignedEvent) -> Result<String> {
     let payload = json!([
         0,
         unsigned.pubkey,
@@ -126,11 +129,11 @@ pub fn event_id_hex(unsigned: &NostrUnsignedEvent) -> Result<String> {
     Ok(bytes_to_hex(&Sha256::digest(raw.as_bytes())))
 }
 
-pub fn frame_event(ev: &NostrEvent) -> String {
+pub fn frame_bootstrap_nostr_event(ev: &BootstrapNostrEvent) -> String {
     serde_json::to_string(&json!(["EVENT", ev])).unwrap_or_else(|_| "[]".to_string())
 }
 
-pub fn frame_req(sub_id: &str, filters: Vec<NostrFilter>) -> String {
+pub fn frame_bootstrap_nostr_req(sub_id: &str, filters: Vec<BootstrapNostrFilter>) -> String {
     serde_json::to_string(&json!(["REQ", sub_id, filters])).unwrap_or_else(|_| "[]".to_string())
 }
 
@@ -158,15 +161,15 @@ mod tests {
     fn sign_and_verify_roundtrip() {
         let sk = "0000000000000000000000000000000000000000000000000000000000000001";
         let pk = pubkey_from_sk_hex(sk).expect("pk");
-        let unsigned = build_unsigned_event(
+        let unsigned = build_bootstrap_nostr_unsigned_event(
             &pk,
             1111,
             vec![vec!["t".into(), "constitute".into()]],
             "{\"ok\":true}".into(),
             1_700_000_000,
         );
-        let ev = sign_event(&unsigned, sk).expect("sign");
-        assert!(verify_event(&ev).expect("verify"));
+        let ev = sign_bootstrap_nostr_event(&unsigned, sk).expect("sign");
+        assert!(verify_bootstrap_nostr_event(&ev).expect("verify"));
         assert_eq!(
             ev.id,
             "79893099e8d1dae52109e57cd6fa2c4eef5257d6779dad8107c708a64ef0e9ad"
