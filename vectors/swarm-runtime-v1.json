@@ -1,0 +1,358 @@
+{
+  "frame": {
+    "version": 1,
+    "kind": "service.intent",
+    "issuer": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+    "audience": {
+      "serviceRef": "svc_opaque_nvr"
+    },
+    "zoneScope": {
+      "zoneId": "zone_lab",
+      "ttl": 30,
+      "maxHops": 2
+    },
+    "issuedAt": 1700000000000,
+    "expiresAt": 1700000090000,
+    "nonce": "nonce-1",
+    "correlationId": "corr-1",
+    "channelId": "nvr.control",
+    "capability": "service.intent.invoke",
+    "body": {
+      "encoding": "caac",
+      "envelope": {
+        "envelopeId": "env-1"
+      }
+    },
+    "frameId": "9949c702f8c61f1faf1cf89004ad75432189546e990750a5a0f03a330f5ca6ac"
+  },
+  "delta": {
+    "projectionId": "proj-1",
+    "policyId": "default",
+    "baseRevision": 4,
+    "revision": 5,
+    "ops": [
+      {
+        "op": "set",
+        "path": [
+          "cameras",
+          0,
+          "status"
+        ],
+        "value": "degraded"
+      }
+    ],
+    "affectedRecords": [
+      "camera:front"
+    ],
+    "coverage": {
+      "materializedCount": 1,
+      "targetCount": 1,
+      "completionRatio": 1,
+      "syncState": "completeEnough"
+    },
+    "freshness": {
+      "state": "fresh",
+      "updatedAt": 1700000000
+    },
+    "sourceRefs": [],
+    "issuedAt": 1700000001
+  },
+  "convergence": {
+    "nodeCapability": {
+      "kind": "node.capability",
+      "nodeCapabilityId": "node-capability-preview-front",
+      "nodeRef": "node:nvr:front-door",
+      "capabilityRef": "media.stream.preview",
+      "serviceRef": "service:nvr",
+      "serviceMemberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "backingChannelRefs": [
+        "nvr.control",
+        "nvr.streams"
+      ],
+      "activationPolicy": {
+        "mode": "runtimeResolved",
+        "requiresCaac": true
+      },
+      "freshness": {
+        "state": "fresh",
+        "updatedAt": 1700000000,
+        "expiresAt": 1700000900
+      },
+      "safeFacts": {
+        "label": "Front door",
+        "kind": "camera"
+      },
+      "issuedAt": 1700000000
+    },
+    "activationRequest": {
+      "kind": "runtime.activation.request",
+      "activationId": "activation-preview-front",
+      "nodeRef": "node:nvr:front-door",
+      "capabilityRef": "media.stream.preview",
+      "params": {
+        "quality": "preview"
+      },
+      "requesterRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "issuedAt": 1700000001,
+      "expiresAt": 1700000091
+    },
+    "routePromise": {
+      "kind": "route.promise",
+      "promiseId": "route-promise-preview-front",
+      "activationId": "activation-preview-front",
+      "nodeRef": "node:nvr:front-door",
+      "capabilityRef": "media.stream.preview",
+      "requesterRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "serviceMemberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "servicePk": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "channelId": "nvr.streams",
+      "zoneScope": {
+        "zoneId": "zone_lab",
+        "ttl": 30,
+        "maxHops": 2
+      },
+      "audienceRefs": [
+        "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+      ],
+      "authorityRefs": [
+        "identity:operator"
+      ],
+      "routePolicy": {
+        "delivery": "targetMember"
+      },
+      "pathRefs": [
+        "path:c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5"
+      ],
+      "issuedAt": 1700000002,
+      "expiresAt": 1700000302,
+      "releasePolicy": {
+        "onClose": true,
+        "leaseSeconds": 300
+      }
+    },
+    "routeObservation": {
+      "kind": "route.observation",
+      "observationId": "route-observation-preview-front",
+      "promiseId": "route-promise-preview-front",
+      "frameId": "9949c702f8c61f1faf1cf89004ad75432189546e990750a5a0f03a330f5ca6ac",
+      "state": "delivered",
+      "failedPredicates": [],
+      "diagnostics": {
+        "deliveredTo": [
+          "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+        ]
+      },
+      "issuedAt": 1700000003
+    },
+    "streamRoutePlan": {
+      "kind": "stream.routePlan",
+      "sessionId": "stream-preview-front",
+      "sourceRefs": [
+        "node:nvr:front-door"
+      ],
+      "requesterRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "serviceMemberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "capabilityRef": "media.stream.preview",
+      "routeLease": {
+        "promiseId": "route-promise-preview-front",
+        "expiresAt": 1700000302
+      },
+      "candidatePaths": [
+        {
+          "pathId": "path:browser-webrtc:lab-1",
+          "kind": "browserWebRtc",
+          "state": "selected",
+          "refs": [
+            "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+            "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9"
+          ]
+        }
+      ],
+      "preferredPath": {
+        "pathId": "path:browser-webrtc:lab-1",
+        "kind": "browserWebRtc",
+        "state": "selected"
+      },
+      "fallbackPaths": [
+        {
+          "pathId": "path:degraded-projection",
+          "kind": "degradedProjectionOnly",
+          "state": "unavailable"
+        }
+      ],
+      "selectedPath": {
+        "pathId": "path:browser-webrtc:lab-1",
+        "kind": "browserWebRtc",
+        "state": "selected"
+      },
+      "pathState": "selected",
+      "reachabilityState": "reachable",
+      "releasePolicy": {
+        "onClose": true,
+        "leaseSeconds": 300
+      },
+      "diagnostics": {
+        "fallbackRepresented": true
+      },
+      "expiresAt": 1700000302
+    },
+    "memberPresence": {
+      "kind": "member.presence",
+      "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "memberKind": "service",
+      "capabilityRefs": [
+        "media.stream.preview"
+      ],
+      "channelRefs": [
+        "nvr.streams"
+      ],
+      "issuedAt": 1700000000,
+      "expiresAt": 1700000900
+    },
+    "directoryEntry": {
+      "kind": "directory.entry",
+      "entryId": "directory:nvr-preview-front",
+      "subjectRef": "node:nvr:front-door",
+      "source": "capabilityRecord",
+      "capabilityRef": "media.stream.preview",
+      "channelId": "nvr.streams",
+      "issuedAt": 1700000000
+    },
+    "bootstrapCarrier": {
+      "kind": "bootstrap.carrier",
+      "carrierId": "bootstrap:nostr:hint-1",
+      "carrierKind": "nostr.event",
+      "boundary": "bootstrap",
+      "payloadRef": "bootstrap-event:hint-1",
+      "issuedAt": 1700000000
+    }
+  },
+  "edge": {
+    "hello": {
+      "memberKind": "browser-runtime",
+      "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "zoneScope": {
+        "zoneId": "zone_lab",
+        "privacy": "rawIds",
+        "ttl": 30,
+        "maxHops": 2
+      },
+      "supportedVersions": [
+        1
+      ],
+      "capabilityRefs": [
+        "swarm.edge.attach",
+        "projection.observe"
+      ],
+      "channelRefs": [
+        "nvr.control",
+        "runtime.projections"
+      ],
+      "lastAckedFrameId": "9949c702f8c61f1faf1cf89004ad75432189546e990750a5a0f03a330f5ca6ac",
+      "lastProjectionRevisions": {
+        "proj-1": 4
+      },
+      "nonce": "edge-hello-nonce-1",
+      "issuedAt": 1700000000000,
+      "sealedClaims": {
+        "encoding": "caac",
+        "envelope": {
+          "envelopeId": "edge-hello-claims"
+        }
+      }
+    },
+    "accept": {
+      "sessionId": "edge-session-1",
+      "memberKind": "browser-runtime",
+      "memberRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "zoneScope": {
+        "zoneId": "zone_lab",
+        "privacy": "rawIds",
+        "ttl": 30,
+        "maxHops": 2
+      },
+      "acceptedVersion": 1,
+      "capabilityRefs": [
+        "swarm.edge.attach",
+        "projection.observe"
+      ],
+      "channelRefs": [
+        "nvr.control",
+        "runtime.projections"
+      ],
+      "lastAckedFrameId": "9949c702f8c61f1faf1cf89004ad75432189546e990750a5a0f03a330f5ca6ac",
+      "lastProjectionRevisions": {
+        "proj-1": 4
+      },
+      "nonce": "edge-accept-nonce-1",
+      "issuedAt": 1700000000001,
+      "sealedClaims": {
+        "encoding": "caac",
+        "envelope": {
+          "envelopeId": "edge-accept-claims"
+        }
+      }
+    },
+    "resume": {
+      "sessionId": "edge-session-1",
+      "memberKind": "browser-runtime",
+      "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "zoneScope": {
+        "zoneId": "zone_lab",
+        "privacy": "rawIds",
+        "ttl": 30,
+        "maxHops": 2
+      },
+      "capabilityRefs": [
+        "swarm.edge.attach",
+        "projection.observe"
+      ],
+      "channelRefs": [
+        "nvr.control",
+        "runtime.projections"
+      ],
+      "lastAckedFrameId": "9949c702f8c61f1faf1cf89004ad75432189546e990750a5a0f03a330f5ca6ac",
+      "lastProjectionRevisions": {
+        "proj-1": 4
+      },
+      "nonce": "edge-resume-nonce-1",
+      "issuedAt": 1700000000002,
+      "sealedClaims": {
+        "encoding": "caac",
+        "envelope": {
+          "envelopeId": "edge-resume-claims"
+        }
+      }
+    },
+    "close": {
+      "sessionId": "edge-session-1",
+      "memberKind": "browser-runtime",
+      "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "zoneScope": {
+        "zoneId": "zone_lab",
+        "privacy": "rawIds",
+        "ttl": 30,
+        "maxHops": 2
+      },
+      "reasonCode": "operator.close",
+      "capabilityRefs": [
+        "swarm.edge.attach"
+      ],
+      "channelRefs": [
+        "runtime.projections"
+      ],
+      "lastAckedFrameId": "9949c702f8c61f1faf1cf89004ad75432189546e990750a5a0f03a330f5ca6ac",
+      "lastProjectionRevisions": {
+        "proj-1": 4
+      },
+      "nonce": "edge-close-nonce-1",
+      "issuedAt": 1700000000003,
+      "sealedClaims": {
+        "encoding": "caac",
+        "envelope": {
+          "envelopeId": "edge-close-claims"
+        }
+      }
+    }
+  }
+}

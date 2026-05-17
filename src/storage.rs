@@ -7,7 +7,6 @@ pub const STORAGE_OBJECT_HASH_ALG: &str = "sha256-ciphertext-v1";
 pub const STORAGE_CHUNK_HASH_ALG: &str = "sha256-ciphertext-v1";
 pub const STORAGE_ENCRYPTION_ALG_XCHACHA20POLY1305: &str = "xchacha20poly1305";
 pub const CAAC_KIND_STORAGE_KEY_GRANT: &str = "storage.key_grant";
-pub const CAAC_KIND_STORAGE_SERVICE_ACCESS: &str = "storage.service_access";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

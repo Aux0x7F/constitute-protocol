@@ -11,55 +11,22 @@ export const MAX_CAPABILITY_TTL_SECONDS = 30 * 60;
 export const DEFAULT_REQUEST_TTL_SECONDS = 90;
 
 export const BROKER = Object.freeze({
-  SERVICE_ACCESS_REQUEST: "gateway.serviceAccess.request",
-  SERVICE_ACCESS_RESPONSE: "gateway.serviceAccess.response",
-  SERVICE_SIGNAL_REQUEST: "gateway.serviceSignal.request",
-  SERVICE_SIGNAL_RESPONSE: "gateway.serviceSignal.response",
-  SERVICE_ACCESS_CONTEXT_GET: "serviceAccessContext.get",
-  SERVICE_ACCESS_CONTEXT_PUT: "serviceAccessContext.put",
-  SERVICE_ACCESS_CONTEXT_DELETE: "serviceAccessContext.delete",
   PROJECTION_GET: "projection.get",
   PROJECTION_PUT: "projection.put",
-  PROJECTION_POLICY_PUT: "projection.policy.put",
-  SERVICE_PROJECTION_REQUEST: "service.projection.request",
-  SERVICE_PROJECTION_RESPONSE: "service.projection.response",
+  SERVICE_CATALOG_GET: "service.catalog.get",
+  SERVICE_NODE_GET: "service.node.get",
+  SERVICE_NODE_POLICY_PUT: "service.node.policy.put",
 });
 
-export const SERVICE_EXCHANGE = Object.freeze({
+export const SERVICE_SURFACE = Object.freeze({
   SCHEMA_VERSION: 1,
-  KIND: Object.freeze({
-    DESCRIBE_REQUEST: "service.describe.request",
-    DESCRIBE_RESPONSE: "service.describe.response",
-    PROJECTION_REQUEST: "service.projection.request",
-    PROJECTION_RESPONSE: "service.projection.response",
-    CONTROL_REQUEST: "service.control.request",
-    CONTROL_RESPONSE: "service.control.response",
-    INVOKE_REQUEST: "service.invoke.request",
-    INVOKE_RESPONSE: "service.invoke.response",
-    WATCH_REQUEST: "service.watch.request",
-    WATCH_EVENT: "service.watch.event",
-    CLOSE: "service.close",
+  FIELD_CAPABILITY: Object.freeze({
+    READ: "read",
+    OBSERVE: "observe",
+    SET: "set",
+    ATTACH: "attach",
+    INVOKE: "invoke",
   }),
-});
-
-export const SERVICE_ACCESS_EVENTS = Object.freeze({
-  REQUEST: "gateway_service_access_request",
-  STATUS: "gateway_service_access_status",
-  SIGNAL_REQUEST: "gateway_service_signal_request",
-  SIGNAL_STATUS: "gateway_service_signal_status",
-  SIGNAL: "gateway_service_signal",
-  GRANT: "gateway.service_access",
-});
-
-export const SERVICE_ACCESS_KINDS = Object.freeze({
-  CAPABILITY: "service_access.capability",
-  STATUS: "service_access.status",
-  REQUEST: "service_access.request",
-  SIGNAL: "service_access.signal",
-  INVOCATION: "service_access.invocation",
-  ADMIN: "service_access.admin",
-  CONTROL: "service_access.control",
-  CLOSE: "service_access.close",
 });
 
 export const STORAGE = Object.freeze({
@@ -67,7 +34,6 @@ export const STORAGE = Object.freeze({
   CHUNK_HASH_ALG: "sha256-ciphertext-v1",
   ENCRYPTION_ALG_XCHACHA20POLY1305: "xchacha20poly1305",
   CAAC_KIND_KEY_GRANT: "storage.key_grant",
-  CAAC_KIND_SERVICE_ACCESS: "storage.service_access",
 });
 
 export const STORAGE_KEY_GRANULARITY = Object.freeze({
@@ -90,8 +56,8 @@ export const LOGGING = Object.freeze({
   }),
   CATEGORY: Object.freeze({
     SYSTEM: "system",
-    SERVICE_ACCESS: "serviceAccess",
-    SERVICE_SIGNAL: "serviceSignal",
+    CAPABILITY: "capability",
+    SWARM_EDGE: "swarmEdge",
     HOSTED_SERVICE: "hostedService",
     GATEWAY_CONTROL: "gatewayControl",
     CAMERA_DEVICE: "cameraDevice",
@@ -156,11 +122,21 @@ export const PROJECTION = Object.freeze({
 export const DIAGNOSTICS = Object.freeze({
   SCHEMA_VERSION: 1,
   CHANNEL_EVENTS: "diagnostics.events",
+  RUNTIME_CHANNEL: "runtime.diagnostics",
   LEVEL: Object.freeze({
     DEBUG: "debug",
     INFO: "info",
     WARN: "warn",
     ERROR: "error",
+  }),
+  RUNTIME_RECORD_KIND: Object.freeze({
+    EVENT: "runtime.diagnostic.event",
+    COMMAND: "runtime.diagnostic.command",
+    COMMAND_RESULT: "runtime.diagnostic.command.result",
+  }),
+  RUNTIME_CAPABILITY: Object.freeze({
+    OBSERVE: "runtime.diagnostics.observe",
+    COMMAND: "runtime.diagnostics.command",
   }),
 });
 
@@ -218,7 +194,7 @@ export function compressedPublicKeyFromXOnly(xonlyHex) {
   return `02${String(xonlyHex || "").trim()}`;
 }
 
-export function buildUnsignedEvent({ pubkey, kind, tags = [], content = "", created_at }) {
+export function buildBootstrapNostrUnsignedEvent({ pubkey, kind, tags = [], content = "", created_at }) {
   return {
     pubkey: String(pubkey || ""),
     created_at: Number(created_at || nowSeconds()),
@@ -228,7 +204,7 @@ export function buildUnsignedEvent({ pubkey, kind, tags = [], content = "", crea
   };
 }
 
-export function eventIdHex(unsigned) {
+export function bootstrapNostrEventIdHex(unsigned) {
   return sha256Hex(JSON.stringify([
     0,
     unsigned.pubkey,
@@ -239,8 +215,8 @@ export function eventIdHex(unsigned) {
   ]));
 }
 
-export function signEvent(unsigned, secretKeyHex) {
-  const id = eventIdHex(unsigned);
+export function signBootstrapNostrEvent(unsigned, secretKeyHex) {
+  const id = bootstrapNostrEventIdHex(unsigned);
   const sig = schnorr.sign(hexToBytes(id), hexToBytes(secretKeyHex));
   return {
     id,
@@ -253,24 +229,15 @@ export function signEvent(unsigned, secretKeyHex) {
   };
 }
 
-export function verifyEvent(event) {
-  const unsigned = buildUnsignedEvent(event);
-  if (eventIdHex(unsigned) !== event.id) return false;
+export function verifyBootstrapNostrEvent(event) {
+  const unsigned = buildBootstrapNostrUnsignedEvent(event);
+  if (bootstrapNostrEventIdHex(unsigned) !== event.id) return false;
   return schnorr.verify(hexToBytes(event.sig), hexToBytes(event.id), hexToBytes(event.pubkey));
 }
 
-export function buildNostrEvent({ secretKey, kind, tags = [], content = "", created_at = nowSeconds() }) {
+export function buildBootstrapNostrEvent({ secretKey, kind, tags = [], content = "", created_at = nowSeconds() }) {
   const pubkey = pubkeyFromSecretKey(secretKey);
-  return signEvent(buildUnsignedEvent({ pubkey, kind, tags, content, created_at }), secretKey);
-}
-
-export function serviceAccessRoutingTags({ gatewayPk = "", servicePk = "", service = "", envelopeKind = "" } = {}) {
-  const tags = [["t", "constitute"], ["t", "service_access"]];
-  if (gatewayPk) tags.push(["p", String(gatewayPk)]);
-  if (servicePk) tags.push(["service_pk", String(servicePk)]);
-  if (service) tags.push(["service", String(service)]);
-  if (envelopeKind) tags.push(["caac_kind", String(envelopeKind)]);
-  return tags;
+  return signBootstrapNostrEvent(buildBootstrapNostrUnsignedEvent({ pubkey, kind, tags, content, created_at }), secretKey);
 }
 
 function deriveRecipientKey({ issuerSecretKey, recipientPk, kind, envelopeId }) {
@@ -397,47 +364,6 @@ export class ReplayCache {
   }
 }
 
-export function serviceAccessContextId({ service = "", gatewayPk = "", servicePk = "", capabilityId = "" } = {}) {
-  return sha256Hex(canonicalJson({ capabilityId, gatewayPk, service, servicePk })).slice(0, 32);
-}
-
-export function assertServiceAccessContext(value) {
-  if (!value || typeof value !== "object") throw new Error("service access context must be an object");
-  if (!String(value.contextId || "").trim()) throw new Error("service access context missing contextId");
-  if (!String(value.service || "").trim()) throw new Error("service access context missing service");
-  if (!String(value.gatewayPk || "").trim()) throw new Error("service access context missing gatewayPk");
-  if (!String(value.servicePk || "").trim()) throw new Error("service access context missing servicePk");
-  if (!value.serviceCapability) throw new Error("service access context missing serviceCapability");
-  return value;
-}
-
-export function makeServiceAccessContext({
-  contextId,
-  service,
-  gatewayPk,
-  servicePk,
-  identityId = "",
-  devicePk = "",
-  display = {},
-  serviceCapability,
-  issuedAt = nowSeconds(),
-  expiresAt = issuedAt + DEFAULT_CAPABILITY_TTL_SECONDS,
-} = {}) {
-  const context = {
-    contextId: contextId || serviceAccessContextId({ service, gatewayPk, servicePk, capabilityId: serviceCapability?.envelopeId || "" }),
-    service,
-    gatewayPk,
-    servicePk,
-    identityId,
-    devicePk,
-    display: display || {},
-    serviceCapability,
-    issuedAt,
-    expiresAt,
-  };
-  return assertServiceAccessContext(context);
-}
-
 export function storageCiphertextHash(bytes) {
   return sha256Hex(bytes instanceof Uint8Array ? bytes : utf8ToBytes(String(bytes ?? "")));
 }
@@ -530,7 +456,7 @@ const SENSITIVE_SAFE_FACT_KEY_FRAGMENTS = [
   "argv",
   "body",
   "caac",
-  "capability",
+  "capabilitygrant",
   "credential",
   "decrypted",
   "password",
@@ -544,7 +470,7 @@ const SENSITIVE_SAFE_FACT_KEY_FRAGMENTS = [
 ];
 
 function withoutLogComputedFields(event) {
-  const clone = structuredClone(event || {});
+  const clone = { ...(event || {}) };
   delete clone.eventId;
   delete clone.receivedAt;
   return clone;
@@ -627,7 +553,7 @@ export function makeLogEventEnvelope({
   return assertLogEventEnvelope(event);
 }
 
-const UNSAFE_SAFE_FACT_KEY_RE = /(password|credential|secret|token|capability|servicecapability|privatekey|secretkey|rtspurl|authorization|rawpayload|requestbody)/i;
+const UNSAFE_SAFE_FACT_KEY_RE = /(password|credential|secret|token|capabilitygrant|servicecapability|privatekey|secretkey|sdp|rtspurl|cameraurl|serviceprivateurl|authorization|rawpayload|requestbody)/i;
 const UNSAFE_SAFE_FACT_VALUE_RE = /(rtsp:\/\/|authorization:|servicecapability|-----begin)/i;
 
 export function rejectUnsafeSafeFacts(value, path = "") {
@@ -653,62 +579,122 @@ export function assertHostedServiceDescriptor(descriptor) {
   if (!String(descriptor.service || "").trim()) throw new Error("service descriptor missing service");
   if (!String(descriptor.servicePk || "").trim()) throw new Error("service descriptor missing servicePk");
   if (!String(descriptor.hostGatewayPk || "").trim()) throw new Error("service descriptor missing hostGatewayPk");
-  if (descriptor.projectionChannels !== undefined && !Array.isArray(descriptor.projectionChannels)) {
-    throw new Error("service descriptor projectionChannels must be an array");
-  }
-  for (const channel of descriptor.projectionChannels || []) {
-    if (!String(channel || "").trim()) throw new Error("service descriptor contains empty projection channel");
-  }
+  if (!String(descriptor.surfaceChannel || "").trim()) throw new Error("service descriptor missing surfaceChannel");
+  if (descriptor.location !== undefined) assertServiceLocationRef(descriptor.location);
+  if (descriptor.aliases !== undefined && !Array.isArray(descriptor.aliases)) throw new Error("service descriptor aliases must be an array");
+  if (descriptor.nodes !== undefined && !Array.isArray(descriptor.nodes)) throw new Error("service descriptor nodes must be an array");
   return descriptor;
 }
 
-export function assertServiceExchangeFrame(frame) {
-  if (!frame || typeof frame !== "object") throw new Error("service exchange frame must be an object");
-  if (!String(frame.frameId || "").trim()) throw new Error("service exchange missing frameId");
-  if (!Number(frame.schemaVersion || 0)) throw new Error("service exchange missing schemaVersion");
-  if (!Object.values(SERVICE_EXCHANGE.KIND).includes(String(frame.kind || "").trim())) {
-    throw new Error("unsupported service exchange kind");
-  }
-  if (!String(frame.issuerPk || "").trim()) throw new Error("service exchange missing issuerPk");
-  if (!String(frame.recipientServicePk || "").trim()) throw new Error("service exchange missing recipientServicePk");
-  if (!String(frame.hostGatewayPk || "").trim()) throw new Error("service exchange missing hostGatewayPk");
-  if (!Number(frame.issuedAt || 0) || !Number(frame.expiresAt || 0) || Number(frame.expiresAt) <= Number(frame.issuedAt)) {
-    throw new Error("service exchange invalid time bounds");
-  }
-  if (!String(frame.signature || "").trim()) throw new Error("service exchange missing signature");
-  return frame;
+export function assertServiceLocationRef(location) {
+  if (!location || typeof location !== "object") throw new Error("service location must be an object");
+  if (!String(location.locationId || "").trim()) throw new Error("service location missing locationId");
+  if (!String(location.label || "").trim()) throw new Error("service location missing label");
+  if (!String(location.gatewayPk || "").trim()) throw new Error("service location missing gatewayPk");
+  return location;
 }
 
-export function makeServiceExchangeFrame(input = {}) {
-  const now = nowSeconds();
-  return assertServiceExchangeFrame({
-    frameId: String(input.frameId || `service-frame-${sha256Hex(`${now}:${Math.random()}`).slice(0, 24)}`),
-    schemaVersion: Number(input.schemaVersion || SERVICE_EXCHANGE.SCHEMA_VERSION),
-    kind: String(input.kind || ""),
-    issuerPk: String(input.issuerPk || ""),
-    recipientServicePk: String(input.recipientServicePk || ""),
-    hostGatewayPk: String(input.hostGatewayPk || ""),
-    issuedAt: Number(input.issuedAt || now),
-    expiresAt: Number(input.expiresAt || now + DEFAULT_REQUEST_TTL_SECONDS),
-    ...(input.traceId ? { traceId: String(input.traceId) } : {}),
-    ...(input.requestId ? { requestId: String(input.requestId) } : {}),
-    ...(input.correlationId ? { correlationId: String(input.correlationId) } : {}),
-    routeHint: input.routeHint && typeof input.routeHint === "object" ? input.routeHint : {},
-    sealedPayload: input.sealedPayload && typeof input.sealedPayload === "object" ? input.sealedPayload : {},
-    signature: String(input.signature || "unsigned-local-frame"),
-  });
+export function assertServiceNodeFieldDescriptor(field) {
+  if (!field || typeof field !== "object") throw new Error("service node field must be an object");
+  if (!String(field.fieldId || "").trim()) throw new Error("service node field missing fieldId");
+  if (!String(field.label || "").trim()) throw new Error("service node field missing label");
+  const capabilities = field.capabilities ?? [];
+  if (!Array.isArray(capabilities) || capabilities.length === 0) throw new Error("service node field missing capabilities");
+  for (const capability of capabilities) {
+    if (!Object.values(SERVICE_SURFACE.FIELD_CAPABILITY).includes(capability)) {
+      throw new Error("invalid service node field capability");
+    }
+  }
+  const schema = field.schema ?? {};
+  if (schema && (typeof schema !== "object" || Array.isArray(schema))) throw new Error("service node field schema must be an object");
+  return field;
+}
+
+export function assertServiceNodeDescriptor(node) {
+  if (!node || typeof node !== "object") throw new Error("service node must be an object");
+  if (!String(node.nodeId || "").trim()) throw new Error("service node missing nodeId");
+  if (!String(node.path || "").trim()) throw new Error("service node missing path");
+  if (!String(node.label || "").trim()) throw new Error("service node missing label");
+  if (node.aliases !== undefined && !Array.isArray(node.aliases)) throw new Error("service node aliases must be an array");
+  if (node.children !== undefined && !Array.isArray(node.children)) throw new Error("service node children must be an array");
+  for (const field of node.fields || []) assertServiceNodeFieldDescriptor(field);
+  return node;
+}
+
+export function assertServiceSurfaceProjection(surface) {
+  if (!surface || typeof surface !== "object") throw new Error("service surface must be an object");
+  if (!String(surface.surfaceId || "").trim()) throw new Error("service surface missing surfaceId");
+  if (!Number(surface.schemaVersion || 0)) throw new Error("service surface missing schemaVersion");
+  if (!String(surface.service || "").trim()) throw new Error("service surface missing service");
+  if (!String(surface.servicePk || "").trim()) throw new Error("service surface missing servicePk");
+  if (!String(surface.hostGatewayPk || "").trim()) throw new Error("service surface missing hostGatewayPk");
+  if (surface.location !== undefined) assertServiceLocationRef(surface.location);
+  if (!String(surface.summary || "").trim()) throw new Error("service surface missing summary");
+  if (!String(surface.healthNode || "").trim()) throw new Error("service surface missing healthNode");
+  if (!Number(surface.updatedAt || 0)) throw new Error("service surface missing updatedAt");
+  const nodes = surface.nodes ?? [];
+  if (!Array.isArray(nodes) || nodes.length === 0) throw new Error("service surface must describe at least one node");
+  for (const node of nodes) assertServiceNodeDescriptor(node);
+  if (!findServiceNode(surface, surface.healthNode)) throw new Error("service surface healthNode does not match a node");
+  return surface;
+}
+
+export function findServiceNode(surface, nodePath) {
+  const value = String(nodePath || "").trim();
+  return (surface?.nodes || []).find((node) => String(node.path || "").trim() === value
+    || (node.aliases || []).some((alias) => String(alias || "").trim() === value));
+}
+
+export function assertServiceAttachDescriptor(attach) {
+  if (!attach || typeof attach !== "object") throw new Error("service attach descriptor must be an object");
+  if (!String(attach.attachId || "").trim()) throw new Error("service attach descriptor missing attachId");
+  if (!String(attach.label || "").trim()) throw new Error("service attach descriptor missing label");
+  if (!String(attach.attachKind || "").trim()) throw new Error("service attach descriptor missing attachKind");
+  return attach;
+}
+
+export function assertServiceNodeProjectionRecord(record, surface) {
+  if (!record || typeof record !== "object") throw new Error("service node projection must be an object");
+  assertServiceSurfaceProjection(surface);
+  if (String(record.service || "").trim() !== String(surface.service || "").trim()) throw new Error("service node projection service mismatch");
+  if (String(record.servicePk || "").trim() !== String(surface.servicePk || "").trim()) throw new Error("service node projection servicePk mismatch");
+  if (!findServiceNode(surface, record.nodePath)) throw new Error("service node projection targets unknown node");
+  assertProjectionFreshness(record.freshness);
+  for (const field of ["payload", "fields", "desired", "status", "result", "safeFacts"]) {
+    const value = record[field] ?? {};
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`service node projection ${field} must be an object`);
+  }
+  for (const attach of record.attaches || []) assertServiceAttachDescriptor(attach);
+  rejectUnsafeSafeFacts(record.safeFacts ?? {});
+  return record;
+}
+
+export function assertServiceNodeSetRequest(request, surface) {
+  if (!request || typeof request !== "object") throw new Error("service node set request must be an object");
+  assertServiceSurfaceProjection(surface);
+  if (!String(request.requestId || "").trim()) throw new Error("service node set missing requestId");
+  if (String(request.service || "").trim() !== String(surface.service || "").trim()) throw new Error("service node set service mismatch");
+  const node = findServiceNode(surface, request.nodePath);
+  if (!node) throw new Error("service node set targets unknown node");
+  const desired = request.desired ?? {};
+  if (!desired || typeof desired !== "object" || Array.isArray(desired)) throw new Error("service node set desired must be an object");
+  for (const fieldId of Object.keys(desired)) {
+    const field = (node.fields || []).find((candidate) => candidate.fieldId === fieldId);
+    if (!field) throw new Error("service node set targets unknown field");
+    if (!(field.capabilities || []).includes(SERVICE_SURFACE.FIELD_CAPABILITY.SET)) {
+      throw new Error("service node field is not settable");
+    }
+  }
+  return request;
 }
 
 export function assertProjectionChannelId(channelId, descriptor) {
   const value = String(channelId || "").trim();
   if (!value) throw new Error("projection missing channel id");
-  const descriptorChannels = Array.isArray(descriptor?.projectionChannels) ? descriptor.projectionChannels : [];
+  const descriptorChannels = Array.isArray(descriptor?.allowedProjectionChannels) ? descriptor.allowedProjectionChannels : [];
   if (descriptorChannels.length > 0) {
     if (!descriptorChannels.includes(value)) throw new Error("unsupported projection channel");
     return value;
-  }
-  if (!Object.values(PROJECTION.CHANNEL).includes(value)) {
-    throw new Error("unsupported projection channel");
   }
   return value;
 }
@@ -919,4 +905,2659 @@ export function assertDiagnosticEvent(event) {
   if (!String(event.operation || "").trim()) throw new Error("diagnostic missing operation");
   rejectUnsafeSafeFacts(event.safeFacts ?? {});
   return event;
+}
+
+export const SWARM = Object.freeze({
+  FRAME_VERSION: 1,
+  WIRE_KIND: Object.freeze({
+    FRAME: "swarm.frame",
+    EDGE_HELLO: "swarm.edge.hello",
+    EDGE_RESUME: "swarm.edge.resume",
+    EDGE_ACCEPT: "swarm.edge.accept",
+    EDGE_CLOSE: "swarm.edge.close",
+  }),
+  BODY_ENCODING: Object.freeze({
+    CAAC: "caac",
+    PUBLIC: "public",
+  }),
+  FRAME_KIND: Object.freeze({
+    RECORD_PUBLISH: "record.publish",
+    RECORD_RETRACT: "record.retract",
+    CHANNEL_OBSERVE: "channel.observe",
+    CHANNEL_UNOBSERVE: "channel.unobserve",
+    PROJECTION_SNAPSHOT: "projection.snapshot",
+    PROJECTION_DELTA: "projection.delta",
+    PROJECTION_REPAIR_REQUEST: "projection.repair.request",
+    SERVICE_INTENT: "service.intent",
+    SERVICE_RESPONSE: "service.response",
+    STREAM_INTENT: "stream.intent",
+    STREAM_CONTROL: "stream.control",
+    STREAM_STATUS: "stream.status",
+    STORAGE_PIN_INTENT: "storage.pin.intent",
+    STORAGE_PIN_ATTESTATION: "storage.pin.attestation",
+    NODE_CAPABILITY: "node.capability",
+    RUNTIME_ACTIVATION_REQUEST: "runtime.activation.request",
+    ROUTE_PROMISE: "route.promise",
+    ROUTE_OBSERVATION: "route.observation",
+    STREAM_ROUTE_PLAN: "stream.routePlan",
+    RUNTIME_DIAGNOSTIC_EVENT: "runtime.diagnostic.event",
+    RUNTIME_DIAGNOSTIC_COMMAND: "runtime.diagnostic.command",
+    RUNTIME_DIAGNOSTIC_COMMAND_RESULT: "runtime.diagnostic.command.result",
+    ACK: "ack",
+    REJECT: "reject",
+    SWARM_IDENTITY: "swarm.identity",
+    SWARM_DEVICE: "swarm.device",
+    SWARM_GATEWAY: "swarm.gateway",
+    SWARM_SERVICE: "swarm.service",
+    SWARM_MEMBER: "swarm.member",
+    SWARM_GRANT: "swarm.grant",
+    SWARM_ROLE: "swarm.role",
+    SWARM_INTERACTION: "swarm.interaction",
+    SWARM_ACTIVATION: "swarm.activation",
+    SWARM_RELEASE: "swarm.release",
+    SWARM_REVOCATION: "swarm.revocation",
+    PARTICIPANT_RUNLEVEL: "participant.runlevel",
+    PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
+    INGRESS_LANE_POSTURE: "ingress.lane.posture",
+    EVENT_ADMISSION: "event.admission",
+    SUBSCRIPTION_CONTRACT: "subscription.contract",
+    MATERIALIZATION_BUDGET: "materialization.budget",
+    CONSUMER_FLOOR: "consumer.floor",
+    PROJECTION_REPAIR_POSTURE: "projection.repair.posture",
+    RESOURCE_PROFILE: "resource.profile",
+    RESOURCE_POSTURE: "resource.posture",
+    RETENTION_RELEASE: "retention.release",
+    CONTRIBUTION_LIFECYCLE: "contribution.lifecycle",
+    MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
+    MEDIA_TRANSPORT_PATH: "media.transport.path",
+    MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
+  }),
+  RECORD_KIND: Object.freeze({
+    NODE_CAPABILITY: "node.capability",
+    RUNTIME_ACTIVATION_REQUEST: "runtime.activation.request",
+    ROUTE_PROMISE: "route.promise",
+    ROUTE_OBSERVATION: "route.observation",
+    STREAM_ROUTE_PLAN: "stream.routePlan",
+    RUNTIME_DIAGNOSTIC_EVENT: "runtime.diagnostic.event",
+    RUNTIME_DIAGNOSTIC_COMMAND: "runtime.diagnostic.command",
+    RUNTIME_DIAGNOSTIC_COMMAND_RESULT: "runtime.diagnostic.command.result",
+    MEMBER_PRESENCE: "member.presence",
+    DIRECTORY_ENTRY: "directory.entry",
+    BOOTSTRAP_CARRIER: "bootstrap.carrier",
+    SWARM_IDENTITY: "swarm.identity",
+    SWARM_DEVICE: "swarm.device",
+    SWARM_GATEWAY: "swarm.gateway",
+    SWARM_SERVICE: "swarm.service",
+    SWARM_MEMBER: "swarm.member",
+    SWARM_GRANT: "swarm.grant",
+    SWARM_ROLE: "swarm.role",
+    SWARM_INTERACTION: "swarm.interaction",
+    SWARM_ACTIVATION: "swarm.activation",
+    SWARM_RELEASE: "swarm.release",
+    SWARM_REVOCATION: "swarm.revocation",
+    PARTICIPANT_RUNLEVEL: "participant.runlevel",
+    PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
+    INGRESS_LANE_POSTURE: "ingress.lane.posture",
+    EVENT_ADMISSION: "event.admission",
+    SUBSCRIPTION_CONTRACT: "subscription.contract",
+    MATERIALIZATION_BUDGET: "materialization.budget",
+    CONSUMER_FLOOR: "consumer.floor",
+    PROJECTION_REPAIR_POSTURE: "projection.repair.posture",
+    RESOURCE_PROFILE: "resource.profile",
+    RESOURCE_POSTURE: "resource.posture",
+    RETENTION_RELEASE: "retention.release",
+    CONTRIBUTION_LIFECYCLE: "contribution.lifecycle",
+    MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
+    MEDIA_TRANSPORT_PATH: "media.transport.path",
+    MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
+  }),
+  AUTHORITY_DOMAIN: Object.freeze({
+    IDENTITY: "identity",
+    GATEWAY: "gateway",
+    SERVICE: "service",
+    DEVICE: "device",
+    RUNTIME: "runtime",
+  }),
+  INTERACTION_ROLE: Object.freeze({
+    REQUESTER: "requester",
+    COORDINATOR: "coordinator",
+    ROUTER: "router",
+    EXECUTOR: "executor",
+    ADAPTER: "adapter",
+    STORAGE: "storage",
+    OBSERVER: "observer",
+    OWNER: "owner",
+  }),
+  INTERACTION_STATE: Object.freeze({
+    PREPARED: "prepared",
+    ACCEPTED: "accepted",
+    ROUTED: "routed",
+    SERVICE_ACCEPTED: "serviceAccepted",
+    ACTIVE: "active",
+    REJECTED: "rejected",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  ROUTING_SCOPE_KIND: Object.freeze({
+    LOCAL: "local",
+    SWARM_ZONE: "swarmZone",
+    EXPLICIT_AUDIENCE: "explicitAudience",
+    EXPLICIT_MEMBER: "explicitMember",
+    BOOTSTRAP: "bootstrap",
+  }),
+  ROUTING_SCOPE_STATE: Object.freeze({
+    NOT_REQUIRED: "notRequired",
+    READY: "ready",
+    SYNCING: "syncing",
+    STALE: "stale",
+    MISSING: "missing",
+    UNAVAILABLE: "unavailable",
+  }),
+  ROUTING_BLOCKED_REASON: Object.freeze({
+    MISSING_ZONE_BASELINE: "missingZoneBaseline",
+    NO_MEMBER_IN_ZONE: "noMemberInZone",
+    ZERO_PROPAGATION: "zeroPropagation",
+    ZONE_MISMATCH: "zoneMismatch",
+    AUDIENCE_MISMATCH: "audienceMismatch",
+    EDGE_NOT_ACCEPTED: "edgeNotAccepted",
+  }),
+  PARTICIPANT_RUNLEVEL: Object.freeze({
+    LOCAL_CACHE: "localCache",
+    AUTHORITY_READY: "authorityReady",
+    EDGE_ATTACHED: "edgeAttached",
+    DIRECTORY_READY: "directoryReady",
+    ROUTE_READY: "routeReady",
+    INTERACTIVE: "interactive",
+    FULFILLING: "fulfilling",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+  }),
+  SELF_CAPABILITY_ACTION: Object.freeze({
+    OBSERVE: "observe",
+    REQUEST: "request",
+    ROUTE: "route",
+    FULFILL: "fulfill",
+    RETAIN: "retain",
+    RELEASE: "release",
+    ADMINISTER: "administer",
+  }),
+  SELF_CAPABILITY_STATUS: Object.freeze({
+    AVAILABLE: "available",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    DISABLED: "disabled",
+    UNKNOWN: "unknown",
+  }),
+  POSTURE_FACET_STATE: Object.freeze({
+    READY: "ready",
+    NOT_REQUIRED: "notRequired",
+    MISSING: "missing",
+    BLOCKED: "blocked",
+    DEGRADED: "degraded",
+    UNKNOWN: "unknown",
+  }),
+  RESOURCE_PROFILE_CLASS: Object.freeze({
+    THIN_CLIENT: "thinClient",
+    BALANCED: "balanced",
+    OFFLINE_FIRST: "offlineFirst",
+    ARCHIVE_NODE: "archiveNode",
+    OPERATOR_DEV: "operatorDev",
+    CUSTOM: "custom",
+  }),
+  RESOURCE_POSTURE_STATE: Object.freeze({
+    WITHIN_BUDGET: "withinBudget",
+    PRESSURE: "pressure",
+    OVER_BUDGET: "overBudget",
+    SWEEPING: "sweeping",
+    BLOCKED: "blocked",
+    UNAVAILABLE: "unavailable",
+  }),
+  EVENT_PLANE: Object.freeze({
+    AUTHORITY: "authority",
+    ROUTE: "route",
+    ACTIVATION: "activation",
+    PROJECTION: "projection",
+    PROJECTION_REPAIR: "projectionRepair",
+    CONTRIBUTION: "contribution",
+    RETENTION: "retention",
+    DIAGNOSTIC: "diagnostic",
+    DEV_BRIDGE: "devBridge",
+    LOGGING_REPLAY: "loggingReplay",
+    BULK_RETAINED_DATA: "bulkRetainedData",
+  }),
+  EVENT_ADMISSION_DECISION: Object.freeze({
+    FORWARD: "forward",
+    DROP: "drop",
+    DEFER: "defer",
+    SUMMARIZE: "summarize",
+    REJECT: "reject",
+  }),
+  EVENT_PROOF_REQUIREMENT: Object.freeze({
+    NONE: "none",
+    SIGNATURE: "signature",
+    AUTHORITY: "authority",
+    SEALED: "sealed",
+    EXECUTION: "execution",
+  }),
+  EVENT_PROOF_STATE: Object.freeze({
+    NOT_REQUIRED: "notRequired",
+    PENDING: "pending",
+    VERIFIED: "verified",
+    FAILED: "failed",
+  }),
+  EVENT_DELIVERY_MODE: Object.freeze({
+    PUSH: "push",
+    PULL: "pull",
+    OBSERVE: "observe",
+    REPLAY: "replay",
+    DELTA: "delta",
+    SUMMARY: "summary",
+  }),
+  EVENT_BACKPRESSURE_BEHAVIOR: Object.freeze({
+    DROP: "drop",
+    DEFER: "defer",
+    SUMMARIZE: "summarize",
+    REJECT: "reject",
+    FORWARD: "forward",
+  }),
+  MATERIALIZATION_PAYLOAD_CLASS: Object.freeze({
+    CONTROL: "control",
+    EVIDENCE: "evidence",
+    PROJECTION: "projection",
+    RETAINED_RAW: "retainedRaw",
+    MEDIA: "media",
+    BULK: "bulk",
+  }),
+  MATERIALIZATION_COPY_ROLE: Object.freeze({
+    TRANSPORT: "transport",
+    PROJECTION: "projection",
+    CACHE: "cache",
+    BUFFER: "buffer",
+    RETENTION: "retention",
+    DEBUG: "debug",
+    EVIDENCE: "evidence",
+    REFERENCE_ONLY: "referenceOnly",
+  }),
+  MATERIALIZATION_TRANSFER_MODE: Object.freeze({
+    CLONE: "clone",
+    TRANSFERABLE: "transferable",
+    SHARED: "shared",
+    NATIVE: "native",
+    REFERENCE_ONLY: "referenceOnly",
+  }),
+  MATERIALIZATION_LAG_STATE: Object.freeze({
+    CAUGHT_UP: "caughtUp",
+    LAGGING: "lagging",
+    STALE: "stale",
+    BLOCKED: "blocked",
+    UNKNOWN: "unknown",
+  }),
+  MATERIALIZATION_SCHEMA_STATE: Object.freeze({
+    CURRENT: "current",
+    COMPATIBLE: "compatible",
+    MIGRATING: "migrating",
+    IGNORE: "ignore",
+    QUARANTINED: "quarantined",
+    BLOCKED: "blocked",
+  }),
+  MATERIALIZATION_PRIVACY_TIER: Object.freeze({
+    ENCRYPTED_RAW: "encryptedRaw",
+    ENCRYPTED_DETAIL: "encryptedDetail",
+    SAFE_FACTS: "safeFacts",
+    SAFE_INDEX: "safeIndex",
+    SAFE_PROJECTION: "safeProjection",
+    UI_PROJECTION: "uiProjection",
+  }),
+  PROJECTION_REPAIR_STATE: Object.freeze({
+    PENDING: "pending",
+    OBSERVING: "observing",
+    BLOCKED: "blocked",
+    SATISFIED: "satisfied",
+    EXPIRED: "expired",
+  }),
+  RETENTION_RELEASE_STATE: Object.freeze({
+    FREEABLE: "freeable",
+    RELEASE_BLOCKED: "releaseBlocked",
+  }),
+  CONTRIBUTION_TYPE: Object.freeze({
+    CLAIM: "claim",
+    PROMISE: "promise",
+    FULFILLMENT: "fulfillment",
+    WITNESS: "witness",
+    RETRACTION: "retraction",
+    RELEASE: "release",
+    EXPIRY: "expiry",
+    OBSERVATION: "observation",
+  }),
+  CONTRIBUTION_STATE: Object.freeze({
+    ACTIVE: "active",
+    WITNESSED: "witnessed",
+    RETRACTED: "retracted",
+    RELEASED: "released",
+    EXPIRED: "expired",
+    BLOCKED: "blocked",
+  }),
+  MEDIA_FULFILLMENT_EVIDENCE_KIND: Object.freeze({
+    TRANSPORT_STATE: "transportState",
+    SELECTED_CANDIDATE_PAIR: "selectedCandidatePair",
+    INBOUND_STATS: "inboundStats",
+    TRACK_STATE: "trackState",
+    RENDER_STATE: "renderState",
+    RELEASE: "release",
+  }),
+  MEDIA_FULFILLMENT_STATE: Object.freeze({
+    PENDING: "pending",
+    USABLE: "usable",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
+  MEDIA_TRANSPORT_PATH_STATE: Object.freeze({
+    PENDING: "pending",
+    ACTIONABLE: "actionable",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
+  MEDIA_TRANSPORT_SELECTED_PAIR_STATE: Object.freeze({
+    PENDING: "pending",
+    SELECTED: "selected",
+    FAILED: "failed",
+    NONE: "none",
+  }),
+  MEDIA_TRANSPORT_RTP_STATE: Object.freeze({
+    PENDING: "pending",
+    FLOWING: "flowing",
+    STALLED: "stalled",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
+  MEDIA_TRANSPORT_RENDER_STATE: Object.freeze({
+    PENDING: "pending",
+    VISIBLE: "visible",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
+  MEDIA_TRANSPORT_PARTICIPANT_ROLE: Object.freeze({
+    BROWSER: "browser",
+    SERVICE: "service",
+    GATEWAY: "gateway",
+    RELAY: "relay",
+    TURN: "turn",
+    RUNTIME: "runtime",
+  }),
+  MEDIA_TRANSPORT_OBSERVATION_STATE: Object.freeze({
+    PENDING: "pending",
+    CONNECTING: "connecting",
+    CONNECTED: "connected",
+    DISCONNECTED: "disconnected",
+    RECOVERING: "recovering",
+    FAILED: "failed",
+    CLOSED: "closed",
+    RELEASED: "released",
+    BLOCKED: "blocked",
+  }),
+  RECOVERY_REF_KIND: Object.freeze({
+    ROOT: "recovery.root",
+    ROUTE: "recovery.route",
+  }),
+  STORAGE_MEMBER_KIND: Object.freeze({
+    BROWSER_INDEXEDDB_CACHE: "browserIndexedDbCache",
+    SERVICE_STORAGE_MEMBER: "serviceStorageMember",
+  }),
+  CHANNEL_RECORD_KIND: Object.freeze({
+    DESCRIPTOR: "channel.descriptor",
+    POLICY: "channel.policy",
+    MEMBERSHIP: "channel.membership",
+    MEMBER_ROLE: "channel.memberRole",
+    RECOMMENDATION: "channel.recommendation",
+  }),
+  CAPABILITY_RECORD_KIND: Object.freeze({
+    DEFINITION: "capability.definition",
+    ADVERTISEMENT: "capability.advertisement",
+    DIRECTORY_ENTRY: "capability.directoryEntry",
+    POLICY: "capability.policy",
+  }),
+  CORE_CAPABILITY: Object.freeze({
+    SWARM_EDGE_ATTACH: "swarm.edge.attach",
+    PROJECTION_OBSERVE: "projection.observe",
+    PROJECTION_DELTA_APPLY: "projection.delta.apply",
+    SERVICE_SURFACE_OBSERVE: "service.surface.observe",
+    SERVICE_INTENT_INVOKE: "service.intent.invoke",
+    STORAGE_OBJECT_PUT: "storage.object.put",
+    STORAGE_OBJECT_GET: "storage.object.get",
+    STORAGE_PIN: "storage.pin",
+    STORAGE_AVAILABILITY_ATTEST: "storage.availability.attest",
+    LOGGING_EVENTS_OBSERVE: "logging.events.observe",
+    STREAM_SESSION_OFFER: "stream.session.offer",
+    STREAM_SESSION_CONTROL: "stream.session.control",
+    MEDIA_STREAM_PREVIEW: "media.stream.preview",
+    NODE_CAPABILITY_ACTIVATE: "node.capability.activate",
+    ROUTE_PROMISE_RESOLVE: "route.promise.resolve",
+    ROUTE_OBSERVATION_PUBLISH: "route.observation.publish",
+    STREAM_ROUTE_PLAN_OBSERVE: "stream.routePlan.observe",
+    RUNTIME_DIAGNOSTICS_OBSERVE: "runtime.diagnostics.observe",
+    RUNTIME_DIAGNOSTICS_COMMAND: "runtime.diagnostics.command",
+    APP_RUNNER_PIN: "app.runner.pin",
+  }),
+  ACTIVATION_FORBIDDEN_FIELDS: Object.freeze([
+    "frameKind",
+    "recordKind",
+    "channelId",
+    "routeZone",
+    "zoneId",
+    "zoneScope",
+    "ttl",
+    "maxHops",
+    "capability",
+    "wireCapability",
+    "servicePk",
+    "gatewayPk",
+    "audience",
+    "audienceRefs",
+    "recipientPks",
+    "caacRecipients",
+    "serviceUrl",
+    "routeUrl",
+  ]),
+  ROUTE_OBSERVATION_STATE: Object.freeze({
+    DELIVERED: "delivered",
+    MEMBER_WRITTEN: "memberWritten",
+    MEMBER_READ: "memberRead",
+    OBSERVING_UNREACHABLE: "observingUnreachable",
+    UNREACHABLE_FOR: "unreachableFor",
+    REJECTED: "rejected",
+    ACCEPTED: "accepted",
+    DEGRADED: "degraded",
+    RELEASED: "released",
+    CLOSED: "closed",
+    EXPIRED: "expired",
+  }),
+  ROUTE_FAILED_PREDICATE: Object.freeze({
+    ZONE: "zone",
+    CHANNEL: "channel",
+    CAPABILITY: "capability",
+    AUDIENCE: "audience",
+    TTL_OR_HOP_BUDGET: "ttlOrHopBudget",
+    STALE_ROUTE_LEASE: "staleRouteLease",
+    DETACHED_MEMBER: "detachedMember",
+    SERVICE_POLICY: "servicePolicy",
+    PARTICIPANT_RELEASE: "participantRelease",
+  }),
+  STREAM_PATH_KIND: Object.freeze({
+    DIRECT: "direct",
+    BROWSER_WEBRTC: "browserWebRtc",
+    NATIVE_SWARM: "nativeSwarm",
+    GATEWAY_RELAY: "gatewayRelay",
+    MULTI_GATEWAY_RELAY: "multiGatewayRelay",
+    DEGRADED_PROJECTION_ONLY: "degradedProjectionOnly",
+    UNAVAILABLE: "unavailable",
+  }),
+  STREAM_PATH_STATE: Object.freeze({
+    CANDIDATE: "candidate",
+    SELECTED: "selected",
+    UNAVAILABLE: "unavailable",
+    FAILED: "failed",
+    RELEASED: "released",
+  }),
+  REACHABILITY_STATE: Object.freeze({
+    UNKNOWN: "unknown",
+    REACHABLE: "reachable",
+    OBSERVING_UNREACHABLE: "observingUnreachable",
+    UNREACHABLE_FOR: "unreachableFor",
+    DEGRADED: "degraded",
+    CLOSED: "closed",
+    EXPIRED: "expired",
+  }),
+  CAAC_VALIDATION_MODE: Object.freeze({
+    STRUCTURAL: "structural",
+    FIXTURE: "fixture",
+    PRODUCT: "product",
+  }),
+  FIXTURE_CAAC_PLACEHOLDERS: Object.freeze([
+    "sealed-frame-placeholder",
+    "service-stream-placeholder",
+    "edge-hello-claims",
+    "edge-accept-claims",
+    "edge-resume-claims",
+    "edge-close-claims",
+  ]),
+  PROJECTION_OP: Object.freeze({
+    SET: "set",
+    REMOVE: "remove",
+    APPEND_UNIQUE: "appendUnique",
+    REPLACE: "replace",
+  }),
+  EDGE_KIND: Object.freeze({
+    HELLO: "swarm.edge.hello",
+    ACCEPT: "swarm.edge.accept",
+    RESUME: "swarm.edge.resume",
+    CLOSE: "swarm.edge.close",
+  }),
+  STREAM_RECORD_KIND: Object.freeze({
+    INTENT: "stream.session.intent",
+    ADMISSION: "stream.session.admission",
+    REJECT: "stream.session.reject",
+    OFFER: "stream.session.offer",
+    ANSWER: "stream.session.answer",
+    CANDIDATE: "stream.session.candidate",
+    CONTROL: "stream.session.control",
+    HEALTH: "stream.session.health",
+    CLOSE: "stream.session.close",
+  }),
+  STREAM_CANDIDATE_ROLE: Object.freeze({
+    BROWSER: "browser",
+    SERVICE: "service",
+  }),
+  STREAM_CANDIDATE_ACTIONABILITY: Object.freeze({
+    USABLE: "usable",
+    BLOCKED: "blocked",
+  }),
+});
+
+export const STREAM_SESSION_LIFECYCLE_PHASE = Object.freeze({
+  INTENT: "intent",
+  ADMISSION: "admission",
+  REJECT: "reject",
+  OFFER: "offer",
+  ANSWER: "answer",
+  CANDIDATE: "candidate",
+  CONTROL: "control",
+  HEALTH: "health",
+  CLOSE: "close",
+  UNKNOWN: "",
+});
+
+const STREAM_SESSION_PHASE_BY_RECORD_KIND = Object.freeze({
+  [SWARM.STREAM_RECORD_KIND.INTENT]: STREAM_SESSION_LIFECYCLE_PHASE.INTENT,
+  [SWARM.STREAM_RECORD_KIND.ADMISSION]: STREAM_SESSION_LIFECYCLE_PHASE.ADMISSION,
+  [SWARM.STREAM_RECORD_KIND.REJECT]: STREAM_SESSION_LIFECYCLE_PHASE.REJECT,
+  [SWARM.STREAM_RECORD_KIND.OFFER]: STREAM_SESSION_LIFECYCLE_PHASE.OFFER,
+  [SWARM.STREAM_RECORD_KIND.ANSWER]: STREAM_SESSION_LIFECYCLE_PHASE.ANSWER,
+  [SWARM.STREAM_RECORD_KIND.CANDIDATE]: STREAM_SESSION_LIFECYCLE_PHASE.CANDIDATE,
+  [SWARM.STREAM_RECORD_KIND.CONTROL]: STREAM_SESSION_LIFECYCLE_PHASE.CONTROL,
+  [SWARM.STREAM_RECORD_KIND.HEALTH]: STREAM_SESSION_LIFECYCLE_PHASE.HEALTH,
+  [SWARM.STREAM_RECORD_KIND.CLOSE]: STREAM_SESSION_LIFECYCLE_PHASE.CLOSE,
+});
+
+function carrierPayload(frame) {
+  const body = isObject(frame?.body) ? frame.body : {};
+  return isObject(body.payload) ? body.payload : {};
+}
+
+export function streamSessionLifecycleRecordKind(source) {
+  if (typeof source === "string") return source.trim();
+  const frame = isObject(source) ? source : {};
+  const payload = carrierPayload(frame);
+  const recordRef = isObject(frame.recordRef) ? frame.recordRef : isObject(frame.record_ref) ? frame.record_ref : {};
+  return String(payload.recordKind || payload.record_kind || payload.kind || recordRef.kind || "").trim();
+}
+
+export function streamSessionLifecyclePhase(source) {
+  const recordKind = streamSessionLifecycleRecordKind(source);
+  return STREAM_SESSION_PHASE_BY_RECORD_KIND[recordKind] || STREAM_SESSION_LIFECYCLE_PHASE.UNKNOWN;
+}
+
+export function streamSessionLifecycleRecordFromCarrier(frame) {
+  const payload = carrierPayload(frame);
+  const recordKind = streamSessionLifecycleRecordKind(frame);
+  const phase = streamSessionLifecyclePhase(recordKind);
+  if (!phase) return null;
+  const record = isObject(payload.record) ? payload.record : payload;
+  return { recordKind, record, phase };
+}
+
+const PROPAGATING_FRAME_KINDS = new Set([
+  SWARM.FRAME_KIND.RECORD_PUBLISH,
+  SWARM.FRAME_KIND.RECORD_RETRACT,
+  SWARM.FRAME_KIND.CHANNEL_OBSERVE,
+  SWARM.FRAME_KIND.CHANNEL_UNOBSERVE,
+  SWARM.FRAME_KIND.PROJECTION_SNAPSHOT,
+  SWARM.FRAME_KIND.PROJECTION_DELTA,
+  SWARM.FRAME_KIND.PROJECTION_REPAIR_REQUEST,
+  SWARM.FRAME_KIND.SERVICE_INTENT,
+  SWARM.FRAME_KIND.SERVICE_RESPONSE,
+  SWARM.FRAME_KIND.STREAM_INTENT,
+  SWARM.FRAME_KIND.STREAM_CONTROL,
+  SWARM.FRAME_KIND.STREAM_STATUS,
+  SWARM.FRAME_KIND.STORAGE_PIN_INTENT,
+  SWARM.FRAME_KIND.STORAGE_PIN_ATTESTATION,
+  SWARM.FRAME_KIND.NODE_CAPABILITY,
+  SWARM.FRAME_KIND.RUNTIME_ACTIVATION_REQUEST,
+  SWARM.FRAME_KIND.ROUTE_PROMISE,
+  SWARM.FRAME_KIND.ROUTE_OBSERVATION,
+  SWARM.FRAME_KIND.STREAM_ROUTE_PLAN,
+  SWARM.FRAME_KIND.RUNTIME_DIAGNOSTIC_EVENT,
+  SWARM.FRAME_KIND.RUNTIME_DIAGNOSTIC_COMMAND,
+  SWARM.FRAME_KIND.RUNTIME_DIAGNOSTIC_COMMAND_RESULT,
+  SWARM.FRAME_KIND.SWARM_IDENTITY,
+  SWARM.FRAME_KIND.SWARM_DEVICE,
+  SWARM.FRAME_KIND.SWARM_GATEWAY,
+  SWARM.FRAME_KIND.SWARM_SERVICE,
+  SWARM.FRAME_KIND.SWARM_MEMBER,
+  SWARM.FRAME_KIND.SWARM_GRANT,
+  SWARM.FRAME_KIND.SWARM_ROLE,
+  SWARM.FRAME_KIND.SWARM_INTERACTION,
+  SWARM.FRAME_KIND.SWARM_ACTIVATION,
+  SWARM.FRAME_KIND.SWARM_RELEASE,
+  SWARM.FRAME_KIND.SWARM_REVOCATION,
+]);
+
+const PUBLIC_BOOTSTRAP_FRAME_KINDS = new Set([
+  "bootstrap.discovery",
+  "bootstrap.gatewayHint",
+]);
+
+function requireString(value, name) {
+  const text = String(value || "").trim();
+  if (!text) throw new Error(`${name} is required`);
+  return text;
+}
+
+export function assertResolvedMemberRef(value, name = "resolved memberRef") {
+  const text = requireString(value, name);
+  if (!/^[0-9a-f]{64}$/i.test(text)) {
+    throw new Error(`${name} must be a resolved public key`);
+  }
+  return text.toLowerCase();
+}
+
+function requireArray(value, name) {
+  if (!Array.isArray(value)) throw new Error(`${name} must be an array`);
+  return value;
+}
+
+function requireNonEmptyArray(value, name) {
+  const array = requireArray(value, name);
+  if (array.length === 0) throw new Error(`${name} must not be empty`);
+  return array;
+}
+
+function isObject(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+export function assertCapabilityName(name) {
+  const text = requireString(name, "capability name");
+  if (!/^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)+$/.test(text)) {
+    throw new Error("invalid capability namespace");
+  }
+  return text;
+}
+
+export function assertZoneScope(scope) {
+  if (!isObject(scope)) throw new Error("zone scope must be an object");
+  const zoneId = requireString(scope.zoneId, "zone scope zoneId");
+  const out = {
+    zoneId,
+    ...(scope.privacy ? { privacy: String(scope.privacy) } : {}),
+    ...(scope.ttl !== undefined ? { ttl: Number(scope.ttl) } : {}),
+    ...(scope.maxHops !== undefined ? { maxHops: Number(scope.maxHops) } : {}),
+  };
+  if (out.ttl !== undefined && (!Number.isFinite(out.ttl) || out.ttl <= 0)) throw new Error("zone scope ttl must be positive");
+  if (out.maxHops !== undefined && (!Number.isInteger(out.maxHops) || out.maxHops < 0)) throw new Error("zone scope maxHops must be non-negative");
+  return out;
+}
+
+export function assertSwarmFrameBody(body, frameKind) {
+  if (!isObject(body)) throw new Error("swarm frame body must be an object");
+  const encoding = requireString(body.encoding, "swarm frame body encoding");
+  if (encoding === SWARM.BODY_ENCODING.CAAC) {
+    if (!isObject(body.envelope)) throw new Error("swarm frame CAAC body missing envelope");
+    return body;
+  }
+  if (encoding === SWARM.BODY_ENCODING.PUBLIC) {
+    if (!PUBLIC_BOOTSTRAP_FRAME_KINDS.has(String(frameKind || "")) || body.publicBootstrap !== true) {
+      throw new Error("public swarm frame body is only allowed for explicit bootstrap metadata");
+    }
+    return body;
+  }
+  throw new Error("unsupported swarm frame body encoding");
+}
+
+function normalizedSwarmFrameBodyForHash(body) {
+  const out = { ...(body || {}) };
+  if (out.publicBootstrap === false || out.publicBootstrap === null || out.publicBootstrap === undefined) delete out.publicBootstrap;
+  if (out.payload === null || out.payload === undefined) delete out.payload;
+  if (out.signature === null || out.signature === undefined) delete out.signature;
+  return out;
+}
+
+export function swarmFrameId(frame) {
+  const material = {
+    version: frame.version,
+    kind: frame.kind,
+    issuer: frame.issuer,
+    audience: frame.audience ?? null,
+    zoneScope: frame.zoneScope ?? null,
+    issuedAt: frame.issuedAt,
+    expiresAt: frame.expiresAt ?? null,
+    nonce: frame.nonce,
+    correlationId: frame.correlationId ?? null,
+    channelId: frame.channelId ?? null,
+    recordRef: frame.recordRef ?? null,
+    capability: frame.capability ?? null,
+    body: normalizedSwarmFrameBodyForHash(frame.body),
+  };
+  return sha256Hex(`constitute-swarm-frame-v1|${canonicalJson(material)}`);
+}
+
+export function assertSwarmFrame(frame, { now = nowSeconds() * 1000 } = {}) {
+  if (!isObject(frame)) throw new Error("swarm frame must be an object");
+  if (Number(frame.version) !== SWARM.FRAME_VERSION) throw new Error("unsupported swarm frame version");
+  const kind = requireString(frame.kind, "swarm frame kind");
+  if (!Object.values(SWARM.FRAME_KIND).includes(kind) && !PUBLIC_BOOTSTRAP_FRAME_KINDS.has(kind)) {
+    throw new Error("unsupported swarm frame kind");
+  }
+  requireString(frame.issuer, "swarm frame issuer");
+  if (!Number.isFinite(Number(frame.issuedAt)) || Number(frame.issuedAt) <= 0) throw new Error("swarm frame issuedAt is required");
+  if (frame.expiresAt !== undefined && Number(frame.expiresAt) <= now) throw new Error("swarm frame expired");
+  requireString(frame.nonce, "swarm frame nonce");
+  if (PROPAGATING_FRAME_KINDS.has(kind)) assertZoneScope(frame.zoneScope);
+  if (frame.capability) assertCapabilityName(frame.capability);
+  assertSwarmFrameBody(frame.body, kind);
+  if ((kind === SWARM.FRAME_KIND.ACK || kind === SWARM.FRAME_KIND.REJECT) && !String(frame.correlationId || "").trim()) {
+    throw new Error("ack/reject frame missing correlationId");
+  }
+  if (frame.frameId && frame.frameId !== swarmFrameId(frame)) throw new Error("swarm frame id mismatch");
+  return frame;
+}
+
+export function makeSwarmFrame(input = {}) {
+  const frame = {
+    version: SWARM.FRAME_VERSION,
+    kind: input.kind,
+    issuer: input.issuer,
+    ...(input.audience !== undefined ? { audience: input.audience } : {}),
+    ...(input.zoneScope !== undefined ? { zoneScope: input.zoneScope } : {}),
+    issuedAt: Number(input.issuedAt || nowSeconds() * 1000),
+    ...(input.expiresAt !== undefined ? { expiresAt: Number(input.expiresAt) } : {}),
+    nonce: input.nonce || bytesToHex(randomBytes(16)),
+    ...(input.correlationId ? { correlationId: input.correlationId } : {}),
+    ...(input.channelId ? { channelId: input.channelId } : {}),
+    ...(input.recordRef ? { recordRef: input.recordRef } : {}),
+    ...(input.capability ? { capability: input.capability } : {}),
+    body: normalizedSwarmFrameBodyForHash(input.body),
+    ...(input.ack ? { ack: input.ack } : {}),
+  };
+  frame.frameId = swarmFrameId(frame);
+  return assertSwarmFrame(frame, { now: input.now });
+}
+
+export function assertChannelDescriptor(record) {
+  if (!isObject(record)) throw new Error("channel descriptor must be an object");
+  requireString(record.channelId, "channel descriptor channelId");
+  requireString(record.kind, "channel descriptor kind");
+  requireString(record.displayName, "channel descriptor displayName");
+  requireArray(record.capabilities, "channel descriptor capabilities").forEach(assertCapabilityName);
+  requireArray(record.recordKinds, "channel descriptor recordKinds").forEach((kind) => requireString(kind, "channel descriptor record kind"));
+  requireArray(record.ownerRefs, "channel descriptor ownerRefs").forEach((owner) => requireString(owner, "channel descriptor owner ref"));
+  requireString(record.policyRef, "channel descriptor policyRef");
+  if (!Number(record.createdAt || 0)) throw new Error("channel descriptor missing createdAt");
+  return record;
+}
+
+export function assertChannelMembership(record) {
+  if (!isObject(record)) throw new Error("channel membership must be an object");
+  requireString(record.channelId, "channel membership channelId");
+  assertResolvedMemberRef(record.memberRef, "channel membership memberRef");
+  const roles = requireArray(record.roles, "channel membership roles");
+  if (roles.length === 0) throw new Error("channel membership must include at least one role");
+  for (const role of roles) {
+    const text = requireString(role, "channel membership role");
+    if (!/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/.test(text)) throw new Error("invalid channel membership role");
+  }
+  if (!record.authorityEnvelope) throw new Error("channel membership missing authority envelope");
+  return record;
+}
+
+export function assertCapabilityDefinition(record) {
+  if (!isObject(record)) throw new Error("capability definition must be an object");
+  assertCapabilityName(record.capability);
+  requireString(record.definitionId, "capability definition id");
+  requireString(record.namespace, "capability namespace");
+  if (!String(record.capability).startsWith(`${record.namespace}.`)) throw new Error("capability namespace mismatch");
+  if (record.schemaRef !== undefined) requireString(record.schemaRef, "capability schemaRef");
+  if (!Number(record.createdAt || 0)) throw new Error("capability definition missing createdAt");
+  return record;
+}
+
+export function assertCapabilityAdvertisement(record, { now = nowSeconds() * 1000 } = {}) {
+  if (!isObject(record)) throw new Error("capability advertisement must be an object");
+  assertCapabilityName(record.capability);
+  requireString(record.advertisementId, "capability advertisement id");
+  requireString(record.memberRef || record.serviceRef, "capability advertisement member/service ref");
+  if (record.memberRef !== undefined && record.memberRef !== null && String(record.memberRef).trim()) {
+    assertResolvedMemberRef(record.memberRef, "capability advertisement memberRef");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("capability advertisement missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= now) throw new Error("capability advertisement expired");
+  return record;
+}
+
+function assertCapabilityDirectoryEntry(record) {
+  if (!isObject(record)) throw new Error("capability directory entry must be an object");
+  assertCapabilityName(record.capability);
+  requireString(record.channelId, "capability directory entry channelId");
+  if (record.memberRef !== undefined && record.memberRef !== null && String(record.memberRef).trim()) {
+    assertResolvedMemberRef(record.memberRef, "capability directory entry memberRef");
+  }
+  if (!String(record.memberRef || record.serviceRef || "").trim()) {
+    throw new Error("capability directory entry missing memberRef or serviceRef");
+  }
+  return record;
+}
+
+export function buildCapabilityDirectoryProjection({ definitions = [], advertisements = [], entries = [], now = nowSeconds() * 1000 } = {}) {
+  const validDefinitions = definitions.map(assertCapabilityDefinition);
+  const definitionNames = new Set(validDefinitions.map((definition) => definition.capability));
+  const activeAdvertisements = advertisements
+    .filter((ad) => ad.expiresAt === undefined || Number(ad.expiresAt) > now)
+    .map((ad) => assertCapabilityAdvertisement(ad, { now }));
+  const validEntries = entries
+    .filter((entry) => definitionNames.has(entry.capability) || activeAdvertisements.some((ad) => ad.capability === entry.capability))
+    .map(assertCapabilityDirectoryEntry);
+  validEntries.sort((a, b) => String(a.capability).localeCompare(String(b.capability)) || String(a.channelId || "").localeCompare(String(b.channelId || "")));
+  return { definitions: validDefinitions, advertisements: activeAdvertisements, entries: validEntries };
+}
+
+export function assertProjectionSnapshot(snapshot) {
+  if (!isObject(snapshot)) throw new Error("projection snapshot must be an object");
+  requireString(snapshot.projectionId, "projection snapshot projectionId");
+  requireString(snapshot.policyId, "projection snapshot policyId");
+  if (!Number.isInteger(Number(snapshot.revision)) || Number(snapshot.revision) < 0) throw new Error("projection snapshot invalid revision");
+  if (!isObject(snapshot.state)) throw new Error("projection snapshot state must be an object");
+  assertProjectionCoverage(snapshot.coverage);
+  assertProjectionFreshness(snapshot.freshness);
+  requireArray(snapshot.sourceRefs || [], "projection snapshot sourceRefs");
+  if (!Number(snapshot.issuedAt || 0)) throw new Error("projection snapshot missing issuedAt");
+  return snapshot;
+}
+
+export function assertProjectionDelta(delta) {
+  if (!isObject(delta)) throw new Error("projection delta must be an object");
+  requireString(delta.projectionId, "projection delta projectionId");
+  requireString(delta.policyId, "projection delta policyId");
+  if (!Number.isInteger(Number(delta.baseRevision)) || Number(delta.baseRevision) < 0) throw new Error("projection delta invalid baseRevision");
+  if (!Number.isInteger(Number(delta.revision)) || Number(delta.revision) <= Number(delta.baseRevision)) throw new Error("projection delta invalid revision");
+  const ops = requireArray(delta.ops, "projection delta ops");
+  for (const op of ops) assertProjectionDeltaOp(op);
+  requireArray(delta.affectedRecords || [], "projection delta affectedRecords");
+  assertProjectionCoverage(delta.coverage);
+  assertProjectionFreshness(delta.freshness);
+  requireArray(delta.sourceRefs || [], "projection delta sourceRefs");
+  if (!Number(delta.issuedAt || 0)) throw new Error("projection delta missing issuedAt");
+  return delta;
+}
+
+export function assertProjectionDeltaOp(op) {
+  if (!isObject(op)) throw new Error("projection delta op must be an object");
+  if (!Object.values(SWARM.PROJECTION_OP).includes(String(op.op || ""))) throw new Error("unsupported projection delta op");
+  const path = requireArray(op.path, "projection delta op path");
+  if (path.length === 0) throw new Error("projection delta op path cannot be empty");
+  for (const part of path) {
+    if (!(typeof part === "string" || typeof part === "number")) throw new Error("projection delta op path parts must be strings or numbers");
+  }
+  if (op.op !== SWARM.PROJECTION_OP.REMOVE && op.value === undefined) throw new Error("projection delta op missing value");
+  return op;
+}
+
+export function makeProjectionRepairRequest({ projectionId, policyId, currentRevision, requiredRevision } = {}) {
+  return {
+    projectionId: requireString(projectionId, "repair projectionId"),
+    policyId: requireString(policyId, "repair policyId"),
+    currentRevision: Number(currentRevision ?? 0),
+    requiredRevision: Number(requiredRevision ?? 0),
+    reason: "revisionGap",
+  };
+}
+
+function valueAtPath(root, pathParts, create = false) {
+  let cursor = root;
+  for (let i = 0; i < pathParts.length - 1; i += 1) {
+    const key = pathParts[i];
+    if (cursor[key] === undefined) {
+      if (!create) return [undefined, pathParts[pathParts.length - 1]];
+      cursor[key] = typeof pathParts[i + 1] === "number" ? [] : {};
+    }
+    cursor = cursor[key];
+    if (!isObject(cursor) && !Array.isArray(cursor)) throw new Error("projection delta path crosses non-container value");
+  }
+  return [cursor, pathParts[pathParts.length - 1]];
+}
+
+function cloneProjectionValue(value) {
+  if (Array.isArray(value)) return value.map((item) => cloneProjectionValue(item));
+  if (!value || typeof value !== "object") return value;
+  const out = {};
+  for (const [key, child] of Object.entries(value)) out[key] = cloneProjectionValue(child);
+  return out;
+}
+
+export function applyProjectionDelta({ state = {}, revision = 0, delta } = {}) {
+  assertProjectionDelta(delta);
+  if (Number(delta.baseRevision) !== Number(revision)) {
+    return {
+      state,
+      revision,
+      changed: false,
+      repairRequest: makeProjectionRepairRequest({
+        projectionId: delta.projectionId,
+        policyId: delta.policyId,
+        currentRevision: revision,
+        requiredRevision: delta.baseRevision,
+      }),
+    };
+  }
+  const next = cloneProjectionValue(state || {});
+  const before = canonicalJson(next);
+  for (const op of delta.ops) {
+    const [parent, key] = valueAtPath(next, op.path, op.op !== SWARM.PROJECTION_OP.REMOVE);
+    if (op.op === SWARM.PROJECTION_OP.REMOVE) {
+      if (Array.isArray(parent)) parent.splice(Number(key), 1);
+      else if (parent && Object.prototype.hasOwnProperty.call(parent, key)) delete parent[key];
+    } else if (op.op === SWARM.PROJECTION_OP.APPEND_UNIQUE) {
+      if (!Array.isArray(parent[key])) parent[key] = [];
+      if (!parent[key].some((entry) => canonicalJson(entry) === canonicalJson(op.value))) parent[key].push(op.value);
+    } else {
+      parent[key] = cloneProjectionValue(op.value);
+    }
+  }
+  const after = canonicalJson(next);
+  return { state: next, revision: Number(delta.revision), changed: before !== after };
+}
+
+function assertProjectionRevisionMap(value, name) {
+  if (!isObject(value)) throw new Error(`${name} must be an object`);
+  for (const [projectionId, revision] of Object.entries(value)) {
+    requireString(projectionId, `${name} projectionId`);
+    if (!Number.isInteger(Number(revision)) || Number(revision) < 0) throw new Error(`${name} revision must be non-negative`);
+  }
+  return value;
+}
+
+function assertSealedClaims(body, context) {
+  if (!isObject(body)) throw new Error(`${context} missing sealedClaims`);
+  if (body.encoding !== SWARM.BODY_ENCODING.CAAC || !isObject(body.envelope)) {
+    throw new Error(`${context} sealedClaims must be sealed`);
+  }
+  return body;
+}
+
+function assertSwarmEdgeCommon(record, context) {
+  requireString(record.memberKind, `${context} memberKind`);
+  assertResolvedMemberRef(record.memberRef, `${context} memberRef`);
+  assertZoneScope(record.zoneScope);
+  for (const capability of requireArray(record.capabilityRefs, `${context} capabilityRefs`)) assertCapabilityName(capability);
+  for (const channelRef of requireArray(record.channelRefs, `${context} channelRefs`)) requireString(channelRef, `${context} channelRef`);
+  for (const promiseRef of requireArray(record.promiseRefs || [], `${context} promiseRefs`)) requireString(promiseRef, `${context} promiseRef`);
+  if (record.lastAckedFrameId !== undefined) requireString(record.lastAckedFrameId, `${context} lastAckedFrameId`);
+  assertProjectionRevisionMap(record.lastProjectionRevisions, `${context} lastProjectionRevisions`);
+  requireString(record.nonce, `${context} nonce`);
+  if (!Number(record.issuedAt || 0)) throw new Error(`${context} missing issuedAt`);
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error(`${context} expiresAt must be after issuedAt`);
+  }
+  assertSealedClaims(record.sealedClaims, context);
+  return record;
+}
+
+export function assertSwarmEdgeHello(record) {
+  if (!isObject(record)) throw new Error("swarm edge hello must be an object");
+  const versions = requireArray(record.supportedVersions, "swarm edge hello supportedVersions");
+  if (!versions.includes(SWARM.FRAME_VERSION)) throw new Error("swarm edge hello missing supported swarm version");
+  return assertSwarmEdgeCommon(record, "swarm edge hello");
+}
+
+export function assertSwarmEdgeAccept(record) {
+  if (!isObject(record)) throw new Error("swarm edge accept must be an object");
+  requireString(record.sessionId, "swarm edge accept sessionId");
+  if (Number(record.acceptedVersion) !== SWARM.FRAME_VERSION) throw new Error("swarm edge accept unsupported version");
+  return assertSwarmEdgeCommon(record, "swarm edge accept");
+}
+
+export function assertSwarmEdgeResume(record) {
+  if (!isObject(record)) throw new Error("swarm edge resume must be an object");
+  requireString(record.sessionId, "swarm edge resume sessionId");
+  return assertSwarmEdgeCommon(record, "swarm edge resume");
+}
+
+export function assertSwarmEdgeClose(record) {
+  if (!isObject(record)) throw new Error("swarm edge close must be an object");
+  requireString(record.sessionId, "swarm edge close sessionId");
+  requireString(record.reasonCode, "swarm edge close reasonCode");
+  return assertSwarmEdgeCommon(record, "swarm edge close");
+}
+
+export function assertStoragePinIntent(record) {
+  if (!isObject(record)) throw new Error("storage pin intent must be an object");
+  requireString(record.intentId, "storage pin intent id");
+  requireArray(record.objectRefs, "storage pin intent objectRefs");
+  requireString(record.manifestHash, "storage pin intent manifestHash");
+  if (!Number.isInteger(Number(record.desiredReplicas)) || Number(record.desiredReplicas) < 1) throw new Error("storage pin intent desiredReplicas must be positive");
+  requireString(record.retention, "storage pin intent retention");
+  requireArray(record.authorityRefs, "storage pin intent authorityRefs");
+  return record;
+}
+
+export function assertStoragePinAttestation(record) {
+  if (!isObject(record)) throw new Error("storage pin attestation must be an object");
+  requireString(record.attestationId, "storage pin attestation id");
+  requireString(record.intentId, "storage pin attestation intentId");
+  requireString(record.storageMemberRef, "storage pin attestation storageMemberRef");
+  requireArray(record.acceptedRefs, "storage pin attestation acceptedRefs");
+  requireArray(record.availabilityRefs, "storage pin attestation availabilityRefs");
+  requireString(record.status, "storage pin attestation status");
+  if (!Number(record.issuedAt || 0)) throw new Error("storage pin attestation missing issuedAt");
+  return record;
+}
+
+export function deriveStoragePinProjection({ intent, attestations = [], now = nowSeconds() * 1000 } = {}) {
+  assertStoragePinIntent(intent);
+  const active = attestations
+    .map(assertStoragePinAttestation)
+    .filter((attestation) => attestation.intentId === intent.intentId)
+    .filter((attestation) => attestation.expiresAt === undefined || Number(attestation.expiresAt) > now)
+    .filter((attestation) => attestation.status === "accepted" || attestation.status === "pinned");
+  const members = [...new Set(active.map((attestation) => attestation.storageMemberRef))].sort();
+  return {
+    intentId: intent.intentId,
+    pinnedCount: members.length,
+    members,
+    availability: active.flatMap((attestation) => attestation.availabilityRefs),
+    missingReplicas: Math.max(0, Number(intent.desiredReplicas) - members.length),
+    expiresAt: intent.expiresAt,
+    status: members.length >= Number(intent.desiredReplicas) ? "satisfied" : "pending",
+  };
+}
+
+export function assertStreamSessionRecord(record) {
+  if (!isObject(record)) throw new Error("stream session record must be an object");
+  const kind = requireString(record.kind, "stream session kind");
+  if (!Object.values(SWARM.STREAM_RECORD_KIND).includes(kind)) throw new Error("unsupported stream session kind");
+  requireString(record.sessionId, "stream session id");
+  requireString(record.issuer, "stream session issuer");
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session missing issuedAt");
+  rejectMediaByteFields(record, "stream session record");
+  return record;
+}
+
+export function assertStreamSessionIntent(record) {
+  if (!isObject(record)) throw new Error("stream session intent must be an object");
+  requireString(record.sessionId, "stream session intent sessionId");
+  assertCapabilityName(record.capabilityRef);
+  assertResolvedMemberRef(record.requesterRef, "stream session intent requesterRef");
+  requireString(record.channelId, "stream session intent channelId");
+  requireString(record.transport, "stream session intent transport");
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session intent missing issuedAt");
+  rejectMediaByteFields(record, "stream session intent");
+  return record;
+}
+
+export function assertStreamSessionAdmission(record) {
+  if (!isObject(record)) throw new Error("stream session admission must be an object");
+  requireString(record.admissionId, "stream session admission id");
+  requireString(record.sessionId, "stream session admission sessionId");
+  assertCapabilityName(record.capabilityRef);
+  assertResolvedMemberRef(record.admittedBy, "stream session admission admittedBy");
+  if (record.constraints !== undefined && record.constraints !== null && !isObject(record.constraints)) {
+    throw new Error("stream session admission constraints must be an object");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session admission missing issuedAt");
+  rejectMediaByteFields(record, "stream session admission");
+  return record;
+}
+
+export function assertStreamSessionReject(record) {
+  if (!isObject(record)) throw new Error("stream session reject must be an object");
+  requireString(record.rejectId, "stream session reject id");
+  requireString(record.sessionId, "stream session reject sessionId");
+  if (record.capabilityRef !== undefined) assertCapabilityName(record.capabilityRef);
+  assertResolvedMemberRef(record.rejectedBy, "stream session reject rejectedBy");
+  requireString(record.reasonCode || record.reason, "stream session reject reason");
+  if (record.constraints !== undefined && record.constraints !== null && !isObject(record.constraints)) {
+    throw new Error("stream session reject constraints must be an object");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session reject missing issuedAt");
+  rejectMediaByteFields(record, "stream session reject");
+  return record;
+}
+
+export function assertStreamSessionOffer(record) {
+  if (!isObject(record)) throw new Error("stream session offer must be an object");
+  requireString(record.offerId, "stream session offer id");
+  requireString(record.sessionId, "stream session offer sessionId");
+  requireString(record.transport, "stream session offer transport");
+  if (!isObject(record.payload)) throw new Error("stream session offer payload must be an object");
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session offer missing issuedAt");
+  rejectMediaByteFields(record, "stream session offer");
+  return record;
+}
+
+export function assertStreamSessionAnswer(record) {
+  if (!isObject(record)) throw new Error("stream session answer must be an object");
+  requireString(record.answerId, "stream session answer id");
+  requireString(record.sessionId, "stream session answer sessionId");
+  requireString(record.transport, "stream session answer transport");
+  if (!isObject(record.payload)) throw new Error("stream session answer payload must be an object");
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session answer missing issuedAt");
+  rejectMediaByteFields(record, "stream session answer");
+  return record;
+}
+
+export function assertStreamSessionCandidate(record) {
+  if (!isObject(record)) throw new Error("stream session candidate must be an object");
+  requireString(record.candidateId, "stream session candidate id");
+  requireString(record.sessionId, "stream session candidate sessionId");
+  requireString(record.transport, "stream session candidate transport");
+  requireString(record.candidateRole, "stream session candidate role");
+  if (!Object.values(SWARM.STREAM_CANDIDATE_ROLE).includes(record.candidateRole)) {
+    throw new Error("stream session candidate role is unsupported");
+  }
+  requireString(record.actionability, "stream session candidate actionability");
+  if (!Object.values(SWARM.STREAM_CANDIDATE_ACTIONABILITY).includes(record.actionability)) {
+    throw new Error("stream session candidate actionability is unsupported");
+  }
+  if (record.actionability === SWARM.STREAM_CANDIDATE_ACTIONABILITY.BLOCKED) {
+    requireString(record.blockedReason, "stream session candidate blocked reason");
+  }
+  if (record.endpoint !== undefined && record.endpoint !== null) {
+    assertStreamCandidateEndpoint(record.endpoint);
+  }
+  if (!isObject(record.payload)) throw new Error("stream session candidate payload must be an object");
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session candidate missing issuedAt");
+  rejectMediaByteFields(record, "stream session candidate");
+  return record;
+}
+
+function assertStreamCandidateEndpoint(endpoint) {
+  if (!isObject(endpoint)) throw new Error("stream session candidate endpoint must be an object");
+  if (endpoint.protocol !== undefined) requireString(endpoint.protocol, "stream session candidate endpoint protocol");
+  if (endpoint.address !== undefined) requireString(endpoint.address, "stream session candidate endpoint address");
+  if (endpoint.candidateType !== undefined) requireString(endpoint.candidateType, "stream session candidate endpoint type");
+  if (endpoint.port !== undefined) {
+    if (!Number.isInteger(endpoint.port) || endpoint.port < 1 || endpoint.port > 65535) {
+      throw new Error("stream session candidate endpoint port is invalid");
+    }
+  }
+}
+
+export function assertStreamSessionControl(record) {
+  if (!isObject(record)) throw new Error("stream session control must be an object");
+  requireString(record.controlId, "stream session control id");
+  requireString(record.sessionId, "stream session control sessionId");
+  requireString(record.command, "stream session control command");
+  if (record.params !== undefined && record.params !== null && !isObject(record.params)) {
+    throw new Error("stream session control params must be an object");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session control missing issuedAt");
+  rejectMediaByteFields(record, "stream session control");
+  return record;
+}
+
+export function assertStreamSessionHealth(record) {
+  if (!isObject(record)) throw new Error("stream session health must be an object");
+  requireString(record.healthId, "stream session health id");
+  requireString(record.sessionId, "stream session health sessionId");
+  requireString(record.status, "stream session health status");
+  if (record.recovery !== undefined && record.recovery !== null && !isObject(record.recovery)) {
+    throw new Error("stream session health recovery must be an object");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session health missing issuedAt");
+  rejectMediaByteFields(record, "stream session health");
+  return record;
+}
+
+export function assertStreamSessionClose(record) {
+  if (!isObject(record)) throw new Error("stream session close must be an object");
+  requireString(record.closeId, "stream session close id");
+  requireString(record.sessionId, "stream session close sessionId");
+  requireString(record.reasonCode, "stream session close reasonCode");
+  if (!Number(record.issuedAt || 0)) throw new Error("stream session close missing issuedAt");
+  rejectMediaByteFields(record, "stream session close");
+  return record;
+}
+
+function rejectMediaByteFields(value, context) {
+  if (containsMediaByteField(value)) throw new Error(`${context} must not carry media bytes`);
+}
+
+function containsMediaByteField(value) {
+  if (Array.isArray(value)) return value.some(containsMediaByteField);
+  if (!value || typeof value !== "object") return false;
+  return Object.entries(value).some(([key, next]) => isMediaByteKey(key) || containsMediaByteField(next));
+}
+
+function isMediaByteKey(key) {
+  return [
+    "mediaBytes",
+    "payloadBytes",
+    "mediaData",
+    "mediaChunk",
+    "encodedMediaBytes",
+    "blobBytes",
+    "payloadBlobBytes",
+    "blobData",
+    "blobChunk",
+    "encodedBlobBytes",
+    "binaryBytes",
+    "rawBytes",
+  ].includes(String(key || ""));
+}
+
+function rejectForbiddenKeys(value, forbidden, context, path = "") {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => rejectForbiddenKeys(item, forbidden, context, `${path}${index}.`));
+    return;
+  }
+  if (!isObject(value)) return;
+  for (const [key, next] of Object.entries(value)) {
+    if (forbidden.has(key)) throw new Error(`${context} contains forbidden protocol field: ${path}${key}`);
+    rejectForbiddenKeys(next, forbidden, context, `${path}${key}.`);
+  }
+}
+
+function rejectRouteControlByteFields(record, context) {
+  rejectMediaByteFields(record, context);
+}
+
+function assertRecordKind(record, expected, context) {
+  if (record.kind !== undefined && String(record.kind) !== expected) {
+    throw new Error(`${context} kind must be ${expected}`);
+  }
+}
+
+function assertReferenceList(value, name) {
+  return requireNonEmptyArray(value, name).map((entry) => requireString(entry, `${name} entry`));
+}
+
+function assertOptionalObject(value, name) {
+  if (value === undefined || value === null) return {};
+  if (!isObject(value)) throw new Error(`${name} must be an object`);
+  return value;
+}
+
+export function assertNodeCapability(record, { now = nowSeconds() * 1000 } = {}) {
+  if (!isObject(record)) throw new Error("node capability must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.NODE_CAPABILITY, "node capability");
+  requireString(record.nodeCapabilityId, "node capability id");
+  requireString(record.nodeRef, "node capability nodeRef");
+  assertCapabilityName(record.capabilityRef);
+  requireString(record.serviceRef, "node capability serviceRef");
+  assertResolvedMemberRef(record.serviceMemberRef, "node capability serviceMemberRef");
+  assertReferenceList(record.backingChannelRefs, "node capability backingChannelRefs");
+  assertOptionalObject(record.activationPolicy, "node capability activationPolicy");
+  const freshness = assertOptionalObject(record.freshness, "node capability freshness");
+  requireString(freshness.state, "node capability freshness state");
+  if (!Number(freshness.updatedAt || 0)) throw new Error("node capability freshness missing updatedAt");
+  if (freshness.expiresAt !== undefined && Number(freshness.expiresAt) <= now) throw new Error("node capability expired");
+  assertOptionalObject(record.safeFacts, "node capability safeFacts");
+  rejectRouteControlByteFields(record.safeFacts || {}, "node capability safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("node capability missing issuedAt");
+  return record;
+}
+
+export function assertRuntimeActivationRequest(record) {
+  if (!isObject(record)) throw new Error("runtime activation request must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RUNTIME_ACTIVATION_REQUEST, "runtime activation request");
+  rejectForbiddenKeys(record, new Set(SWARM.ACTIVATION_FORBIDDEN_FIELDS), "runtime activation request");
+  requireString(record.activationId, "runtime activation activationId");
+  requireString(record.nodeRef, "runtime activation nodeRef");
+  assertCapabilityName(record.capabilityRef);
+  assertOptionalObject(record.params, "runtime activation params");
+  assertResolvedMemberRef(record.requesterRef, "runtime activation requesterRef");
+  if (!Number(record.issuedAt || 0)) throw new Error("runtime activation missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("runtime activation expiresAt must be after issuedAt");
+  }
+  rejectRouteControlByteFields(record.params || {}, "runtime activation params");
+  return record;
+}
+
+export function assertRoutePromise(record) {
+  if (!isObject(record)) throw new Error("route promise must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ROUTE_PROMISE, "route promise");
+  requireString(record.promiseId, "route promise promiseId");
+  requireString(record.activationId, "route promise activationId");
+  requireString(record.nodeRef, "route promise nodeRef");
+  assertCapabilityName(record.capabilityRef);
+  assertResolvedMemberRef(record.requesterRef, "route promise requesterRef");
+  assertResolvedMemberRef(record.servicePk, "route promise servicePk");
+  requireString(record.channelId, "route promise channelId");
+  assertZoneScope(record.zoneScope);
+  if (record.returnZoneScope !== undefined && record.returnZoneScope !== null) {
+    assertZoneScope(record.returnZoneScope);
+  }
+  assertReferenceList(record.audienceRefs, "route promise audienceRefs");
+  if (record.serviceMemberRef !== undefined && record.serviceMemberRef !== null) {
+    assertResolvedMemberRef(record.serviceMemberRef, "route promise serviceMemberRef");
+  }
+  assertReferenceList(record.authorityRefs, "route promise authorityRefs");
+  assertOptionalObject(record.routePolicy, "route promise routePolicy");
+  assertReferenceList(record.pathRefs, "route promise pathRefs");
+  assertOptionalObject(record.releasePolicy, "route promise releasePolicy");
+  if (!Number(record.issuedAt || 0)) throw new Error("route promise missing issuedAt");
+  if (!Number(record.expiresAt || 0)) throw new Error("route promise missing expiresAt");
+  if (Number(record.expiresAt) <= Number(record.issuedAt)) throw new Error("route promise expiresAt must be after issuedAt");
+  rejectRouteControlByteFields(record, "route promise");
+  return record;
+}
+
+export function assertLocalRouteBinding(record) {
+  if (!isObject(record)) throw new Error("route binding must be an object");
+  requireString(record.bindingId, "route binding bindingId");
+  requireString(record.promiseId, "route binding promiseId");
+  requireString(record.participantRef, "route binding participantRef");
+  requireString(record.bindingKind, "route binding bindingKind");
+  assertOptionalObject(record.localRefs, "route binding localRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("route binding missing issuedAt");
+  return record;
+}
+
+const FAILURE_OBSERVATION_STATES = new Set([
+  SWARM.ROUTE_OBSERVATION_STATE.OBSERVING_UNREACHABLE,
+  SWARM.ROUTE_OBSERVATION_STATE.UNREACHABLE_FOR,
+  SWARM.ROUTE_OBSERVATION_STATE.REJECTED,
+]);
+
+export function assertRouteObservation(record) {
+  if (!isObject(record)) throw new Error("route observation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ROUTE_OBSERVATION, "route observation");
+  requireString(record.observationId, "route observation observationId");
+  const state = requireString(record.state, "route observation state");
+  if (!Object.values(SWARM.ROUTE_OBSERVATION_STATE).includes(state)) throw new Error("unsupported route observation state");
+  if (!String(record.frameId || record.promiseId || record.activationId || "").trim()) {
+    throw new Error("route observation missing frameId, promiseId, or activationId");
+  }
+  const deliveredTo = requireArray(record.deliveredTo || [], "route observation deliveredTo");
+  for (const memberRef of deliveredTo) {
+    assertResolvedMemberRef(memberRef, "route observation deliveredTo");
+  }
+  const failedPredicates = requireArray(record.failedPredicates || [], "route observation failedPredicates");
+  for (const predicate of failedPredicates) {
+    const text = requireString(predicate, "route observation failedPredicate");
+    if (!Object.values(SWARM.ROUTE_FAILED_PREDICATE).includes(text)) throw new Error("unsupported route failed predicate");
+  }
+  if (FAILURE_OBSERVATION_STATES.has(state) && failedPredicates.length === 0 && !String(record.releaseReason || "").trim()) {
+    throw new Error("route observation failure state requires failed predicates or release reason");
+  }
+  assertOptionalObject(record.diagnostics, "route observation diagnostics");
+  if (!Number(record.issuedAt || 0)) throw new Error("route observation missing issuedAt");
+  rejectRouteControlByteFields(record.diagnostics || {}, "route observation diagnostics");
+  return record;
+}
+
+function assertStreamRoutePath(path, context) {
+  if (!isObject(path)) throw new Error(`${context} must be an object`);
+  requireString(path.pathId, `${context} pathId`);
+  const kind = requireString(path.kind, `${context} kind`);
+  if (!Object.values(SWARM.STREAM_PATH_KIND).includes(kind)) throw new Error("unsupported stream path kind");
+  if (path.state !== undefined && !Object.values(SWARM.STREAM_PATH_STATE).includes(String(path.state))) {
+    throw new Error("unsupported stream path state");
+  }
+  if (path.refs !== undefined) requireArray(path.refs, `${context} refs`).forEach((entry) => requireString(entry, `${context} ref`));
+  rejectRouteControlByteFields(path, context);
+  return path;
+}
+
+export function assertStreamRoutePlan(record) {
+  if (!isObject(record)) throw new Error("stream route plan must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.STREAM_ROUTE_PLAN, "stream route plan");
+  requireString(record.sessionId, "stream route plan sessionId");
+  assertReferenceList(record.sourceRefs, "stream route plan sourceRefs");
+  assertResolvedMemberRef(record.requesterRef, "stream route plan requesterRef");
+  assertResolvedMemberRef(record.serviceMemberRef, "stream route plan serviceMemberRef");
+  assertCapabilityName(record.capabilityRef);
+  assertOptionalObject(record.routeLease, "stream route plan routeLease");
+  const candidates = requireNonEmptyArray(record.candidatePaths, "stream route plan candidatePaths").map((path) => assertStreamRoutePath(path, "stream route plan candidatePath"));
+  const fallbackPaths = requireNonEmptyArray(record.fallbackPaths, "stream route plan fallbackPaths").map((path) => assertStreamRoutePath(path, "stream route plan fallbackPath"));
+  assertStreamRoutePath(record.preferredPath, "stream route plan preferredPath");
+  assertStreamRoutePath(record.selectedPath, "stream route plan selectedPath");
+  const pathState = requireString(record.pathState, "stream route plan pathState");
+  if (!Object.values(SWARM.STREAM_PATH_STATE).includes(pathState)) throw new Error("unsupported stream route path state");
+  const reachabilityState = requireString(record.reachabilityState, "stream route plan reachabilityState");
+  if (!Object.values(SWARM.REACHABILITY_STATE).includes(reachabilityState)) throw new Error("unsupported stream route reachability state");
+  assertOptionalObject(record.releasePolicy, "stream route plan releasePolicy");
+  assertOptionalObject(record.diagnostics, "stream route plan diagnostics");
+  if (!Number(record.expiresAt || 0)) throw new Error("stream route plan missing expiresAt");
+  if (!candidates.some((path) => path.pathId === record.preferredPath.pathId)) throw new Error("stream route plan preferredPath must be a candidate");
+  if (!candidates.some((path) => path.pathId === record.selectedPath.pathId)) throw new Error("stream route plan selectedPath must be a candidate");
+  if (fallbackPaths.length === 0) throw new Error("stream route plan fallbackPaths must not be empty");
+  rejectRouteControlByteFields(record, "stream route plan");
+  return record;
+}
+
+export function assertMemberPresence(record, { now = nowSeconds() * 1000 } = {}) {
+  if (!isObject(record)) throw new Error("member presence must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.MEMBER_PRESENCE, "member presence");
+  assertResolvedMemberRef(record.memberRef, "member presence memberRef");
+  requireString(record.memberKind, "member presence memberKind");
+  requireArray(record.capabilityRefs || [], "member presence capabilityRefs").forEach(assertCapabilityName);
+  requireArray(record.channelRefs || [], "member presence channelRefs").forEach((entry) => requireString(entry, "member presence channelRef"));
+  if (!Number(record.issuedAt || 0)) throw new Error("member presence missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= now) throw new Error("member presence expired");
+  return record;
+}
+
+export function assertDirectoryEntry(record) {
+  if (!isObject(record)) throw new Error("directory entry must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.DIRECTORY_ENTRY, "directory entry");
+  requireString(record.entryId, "directory entry entryId");
+  requireString(record.subjectRef, "directory entry subjectRef");
+  requireString(record.source, "directory entry source");
+  if (!["channelRecord", "capabilityRecord", "memberRecord", "projection", "observation", "bootstrap"].includes(String(record.source))) {
+    throw new Error("unsupported directory entry source");
+  }
+  if (record.capabilityRef !== undefined) assertCapabilityName(record.capabilityRef);
+  if (record.channelId !== undefined) requireString(record.channelId, "directory entry channelId");
+  if (!Number(record.issuedAt || 0)) throw new Error("directory entry missing issuedAt");
+  return record;
+}
+
+export function assertBootstrapCarrierRecord(record) {
+  if (!isObject(record)) throw new Error("bootstrap carrier must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.BOOTSTRAP_CARRIER, "bootstrap carrier");
+  requireString(record.carrierId, "bootstrap carrier carrierId");
+  requireString(record.carrierKind, "bootstrap carrier carrierKind");
+  requireString(record.boundary, "bootstrap carrier boundary");
+  if (record.boundary !== "bootstrap" && record.boundary !== "fallback") throw new Error("bootstrap carrier boundary must be bootstrap or fallback");
+  if (record.payloadRef !== undefined) requireString(record.payloadRef, "bootstrap carrier payloadRef");
+  if (!Number(record.issuedAt || 0)) throw new Error("bootstrap carrier missing issuedAt");
+  return record;
+}
+
+function assertAuthorityDomain(value, name = "authority domain") {
+  const domain = requireString(value, name);
+  if (!Object.values(SWARM.AUTHORITY_DOMAIN).includes(domain)) throw new Error(`unsupported ${name}`);
+  return domain;
+}
+
+function assertInteractionRoleName(value, name = "interaction role") {
+  const role = requireString(value, name);
+  if (!Object.values(SWARM.INTERACTION_ROLE).includes(role)) throw new Error(`unsupported ${name}`);
+  return role;
+}
+
+function assertInteractionStateName(value, name = "interaction state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.INTERACTION_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertRoutingScopeKind(value, name = "routing scope kind") {
+  const kind = requireString(value, name);
+  if (!Object.values(SWARM.ROUTING_SCOPE_KIND).includes(kind)) throw new Error(`unsupported ${name}`);
+  return kind;
+}
+
+function assertRoutingScopeState(value, name = "routing scope state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.ROUTING_SCOPE_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertRoutingBlockedReason(value, name = "routing blocked reason") {
+  const reason = requireString(value, name);
+  if (!Object.values(SWARM.ROUTING_BLOCKED_REASON).includes(reason)) throw new Error(`unsupported ${name}`);
+  return reason;
+}
+
+function assertParticipantRunlevelName(value, name = "participant runlevel") {
+  const runlevel = requireString(value, name);
+  if (!Object.values(SWARM.PARTICIPANT_RUNLEVEL).includes(runlevel)) throw new Error(`unsupported ${name}`);
+  return runlevel;
+}
+
+function assertSelfCapabilityActionName(value, name = "self capability action") {
+  const action = requireString(value, name);
+  if (!Object.values(SWARM.SELF_CAPABILITY_ACTION).includes(action)) throw new Error(`unsupported ${name}`);
+  return action;
+}
+
+function assertSelfCapabilityStatusName(value, name = "self capability status") {
+  const status = requireString(value, name);
+  if (!Object.values(SWARM.SELF_CAPABILITY_STATUS).includes(status)) throw new Error(`unsupported ${name}`);
+  return status;
+}
+
+function assertPostureFacetState(value, name = "posture facet state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.POSTURE_FACET_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertResourceProfileClass(value, name = "resource profile class") {
+  const profileClass = requireString(value, name);
+  if (!Object.values(SWARM.RESOURCE_PROFILE_CLASS).includes(profileClass)) throw new Error(`unsupported ${name}`);
+  return profileClass;
+}
+
+function assertResourcePostureState(value, name = "resource posture state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.RESOURCE_POSTURE_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertEventPlane(value, name = "event plane") {
+  const plane = requireString(value, name);
+  if (!Object.values(SWARM.EVENT_PLANE).includes(plane)) throw new Error(`unsupported ${name}`);
+  return plane;
+}
+
+const EVENT_PLANE_KIND_RULES = Object.freeze([
+  [SWARM.EVENT_PLANE.AUTHORITY, /^runtime\.authority\./],
+  [SWARM.EVENT_PLANE.PROJECTION_REPAIR, /^projection\.repair/],
+  [SWARM.EVENT_PLANE.PROJECTION, /^projection\./],
+  [SWARM.EVENT_PLANE.CONTRIBUTION, /^contribution\./],
+  [SWARM.EVENT_PLANE.ACTIVATION, /^(service|stream|interaction|media)\./],
+  [SWARM.EVENT_PLANE.ROUTE, /^(route|frame|adapter\.edge|runtime\.directory)\./],
+  [SWARM.EVENT_PLANE.RETENTION, /^(retention|runtime\.retention)\./],
+]);
+
+export function eventPlaneForRecordKind(kind, context = {}) {
+  const value = String(kind || context.kind || context.recordKind || "").trim();
+  for (const [plane, pattern] of EVENT_PLANE_KIND_RULES) {
+    if (pattern.test(value)) return plane;
+  }
+  const channel = String(context.channelRef || context.channelId || "").trim();
+  const capability = String(context.capabilityRef || context.capability || "").trim();
+  if (channel === "logging.events" || capability === "logging.events.ingest") return SWARM.EVENT_PLANE.LOGGING_REPLAY;
+  return SWARM.EVENT_PLANE.DIAGNOSTIC;
+}
+
+function assertEventAdmissionDecision(value, name = "event admission decision") {
+  const decision = requireString(value, name);
+  if (!Object.values(SWARM.EVENT_ADMISSION_DECISION).includes(decision)) throw new Error(`unsupported ${name}`);
+  return decision;
+}
+
+function assertEventProofRequirement(value, name = "event proof requirement") {
+  const requirement = requireString(value, name);
+  if (!Object.values(SWARM.EVENT_PROOF_REQUIREMENT).includes(requirement)) throw new Error(`unsupported ${name}`);
+  return requirement;
+}
+
+function assertEventProofState(value, name = "event proof state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.EVENT_PROOF_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertEventDeliveryMode(value, name = "event delivery mode") {
+  const mode = requireString(value, name);
+  if (!Object.values(SWARM.EVENT_DELIVERY_MODE).includes(mode)) throw new Error(`unsupported ${name}`);
+  return mode;
+}
+
+function assertEventBackpressureBehavior(value, name = "event backpressure behavior") {
+  const behavior = requireString(value, name);
+  if (!Object.values(SWARM.EVENT_BACKPRESSURE_BEHAVIOR).includes(behavior)) throw new Error(`unsupported ${name}`);
+  return behavior;
+}
+
+function assertMaterializationPayloadClass(value, name = "materialization payload class") {
+  const payloadClass = requireString(value, name);
+  if (!Object.values(SWARM.MATERIALIZATION_PAYLOAD_CLASS).includes(payloadClass)) throw new Error(`unsupported ${name}`);
+  return payloadClass;
+}
+
+function assertMaterializationCopyRole(value, name = "materialization copy role") {
+  const copyRole = requireString(value, name);
+  if (!Object.values(SWARM.MATERIALIZATION_COPY_ROLE).includes(copyRole)) throw new Error(`unsupported ${name}`);
+  return copyRole;
+}
+
+function assertMaterializationTransferMode(value, name = "materialization transfer mode") {
+  const transferMode = requireString(value, name);
+  if (!Object.values(SWARM.MATERIALIZATION_TRANSFER_MODE).includes(transferMode)) throw new Error(`unsupported ${name}`);
+  return transferMode;
+}
+
+function assertMaterializationLagState(value, name = "materialization lag state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MATERIALIZATION_LAG_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMaterializationSchemaState(value, name = "materialization schema state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MATERIALIZATION_SCHEMA_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMaterializationPrivacyTier(value, name = "materialization privacy tier") {
+  const tier = requireString(value, name);
+  if (!Object.values(SWARM.MATERIALIZATION_PRIVACY_TIER).includes(tier)) throw new Error(`unsupported ${name}`);
+  return tier;
+}
+
+function assertProjectionRepairState(value, name = "projection repair state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.PROJECTION_REPAIR_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertRetentionReleaseState(value, name = "retention release state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.RETENTION_RELEASE_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertContributionType(value, name = "contribution type") {
+  const type = requireString(value, name);
+  if (!Object.values(SWARM.CONTRIBUTION_TYPE).includes(type)) throw new Error(`unsupported ${name}`);
+  return type;
+}
+
+function assertContributionState(value, name = "contribution state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.CONTRIBUTION_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaFulfillmentEvidenceKind(value, name = "media fulfillment evidence kind") {
+  const kind = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_FULFILLMENT_EVIDENCE_KIND).includes(kind)) throw new Error(`unsupported ${name}`);
+  return kind;
+}
+
+function assertMediaFulfillmentState(value, name = "media fulfillment state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_FULFILLMENT_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaTransportPathState(value, name = "media transport path state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_PATH_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaTransportSelectedPairState(value, name = "media transport selected pair state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_SELECTED_PAIR_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaTransportRtpState(value, name = "media transport rtp state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_RTP_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaTransportRenderState(value, name = "media transport render state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_RENDER_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaTransportParticipantRole(value, name = "media transport participant role") {
+  const role = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_PARTICIPANT_ROLE).includes(role)) throw new Error(`unsupported ${name}`);
+  return role;
+}
+
+function assertMediaTransportObservationState(value, name = "media transport observation state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_OBSERVATION_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+export function assertRoutingScopePosture(posture, name = "routing scope") {
+  if (!isObject(posture)) throw new Error(`${name} must be an object`);
+  const kind = assertRoutingScopeKind(posture.kind, `${name} kind`);
+  const state = assertRoutingScopeState(posture.state, `${name} state`);
+  const required = posture.required === undefined ? kind !== SWARM.ROUTING_SCOPE_KIND.LOCAL : Boolean(posture.required);
+  const zoneScope = posture.zoneScope === undefined || posture.zoneScope === null
+    ? null
+    : assertZoneScope(posture.zoneScope);
+  if (
+    kind === SWARM.ROUTING_SCOPE_KIND.SWARM_ZONE
+    && required
+    && [SWARM.ROUTING_SCOPE_STATE.READY, SWARM.ROUTING_SCOPE_STATE.SYNCING, SWARM.ROUTING_SCOPE_STATE.STALE].includes(state)
+    && !zoneScope
+  ) {
+    throw new Error(`${name} swarmZone posture requires zoneScope`);
+  }
+  if (state === SWARM.ROUTING_SCOPE_STATE.NOT_REQUIRED && required) {
+    throw new Error(`${name} notRequired state cannot be required`);
+  }
+  const blockedReason = String(posture.blockedReason || "").trim();
+  if (blockedReason) assertRoutingBlockedReason(blockedReason, `${name} blockedReason`);
+  const updatedAt = posture.updatedAt === undefined ? undefined : Number(posture.updatedAt);
+  if (updatedAt !== undefined && (!Number.isFinite(updatedAt) || updatedAt < 0)) {
+    throw new Error(`${name} updatedAt must be non-negative`);
+  }
+  return {
+    kind,
+    required,
+    state,
+    ...(zoneScope ? { zoneScope } : {}),
+    ...(posture.source ? { source: String(posture.source) } : {}),
+    ...(posture.baselineRef ? { baselineRef: String(posture.baselineRef) } : {}),
+    ...(blockedReason ? { blockedReason } : {}),
+    ...(updatedAt !== undefined ? { updatedAt } : {}),
+  };
+}
+
+function assertPostureFacet(facet, name = "posture facet") {
+  if (!isObject(facet)) throw new Error(`${name} must be an object`);
+  const state = assertPostureFacetState(facet.state, `${name} state`);
+  const reason = String(facet.reason || "").trim();
+  const evidenceRefs = assertOptionalReferenceList(facet.evidenceRefs, `${name} evidenceRefs`);
+  const authorityRefs = assertOptionalReferenceList(facet.authorityRefs, `${name} authorityRefs`);
+  const policyRefs = assertOptionalReferenceList(facet.policyRefs, `${name} policyRefs`);
+  if ([SWARM.POSTURE_FACET_STATE.MISSING, SWARM.POSTURE_FACET_STATE.BLOCKED, SWARM.POSTURE_FACET_STATE.DEGRADED].includes(state) && !reason) {
+    throw new Error(`${name} ${state} state requires reason`);
+  }
+  if (facet.updatedAt !== undefined && (!Number.isFinite(Number(facet.updatedAt)) || Number(facet.updatedAt) < 0)) {
+    throw new Error(`${name} updatedAt must be non-negative`);
+  }
+  return {
+    state,
+    ...(reason ? { reason } : {}),
+    ...(evidenceRefs.length ? { evidenceRefs } : {}),
+    ...(authorityRefs.length ? { authorityRefs } : {}),
+    ...(policyRefs.length ? { policyRefs } : {}),
+    ...(facet.updatedAt !== undefined ? { updatedAt: Number(facet.updatedAt) } : {}),
+  };
+}
+
+const REQUIRED_SELF_CAPABILITY_FACETS = Object.freeze([
+  "authority",
+  "resource",
+  "policy",
+  "directory",
+  "route",
+  "adapter",
+  "retention",
+  "domain",
+]);
+
+function assertPostureFacetMap(value, name = "posture facets", required = []) {
+  if (!isObject(value)) throw new Error(`${name} must be an object`);
+  for (const key of required) {
+    if (value[key] === undefined) throw new Error(`${name} missing ${key} facet`);
+  }
+  const facets = {};
+  for (const [key, facet] of Object.entries(value)) {
+    if (!/^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/.test(key)) throw new Error(`${name} invalid facet ${key}`);
+    facets[key] = assertPostureFacet(facet, `${name}.${key}`);
+  }
+  return facets;
+}
+
+function blockedFacetReasons(facets) {
+  const reasons = [];
+  for (const [facetName, facet] of Object.entries(facets || {})) {
+    if ([SWARM.POSTURE_FACET_STATE.MISSING, SWARM.POSTURE_FACET_STATE.BLOCKED].includes(facet.state)) {
+      reasons.push(facet.reason || `${facetName} ${facet.state}`);
+    }
+  }
+  return reasons;
+}
+
+function degradedFacetReasons(facets) {
+  const reasons = [];
+  for (const [facetName, facet] of Object.entries(facets || {})) {
+    if (facet.state === SWARM.POSTURE_FACET_STATE.DEGRADED) {
+      reasons.push(facet.reason || `${facetName} degraded`);
+    }
+  }
+  return reasons;
+}
+
+export function assertParticipantRunlevelPosture(record) {
+  if (!isObject(record)) throw new Error("participant runlevel posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.PARTICIPANT_RUNLEVEL, "participant runlevel posture");
+  requireString(record.runlevelId, "participant runlevel id");
+  assertResolvedMemberRef(record.participantRef, "participant runlevel participantRef");
+  requireString(record.participantKind, "participant runlevel participantKind");
+  assertParticipantRunlevelName(record.runlevel);
+  if (record.facets !== undefined) assertPostureFacetMap(record.facets, "participant runlevel facets");
+  assertOptionalReferenceList(record.evidenceRefs, "participant runlevel evidenceRefs");
+  assertOptionalReferenceList(record.authorityRefs, "participant runlevel authorityRefs");
+  if (record.reason !== undefined) requireString(record.reason, "participant runlevel reason");
+  if (!Number(record.updatedAt || 0)) throw new Error("participant runlevel missing updatedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.updatedAt)) {
+    throw new Error("participant runlevel expiresAt must be after updatedAt");
+  }
+  return record;
+}
+
+export function assertSelfCapabilityAssessment(record) {
+  if (!isObject(record)) throw new Error("self capability assessment must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.PARTICIPANT_SELF_CAPABILITY, "self capability assessment");
+  requireString(record.assessmentId, "self capability assessment id");
+  assertResolvedMemberRef(record.participantRef, "self capability participantRef");
+  if (record.serviceMemberRef !== undefined && record.serviceMemberRef !== null) {
+    assertResolvedMemberRef(record.serviceMemberRef, "self capability serviceMemberRef");
+  }
+  if (record.serviceRef !== undefined) requireString(record.serviceRef, "self capability serviceRef");
+  if (record.subjectRef !== undefined) requireString(record.subjectRef, "self capability subjectRef");
+  assertCapabilityName(record.capabilityRef);
+  const actions = requireNonEmptyArray(record.actions, "self capability actions").map((action) => assertSelfCapabilityActionName(action));
+  const status = assertSelfCapabilityStatusName(record.status);
+  assertParticipantRunlevelName(record.runlevel);
+  const facets = assertPostureFacetMap(record.facets, "self capability facets", REQUIRED_SELF_CAPABILITY_FACETS);
+  const explicitBlockedReasons = assertOptionalReferenceList(record.blockedReasons, "self capability blockedReasons");
+  const blockingReasons = blockedFacetReasons(facets);
+  const degradingReasons = degradedFacetReasons(facets);
+  if (status === SWARM.SELF_CAPABILITY_STATUS.AVAILABLE && (blockingReasons.length || degradingReasons.length || explicitBlockedReasons.length)) {
+    throw new Error("available self capability cannot carry blocked or degraded posture");
+  }
+  if ([SWARM.SELF_CAPABILITY_STATUS.BLOCKED, SWARM.SELF_CAPABILITY_STATUS.DISABLED].includes(status) && blockingReasons.length === 0 && explicitBlockedReasons.length === 0) {
+    throw new Error(`${status} self capability requires blocked reason`);
+  }
+  if (status === SWARM.SELF_CAPABILITY_STATUS.DEGRADED && blockingReasons.length) {
+    throw new Error("degraded self capability cannot carry blocking posture");
+  }
+  if (actions.length !== new Set(actions).size) throw new Error("self capability actions must be unique");
+  assertOptionalReferenceList(record.evidenceRefs, "self capability evidenceRefs");
+  assertOptionalReferenceList(record.authorityRefs, "self capability authorityRefs");
+  assertOptionalReferenceList(record.policyRefs, "self capability policyRefs");
+  if (!Number(record.updatedAt || 0)) throw new Error("self capability missing updatedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.updatedAt)) {
+    throw new Error("self capability expiresAt must be after updatedAt");
+  }
+  return record;
+}
+
+export function assertResourceProfile(record) {
+  if (!isObject(record)) throw new Error("resource profile must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RESOURCE_PROFILE, "resource profile");
+  requireString(record.profileId, "resource profile profileId");
+  assertResourceProfileClass(record.profileClass);
+  assertSafeObject(record.budgets, "resource profile budgets");
+  assertSafeObject(record.caps, "resource profile caps");
+  if (record.ownerRef !== undefined) requireString(record.ownerRef, "resource profile ownerRef");
+  if (!Number(record.issuedAt || 0)) throw new Error("resource profile missing issuedAt");
+  return record;
+}
+
+export function assertResourcePosture(record) {
+  if (!isObject(record)) throw new Error("resource posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RESOURCE_POSTURE, "resource posture");
+  requireString(record.postureId, "resource posture postureId");
+  requireString(record.profileId, "resource posture profileId");
+  const state = assertResourcePostureState(record.state);
+  assertSafeObject(record.counts, "resource posture counts");
+  assertSafeObject(record.budgets, "resource posture budgets");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "resource posture blockedReasons");
+  if ([SWARM.RESOURCE_POSTURE_STATE.PRESSURE, SWARM.RESOURCE_POSTURE_STATE.OVER_BUDGET, SWARM.RESOURCE_POSTURE_STATE.BLOCKED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("resource posture pressure states require blockedReasons");
+  }
+  if (record.lanes !== undefined) {
+    requireArray(record.lanes, "resource posture lanes").forEach((lane, index) => {
+      assertIngressLanePosture(lane, `resource posture lanes[${index}]`);
+    });
+  }
+  if (!Number(record.sampledAt || 0)) throw new Error("resource posture missing sampledAt");
+  return record;
+}
+
+export function assertIngressLanePosture(record, context = "ingress lane posture") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SWARM.RECORD_KIND.INGRESS_LANE_POSTURE, context);
+  requireString(record.laneId, `${context} laneId`);
+  requireString(record.laneKind, `${context} laneKind`);
+  const priority = Number(record.priority);
+  if (!Number.isFinite(priority) || priority < 0) throw new Error(`${context} priority must be non-negative`);
+  const state = assertResourcePostureState(record.state, `${context} state`);
+  assertSafeObject(record.counts, `${context} counts`);
+  assertSafeObject(record.limits, `${context} limits`);
+  assertOptionalReferenceList(record.relevanceRefs, `${context} relevanceRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  if ([SWARM.RESOURCE_POSTURE_STATE.PRESSURE, SWARM.RESOURCE_POSTURE_STATE.OVER_BUDGET, SWARM.RESOURCE_POSTURE_STATE.BLOCKED].includes(state) && blockedReasons.length === 0) {
+    throw new Error(`${context} pressure states require blockedReasons`);
+  }
+  if (!Number(record.sampledAt || 0)) throw new Error(`${context} missing sampledAt`);
+  return record;
+}
+
+export function assertEventAdmissionEnvelope(record, context = "event admission envelope") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SWARM.RECORD_KIND.EVENT_ADMISSION, context);
+  requireString(record.admissionId, `${context} admissionId`);
+  const plane = assertEventPlane(record.plane, `${context} plane`);
+  if (record.laneId !== undefined) requireString(record.laneId, `${context} laneId`);
+  if (record.subscriptionId !== undefined) requireString(record.subscriptionId, `${context} subscriptionId`);
+  if (record.publisherRef !== undefined) requireString(record.publisherRef, `${context} publisherRef`);
+  if (record.subscriberRef !== undefined) requireString(record.subscriberRef, `${context} subscriberRef`);
+  assertSafeObject(record.subject, `${context} subject`);
+  assertSafeObject(record.audience, `${context} audience`);
+  const claimedSeverity = String(record.claimedSeverity || "").trim();
+  if (claimedSeverity && !Object.values(LOGGING.SEVERITY).includes(claimedSeverity)) {
+    throw new Error(`${context} claimedSeverity is unsupported`);
+  }
+  const effectivePriority = Number(record.effectivePriority);
+  if (!Number.isFinite(effectivePriority) || effectivePriority < 0) {
+    throw new Error(`${context} effectivePriority must be non-negative`);
+  }
+  const decision = assertEventAdmissionDecision(record.decision, `${context} decision`);
+  const proofRequirement = assertEventProofRequirement(record.proofRequirement, `${context} proofRequirement`);
+  const proofState = assertEventProofState(record.proofState, `${context} proofState`);
+  const reason = String(record.reason || "").trim();
+  if ([SWARM.EVENT_ADMISSION_DECISION.DROP, SWARM.EVENT_ADMISSION_DECISION.DEFER, SWARM.EVENT_ADMISSION_DECISION.SUMMARIZE, SWARM.EVENT_ADMISSION_DECISION.REJECT].includes(decision) && !reason) {
+    throw new Error(`${context} ${decision} decision requires reason`);
+  }
+  if (proofRequirement === SWARM.EVENT_PROOF_REQUIREMENT.NONE && proofState !== SWARM.EVENT_PROOF_STATE.NOT_REQUIRED) {
+    throw new Error(`${context} proofState must be notRequired when proofRequirement is none`);
+  }
+  if (proofRequirement !== SWARM.EVENT_PROOF_REQUIREMENT.NONE && proofState === SWARM.EVENT_PROOF_STATE.NOT_REQUIRED) {
+    throw new Error(`${context} proofState cannot be notRequired when proof is required`);
+  }
+  if (decision === SWARM.EVENT_ADMISSION_DECISION.FORWARD && proofState === SWARM.EVENT_PROOF_STATE.FAILED) {
+    throw new Error(`${context} cannot forward failed proof`);
+  }
+  if (record.cost !== undefined) assertSafeObject(record.cost, `${context} cost`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  if (!Number(record.observedAt || 0)) throw new Error(`${context} missing observedAt`);
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.observedAt)) {
+    throw new Error(`${context} expiresAt must be after observedAt`);
+  }
+  if (plane === SWARM.EVENT_PLANE.BULK_RETAINED_DATA && decision === SWARM.EVENT_ADMISSION_DECISION.FORWARD && !record.subscriptionId) {
+    throw new Error(`${context} bulk retained data forward requires subscriptionId`);
+  }
+  return record;
+}
+
+export function assertSubscriptionContract(record, context = "subscription contract") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SWARM.RECORD_KIND.SUBSCRIPTION_CONTRACT, context);
+  requireString(record.subscriptionId, `${context} subscriptionId`);
+  requireString(record.subscriberRef, `${context} subscriberRef`);
+  if (record.publisherRef !== undefined) requireString(record.publisherRef, `${context} publisherRef`);
+  if (record.publisherClass !== undefined) requireString(record.publisherClass, `${context} publisherClass`);
+  const planes = requireNonEmptyArray(record.planes, `${context} planes`).map((plane) => assertEventPlane(plane, `${context} plane`));
+  if (planes.length !== new Set(planes).size) throw new Error(`${context} planes must be unique`);
+  if (!isObject(record.subjectSelector)) throw new Error(`${context} subjectSelector must be an object`);
+  assertSafeObject(record.subjectSelector, `${context} subjectSelector`);
+  assertSafeObject(record.audience, `${context} audience`);
+  const delivery = assertSafeObject(record.delivery, `${context} delivery`);
+  assertEventDeliveryMode(delivery.mode, `${context} delivery mode`);
+  const proof = assertSafeObject(record.proof, `${context} proof`);
+  assertEventProofRequirement(proof.requirement, `${context} proof requirement`);
+  const backpressure = assertSafeObject(record.backpressure, `${context} backpressure`);
+  assertEventBackpressureBehavior(backpressure.behavior, `${context} backpressure behavior`);
+  if (record.window !== undefined) assertSafeObject(record.window, `${context} window`);
+  if (record.cost !== undefined) assertSafeObject(record.cost, `${context} cost`);
+  assertOptionalCapabilityList(record.capabilityRefs, `${context} capabilityRefs`);
+  assertOptionalReferenceList(record.authorityRefs, `${context} authorityRefs`);
+  if (!Number(record.issuedAt || 0)) throw new Error(`${context} missing issuedAt`);
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error(`${context} expiresAt must be after issuedAt`);
+  }
+  return record;
+}
+
+function assertOptionalTimeField(value, name) {
+  if (value === undefined || value === null || value === "") return undefined;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) throw new Error(`${name} must be non-negative`);
+  return number;
+}
+
+function assertMaterializationSchemaPosture(value, context) {
+  if (value === undefined || value === null) return undefined;
+  if (!isObject(value)) throw new Error(`${context} schema must be an object`);
+  const state = assertMaterializationSchemaState(value.state, `${context} schema state`);
+  const version = String(value.version || "").trim();
+  const reason = String(value.reason || "").trim();
+  if ([SWARM.MATERIALIZATION_SCHEMA_STATE.IGNORE, SWARM.MATERIALIZATION_SCHEMA_STATE.QUARANTINED, SWARM.MATERIALIZATION_SCHEMA_STATE.BLOCKED].includes(state) && !reason) {
+    throw new Error(`${context} schema ${state} state requires reason`);
+  }
+  const migrationRefs = assertOptionalReferenceList(value.migrationRefs, `${context} schema migrationRefs`);
+  return {
+    state,
+    ...(version ? { version } : {}),
+    ...(reason ? { reason } : {}),
+    ...(migrationRefs.length ? { migrationRefs } : {}),
+  };
+}
+
+export function assertConsumerFloor(record, context = "consumer floor") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SWARM.RECORD_KIND.CONSUMER_FLOOR, context);
+  requireString(record.floorId, `${context} floorId`);
+  requireString(record.consumerRef, `${context} consumerRef`);
+  if (record.subscriptionId !== undefined) requireString(record.subscriptionId, `${context} subscriptionId`);
+  if (record.materializationId !== undefined) requireString(record.materializationId, `${context} materializationId`);
+  if (record.subjectRef !== undefined) requireString(record.subjectRef, `${context} subjectRef`);
+  const lagState = assertMaterializationLagState(record.lagState || SWARM.MATERIALIZATION_LAG_STATE.UNKNOWN, `${context} lagState`);
+  const cursor = String(record.cursor || "").trim();
+  const ackFloor = String(record.ackFloor || "").trim();
+  const witnessFloor = String(record.witnessFloor || "").trim();
+  const compactionFloor = String(record.compactionFloor || "").trim();
+  const eventTimeFloor = assertOptionalTimeField(record.eventTimeFloor, `${context} eventTimeFloor`);
+  const observedTimeFloor = assertOptionalTimeField(record.observedTimeFloor, `${context} observedTimeFloor`);
+  if (eventTimeFloor !== undefined && observedTimeFloor !== undefined && observedTimeFloor < eventTimeFloor) {
+    throw new Error(`${context} observedTimeFloor must not be before eventTimeFloor`);
+  }
+  if ([SWARM.MATERIALIZATION_LAG_STATE.LAGGING, SWARM.MATERIALIZATION_LAG_STATE.STALE, SWARM.MATERIALIZATION_LAG_STATE.BLOCKED].includes(lagState) && !String(record.reason || "").trim()) {
+    throw new Error(`${context} ${lagState} state requires reason`);
+  }
+  if (record.redelivery !== undefined) assertSafeObject(record.redelivery, `${context} redelivery`);
+  if (record.replay !== undefined) assertSafeObject(record.replay, `${context} replay`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  if (!Number(record.sampledAt || 0)) throw new Error(`${context} missing sampledAt`);
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.sampledAt)) {
+    throw new Error(`${context} expiresAt must be after sampledAt`);
+  }
+  return {
+    ...record,
+    lagState,
+    ...(cursor ? { cursor } : {}),
+    ...(ackFloor ? { ackFloor } : {}),
+    ...(witnessFloor ? { witnessFloor } : {}),
+    ...(compactionFloor ? { compactionFloor } : {}),
+    ...(eventTimeFloor !== undefined ? { eventTimeFloor } : {}),
+    ...(observedTimeFloor !== undefined ? { observedTimeFloor } : {}),
+  };
+}
+
+export function assertMaterializationBudget(record, context = "materialization budget") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SWARM.RECORD_KIND.MATERIALIZATION_BUDGET, context);
+  requireString(record.budgetId, `${context} budgetId`);
+  requireString(record.sourceAuthority, `${context} sourceAuthority`);
+  requireString(record.consumerRef, `${context} consumerRef`);
+  const payloadClass = assertMaterializationPayloadClass(record.payloadClass, `${context} payloadClass`);
+  const copyRole = assertMaterializationCopyRole(record.copyRole, `${context} copyRole`);
+  const transferMode = assertMaterializationTransferMode(record.transferMode, `${context} transferMode`);
+  const privacyTier = record.privacyTier === undefined
+    ? undefined
+    : assertMaterializationPrivacyTier(record.privacyTier, `${context} privacyTier`);
+  const state = assertResourcePostureState(record.state || SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET, `${context} state`);
+  assertSafeObject(record.limits, `${context} limits`);
+  if (record.snapshotPolicy !== undefined) assertSafeObject(record.snapshotPolicy, `${context} snapshotPolicy`);
+  if (record.deltaPolicy !== undefined) assertSafeObject(record.deltaPolicy, `${context} deltaPolicy`);
+  if (record.coalescing !== undefined) assertSafeObject(record.coalescing, `${context} coalescing`);
+  if (record.cardinality !== undefined) assertSafeObject(record.cardinality, `${context} cardinality`);
+  const schemaPosture = assertMaterializationSchemaPosture(record.schema, context);
+  const consumerFloor = record.consumerFloor === undefined || record.consumerFloor === null
+    ? undefined
+    : assertConsumerFloor(record.consumerFloor, `${context} consumerFloor`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  if ([SWARM.RESOURCE_POSTURE_STATE.PRESSURE, SWARM.RESOURCE_POSTURE_STATE.OVER_BUDGET, SWARM.RESOURCE_POSTURE_STATE.BLOCKED].includes(state) && blockedReasons.length === 0) {
+    throw new Error(`${context} pressure states require blockedReasons`);
+  }
+  if (payloadClass === SWARM.MATERIALIZATION_PAYLOAD_CLASS.MEDIA && transferMode === SWARM.MATERIALIZATION_TRANSFER_MODE.CLONE) {
+    throw new Error(`${context} media payload must not use clone transfer`);
+  }
+  if (payloadClass === SWARM.MATERIALIZATION_PAYLOAD_CLASS.RETAINED_RAW && privacyTier && ![
+    SWARM.MATERIALIZATION_PRIVACY_TIER.ENCRYPTED_RAW,
+    SWARM.MATERIALIZATION_PRIVACY_TIER.ENCRYPTED_DETAIL,
+  ].includes(privacyTier)) {
+    throw new Error(`${context} retained raw payload requires encrypted privacy tier`);
+  }
+  if (transferMode === SWARM.MATERIALIZATION_TRANSFER_MODE.REFERENCE_ONLY) {
+    const refs = assertOptionalReferenceList(record.referenceRefs, `${context} referenceRefs`);
+    if (refs.length === 0) throw new Error(`${context} referenceOnly transfer requires referenceRefs`);
+  } else {
+    assertOptionalReferenceList(record.referenceRefs, `${context} referenceRefs`);
+  }
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  if (record.retentionClass !== undefined) requireString(record.retentionClass, `${context} retentionClass`);
+  if (!Number(record.issuedAt || 0)) throw new Error(`${context} missing issuedAt`);
+  if (record.releaseAfter !== undefined && Number(record.releaseAfter) < Number(record.issuedAt)) {
+    throw new Error(`${context} releaseAfter must not be before issuedAt`);
+  }
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error(`${context} expiresAt must be after issuedAt`);
+  }
+  rejectMediaByteFields(record, context);
+  return {
+    ...record,
+    state,
+    payloadClass,
+    copyRole,
+    transferMode,
+    ...(privacyTier ? { privacyTier } : {}),
+    ...(schemaPosture ? { schema: schemaPosture } : {}),
+    ...(consumerFloor ? { consumerFloor } : {}),
+  };
+}
+
+export function assertProjectionRepairPosture(record) {
+  if (!isObject(record)) throw new Error("projection repair posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.PROJECTION_REPAIR_POSTURE, "projection repair posture");
+  requireString(record.repairId, "projection repair repairId");
+  requireString(record.projectionId, "projection repair projectionId");
+  requireString(record.policyId, "projection repair policyId");
+  const state = assertProjectionRepairState(record.state);
+  const currentRevision = Number(record.currentRevision);
+  const requiredRevision = Number(record.requiredRevision ?? record.targetRevision);
+  if (!Number.isInteger(currentRevision) || currentRevision < 0) throw new Error("projection repair currentRevision must be non-negative integer");
+  if (!Number.isInteger(requiredRevision) || requiredRevision <= currentRevision) throw new Error("projection repair requiredRevision must be after currentRevision");
+  requireString(record.reason, "projection repair reason");
+  if (record.coverage !== undefined) assertProjectionCoverage(record.coverage);
+  if (record.observerRef !== undefined) requireString(record.observerRef, "projection repair observerRef");
+  if (record.routePromiseId !== undefined) requireString(record.routePromiseId, "projection repair routePromiseId");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "projection repair blockedReasons");
+  if (state === SWARM.PROJECTION_REPAIR_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked projection repair requires blockedReasons");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("projection repair missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("projection repair expiresAt must be after issuedAt");
+  }
+  rejectMediaByteFields(record, "projection repair posture");
+  return record;
+}
+
+export function assertRetentionReleasePosture(record) {
+  if (!isObject(record)) throw new Error("retention release posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RETENTION_RELEASE, "retention release posture");
+  requireString(record.evaluationId, "retention release evaluationId");
+  requireString(record.subjectRef, "retention release subjectRef");
+  requireString(record.effectiveRetention, "retention release effectiveRetention");
+  const state = assertRetentionReleaseState(record.state);
+  assertReferenceList(record.ownerRefs, "retention release ownerRefs");
+  assertOptionalReferenceList(record.holderRefs, "retention release holderRefs");
+  assertOptionalReferenceList(record.fulfillmentRefs, "retention release fulfillmentRefs");
+  const residencyLayers = requireNonEmptyArray(record.residencyLayers, "retention release residencyLayers").map((entry) => requireString(entry, "retention release residencyLayer"));
+  const blockers = requireArray(record.blockers || [], "retention release blockers");
+  for (const blocker of blockers) {
+    if (typeof blocker === "string") requireString(blocker, "retention release blocker");
+    else if (isObject(blocker)) {
+      requireString(blocker.code || blocker.reason, "retention release blocker code");
+      if (blocker.ownerRef !== undefined) requireString(blocker.ownerRef, "retention release blocker ownerRef");
+    } else {
+      throw new Error("retention release blocker must be string or object");
+    }
+  }
+  if (state === SWARM.RETENTION_RELEASE_STATE.RELEASE_BLOCKED && blockers.length === 0) {
+    throw new Error("releaseBlocked retention posture requires blockers");
+  }
+  if (state === SWARM.RETENTION_RELEASE_STATE.FREEABLE && blockers.length !== 0) {
+    throw new Error("freeable retention posture cannot carry blockers");
+  }
+  if (!residencyLayers.length) throw new Error("retention release residencyLayers must not be empty");
+  if (!Number(record.evaluatedAt || 0)) throw new Error("retention release missing evaluatedAt");
+  return record;
+}
+
+export function assertContributionLifecycle(record, context = "contribution lifecycle") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTRIBUTION_LIFECYCLE, context);
+  requireString(record.contributionId, `${context} contributionId`);
+  requireString(record.parentRef, `${context} parentRef`);
+  requireString(record.subjectRef, `${context} subjectRef`);
+  requireString(record.writerRef, `${context} writerRef`);
+  const contributionType = assertContributionType(record.contributionType, `${context} contributionType`);
+  const state = assertContributionState(record.state || SWARM.CONTRIBUTION_STATE.ACTIVE, `${context} state`);
+  requireString(record.role, `${context} role`);
+  assertReferenceList(record.authorityRefs, `${context} authorityRefs`);
+  if (record.scope !== undefined) assertSafeObject(record.scope, `${context} scope`);
+  const supersedes = assertOptionalReferenceList(record.supersedes, `${context} supersedes`);
+  const witnessRefs = assertOptionalReferenceList(record.witnessRefs, `${context} witnessRefs`);
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  const targetContributionRef = String(record.targetContributionRef || "").trim();
+  if (!Number(record.issuedAt || 0)) throw new Error(`${context} missing issuedAt`);
+  const validUntil = assertOptionalTimeField(record.validUntil, `${context} validUntil`);
+  if (validUntil !== undefined && validUntil <= Number(record.issuedAt)) {
+    throw new Error(`${context} validUntil must be after issuedAt`);
+  }
+  const releaseAfter = assertOptionalTimeField(record.releaseAfter, `${context} releaseAfter`);
+  if (releaseAfter !== undefined && releaseAfter < Number(record.issuedAt)) {
+    throw new Error(`${context} releaseAfter must not be before issuedAt`);
+  }
+  const retractedAt = assertOptionalTimeField(record.retractedAt, `${context} retractedAt`);
+  if (retractedAt !== undefined && retractedAt < Number(record.issuedAt)) {
+    throw new Error(`${context} retractedAt must not be before issuedAt`);
+  }
+  if ([SWARM.CONTRIBUTION_TYPE.WITNESS, SWARM.CONTRIBUTION_TYPE.RETRACTION, SWARM.CONTRIBUTION_TYPE.RELEASE].includes(contributionType) && !targetContributionRef) {
+    throw new Error(`${context} ${contributionType} requires targetContributionRef`);
+  }
+  if (contributionType === SWARM.CONTRIBUTION_TYPE.WITNESS && !Number(record.observedAt || 0)) {
+    throw new Error(`${context} witness requires observedAt`);
+  }
+  if (state === SWARM.CONTRIBUTION_STATE.WITNESSED && witnessRefs.length === 0) {
+    throw new Error(`${context} witnessed state requires witnessRefs`);
+  }
+  if (state === SWARM.CONTRIBUTION_STATE.RETRACTED && retractedAt === undefined) {
+    throw new Error(`${context} retracted state requires retractedAt`);
+  }
+  if (state === SWARM.CONTRIBUTION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error(`${context} blocked state requires blockedReasons`);
+  }
+  rejectMediaByteFields(record, context);
+  return {
+    ...record,
+    contributionType,
+    state,
+    supersedes,
+    witnessRefs,
+    evidenceRefs,
+    blockedReasons,
+    ...(targetContributionRef ? { targetContributionRef } : {}),
+    ...(validUntil !== undefined ? { validUntil } : {}),
+    ...(releaseAfter !== undefined ? { releaseAfter } : {}),
+    ...(retractedAt !== undefined ? { retractedAt } : {}),
+  };
+}
+
+export function assertMediaFulfillmentEvidence(record) {
+  if (!isObject(record)) throw new Error("media fulfillment evidence must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.MEDIA_FULFILLMENT_EVIDENCE, "media fulfillment evidence");
+  requireString(record.evidenceId, "media fulfillment evidence evidenceId");
+  const evidenceKind = assertMediaFulfillmentEvidenceKind(record.evidenceKind);
+  const state = assertMediaFulfillmentState(record.state);
+  if (record.sessionId !== undefined) requireString(record.sessionId, "media fulfillment evidence sessionId");
+  if (record.activationId !== undefined) requireString(record.activationId, "media fulfillment evidence activationId");
+  if (record.interactionId !== undefined) requireString(record.interactionId, "media fulfillment evidence interactionId");
+  if (record.correlationId !== undefined) requireString(record.correlationId, "media fulfillment evidence correlationId");
+  if (record.routePromiseId !== undefined) requireString(record.routePromiseId, "media fulfillment evidence routePromiseId");
+  if (!record.sessionId && !record.activationId && !record.interactionId && !record.correlationId) {
+    throw new Error("media fulfillment evidence requires sessionId, activationId, interactionId, or correlationId");
+  }
+  if (record.participantRef !== undefined) requireString(record.participantRef, "media fulfillment evidence participantRef");
+  if (record.adapterRef !== undefined) requireString(record.adapterRef, "media fulfillment evidence adapterRef");
+  if (record.serviceRef !== undefined) requireString(record.serviceRef, "media fulfillment evidence serviceRef");
+  if (record.sourceRef !== undefined) requireString(record.sourceRef, "media fulfillment evidence sourceRef");
+  const blockedReason = String(record.blockedReason || "").trim();
+  if (state === SWARM.MEDIA_FULFILLMENT_STATE.BLOCKED && !blockedReason) {
+    throw new Error("blocked media fulfillment evidence requires blockedReason");
+  }
+  if (state === SWARM.MEDIA_FULFILLMENT_STATE.RELEASED && evidenceKind !== SWARM.MEDIA_FULFILLMENT_EVIDENCE_KIND.RELEASE) {
+    throw new Error("released media fulfillment evidence must use release evidence kind");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "media fulfillment evidence safeFacts");
+  assertOptionalReferenceList(record.evidenceRefs, "media fulfillment evidence evidenceRefs");
+  if (!Number(record.observedAt || 0)) throw new Error("media fulfillment evidence missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.observedAt)) {
+    throw new Error("media fulfillment evidence expiresAt must be after observedAt");
+  }
+  rejectMediaByteFields(record, "media fulfillment evidence");
+  return record;
+}
+
+export function assertMediaTransportPath(record) {
+  if (!isObject(record)) throw new Error("media transport path must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH, "media transport path");
+  requireString(record.pathId, "media transport path pathId");
+  requireString(record.sessionId, "media transport path sessionId");
+  if (record.activationId !== undefined) requireString(record.activationId, "media transport path activationId");
+  if (record.routePromiseId !== undefined) requireString(record.routePromiseId, "media transport path routePromiseId");
+  requireString(record.transportProfileRef, "media transport path transportProfileRef");
+  assertMediaTransportPathState(record.state);
+  assertMediaTransportSelectedPairState(record.selectedPairState);
+  assertMediaTransportRtpState(record.inboundRtpState);
+  assertMediaTransportRenderState(record.renderState);
+  assertOptionalReferenceList(record.browserCandidateRefs, "media transport path browserCandidateRefs");
+  assertOptionalReferenceList(record.serviceCandidateRefs, "media transport path serviceCandidateRefs");
+  assertOptionalReferenceList(record.relayParticipantRefs, "media transport path relayParticipantRefs");
+  assertOptionalReferenceList(record.turnParticipantRefs, "media transport path turnParticipantRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "media transport path evidenceRefs");
+  const blockedReason = String(record.blockedReason || "").trim();
+  if (record.state === SWARM.MEDIA_TRANSPORT_PATH_STATE.BLOCKED && !blockedReason) {
+    throw new Error("blocked media transport path requires blockedReason");
+  }
+  if (record.safeFacts !== undefined) {
+    if (!isObject(record.safeFacts)) throw new Error("media transport path safeFacts must be an object");
+    rejectUnsafeSafeFacts(record.safeFacts);
+    rejectMediaByteFields(record.safeFacts, "media transport path safeFacts");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("media transport path missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("media transport path expiresAt must be after issuedAt");
+  }
+  rejectMediaByteFields(record, "media transport path");
+  return record;
+}
+
+export function assertMediaTransportObservation(record) {
+  if (!isObject(record)) throw new Error("media transport observation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.MEDIA_TRANSPORT_OBSERVATION, "media transport observation");
+  requireString(record.observationId, "media transport observation observationId");
+  requireString(record.pathId, "media transport observation pathId");
+  requireString(record.sessionId, "media transport observation sessionId");
+  if (record.activationId !== undefined) requireString(record.activationId, "media transport observation activationId");
+  if (record.routePromiseId !== undefined) requireString(record.routePromiseId, "media transport observation routePromiseId");
+  requireString(record.participantRef, "media transport observation participantRef");
+  assertMediaTransportParticipantRole(record.participantRole);
+  assertMediaTransportObservationState(record.state);
+  if (record.selectedPairState !== undefined) assertMediaTransportSelectedPairState(record.selectedPairState);
+  if (record.inboundRtpState !== undefined) assertMediaTransportRtpState(record.inboundRtpState);
+  if (record.renderState !== undefined) assertMediaTransportRenderState(record.renderState);
+  const blockedReason = String(record.blockedReason || "").trim();
+  if (record.state === SWARM.MEDIA_TRANSPORT_OBSERVATION_STATE.BLOCKED && !blockedReason) {
+    throw new Error("blocked media transport observation requires blockedReason");
+  }
+  if (record.evidenceRefs !== undefined) assertOptionalReferenceList(record.evidenceRefs, "media transport observation evidenceRefs");
+  if (record.safeFacts !== undefined) {
+    if (!isObject(record.safeFacts)) throw new Error("media transport observation safeFacts must be an object");
+    rejectUnsafeSafeFacts(record.safeFacts);
+    rejectMediaByteFields(record.safeFacts, "media transport observation safeFacts");
+  }
+  if (!Number(record.observedAt || 0)) throw new Error("media transport observation missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.observedAt)) {
+    throw new Error("media transport observation expiresAt must be after observedAt");
+  }
+  rejectMediaByteFields(record, "media transport observation");
+  return record;
+}
+
+function assertOptionalReferenceList(value, name) {
+  if (value === undefined || value === null) return [];
+  return requireArray(value, name).map((entry) => requireString(entry, `${name} entry`));
+}
+
+function assertOptionalCapabilityList(value, name) {
+  return assertOptionalReferenceList(value, name).map(assertCapabilityName);
+}
+
+function assertSafeObject(value, name) {
+  const object = assertOptionalObject(value, name);
+  rejectRouteControlByteFields(object, name);
+  rejectUnsafeSafeFacts(object);
+  return object;
+}
+
+function assertPrivateRefList(value, name = "privateRefs") {
+  if (value === undefined || value === null) return [];
+  const refs = requireArray(value, name);
+  for (const ref of refs) {
+    if (!isObject(ref)) throw new Error(`${name} entry must be an object`);
+    requireString(ref.ref, `${name} ref`);
+    if (ref.kind !== undefined) requireString(ref.kind, `${name} kind`);
+  }
+  return refs;
+}
+
+function assertParticipantView(value, context) {
+  if (!isObject(value)) throw new Error(`${context} must be an object`);
+  assertInteractionRoleName(value.role, `${context} role`);
+  assertResolvedMemberRef(value.memberRef, `${context} memberRef`);
+  assertOptionalCapabilityList(value.capabilityRefs, `${context} capabilityRefs`);
+  assertOptionalReferenceList(value.channelRefs, `${context} channelRefs`);
+  assertOptionalReferenceList(value.authorityRefs, `${context} authorityRefs`);
+  if (value.contractView !== undefined) assertOptionalObject(value.contractView, `${context} contractView`);
+  if (value.safeFacts !== undefined) assertSafeObject(value.safeFacts, `${context} safeFacts`);
+  return value;
+}
+
+export function assertSwarmIdentity(record) {
+  if (!isObject(record)) throw new Error("swarm identity must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_IDENTITY, "swarm identity");
+  requireString(record.identityId, "swarm identity identityId");
+  assertReferenceList(record.rootRefs, "swarm identity rootRefs");
+  const recoveryRootRefs = assertOptionalReferenceList(record.recoveryRootRefs, "swarm identity recoveryRootRefs");
+  const recoveryRouteRefs = assertOptionalReferenceList(record.recoveryRouteRefs, "swarm identity recoveryRouteRefs");
+  if (recoveryRouteRefs.some((ref) => recoveryRootRefs.includes(ref))) {
+    throw new Error("swarm identity recovery route must not be promoted as recovery root");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm identity safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm identity missing issuedAt");
+  return record;
+}
+
+export function assertSwarmDevice(record) {
+  if (!isObject(record)) throw new Error("swarm device must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_DEVICE, "swarm device");
+  requireString(record.deviceId, "swarm device deviceId");
+  requireString(record.deviceRef, "swarm device deviceRef");
+  requireString(record.identityRef, "swarm device identityRef");
+  assertOptionalCapabilityList(record.capabilityRefs, "swarm device capabilityRefs");
+  assertReferenceList(record.authorityRefs, "swarm device authorityRefs");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm device safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm device missing issuedAt");
+  return record;
+}
+
+export function assertSwarmGateway(record) {
+  if (!isObject(record)) throw new Error("swarm gateway must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_GATEWAY, "swarm gateway");
+  requireString(record.gatewayId, "swarm gateway gatewayId");
+  requireString(record.gatewayRef, "swarm gateway gatewayRef");
+  assertReferenceList(record.ownerRefs, "swarm gateway ownerRefs");
+  assertReferenceList(record.authorityRefs, "swarm gateway authorityRefs");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm gateway safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm gateway missing issuedAt");
+  return record;
+}
+
+export function assertSwarmService(record) {
+  if (!isObject(record)) throw new Error("swarm service must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_SERVICE, "swarm service");
+  requireString(record.serviceId, "swarm service serviceId");
+  requireString(record.serviceRef, "swarm service serviceRef");
+  requireString(record.service, "swarm service service");
+  requireString(record.contractRef, "swarm service contractRef");
+  assertOptionalCapabilityList(record.capabilityRefs, "swarm service capabilityRefs");
+  assertOptionalReferenceList(record.channelRefs, "swarm service channelRefs");
+  assertReferenceList(record.authorityRefs, "swarm service authorityRefs");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm service safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm service missing issuedAt");
+  return record;
+}
+
+export function assertSwarmMember(record) {
+  if (!isObject(record)) throw new Error("swarm member must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_MEMBER, "swarm member");
+  requireString(record.memberId, "swarm member memberId");
+  assertResolvedMemberRef(record.memberRef, "swarm member memberRef");
+  requireString(record.memberKind, "swarm member memberKind");
+  assertOptionalCapabilityList(record.capabilityRefs, "swarm member capabilityRefs");
+  assertOptionalReferenceList(record.channelRefs, "swarm member channelRefs");
+  assertReferenceList(record.authorityRefs, "swarm member authorityRefs");
+  if (record.storage !== undefined) {
+    const storage = assertOptionalObject(record.storage, "swarm member storage");
+    if (storage.memberKind !== undefined && !Object.values(SWARM.STORAGE_MEMBER_KIND).includes(String(storage.memberKind))) {
+      throw new Error("unsupported swarm member storage kind");
+    }
+    if (storage.authorityDomain === SWARM.AUTHORITY_DOMAIN.IDENTITY) {
+      throw new Error("storage member must not claim identity authority");
+    }
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm member safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm member missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("swarm member expiresAt must be after issuedAt");
+  }
+  return record;
+}
+
+export function assertSwarmGrant(record) {
+  if (!isObject(record)) throw new Error("swarm grant must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_GRANT, "swarm grant");
+  requireString(record.grantId, "swarm grant grantId");
+  requireString(record.issuerRef, "swarm grant issuerRef");
+  requireString(record.subjectRef, "swarm grant subjectRef");
+  assertReferenceList(record.audienceRefs, "swarm grant audienceRefs");
+  assertAuthorityDomain(record.authorityDomain, "swarm grant authorityDomain");
+  assertOptionalCapabilityList(record.capabilityRefs, "swarm grant capabilityRefs");
+  assertOptionalReferenceList(record.roleRefs, "swarm grant roleRefs");
+  if (record.elevated === true && !assertOptionalReferenceList(record.rootRefs, "swarm grant rootRefs").length) {
+    throw new Error("elevated swarm grant requires rootRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm grant safeFacts");
+  assertPrivateRefList(record.privateRefs, "swarm grant privateRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm grant missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("swarm grant expiresAt must be after issuedAt");
+  }
+  return record;
+}
+
+export function assertSwarmRole(record) {
+  if (!isObject(record)) throw new Error("swarm role must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_ROLE, "swarm role");
+  requireString(record.roleId, "swarm role roleId");
+  assertInteractionRoleName(record.role, "swarm role role");
+  assertResolvedMemberRef(record.memberRef, "swarm role memberRef");
+  assertOptionalCapabilityList(record.capabilityRefs, "swarm role capabilityRefs");
+  assertReferenceList(record.authorityRefs, "swarm role authorityRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm role missing issuedAt");
+  return record;
+}
+
+export function assertSwarmInteraction(record) {
+  if (!isObject(record)) throw new Error("swarm interaction must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_INTERACTION, "swarm interaction");
+  requireString(record.interactionId, "swarm interaction interactionId");
+  requireString(record.contractRef, "swarm interaction contractRef");
+  requireString(record.interactionKind || record.kindName || record.interactionType, "swarm interaction interactionKind");
+  const participants = requireNonEmptyArray(record.participants, "swarm interaction participants");
+  participants.forEach((entry, index) => assertParticipantView(entry, `swarm interaction participant ${index}`));
+  const participantRoles = new Set(participants.map((entry) => String(entry.role)));
+  for (const required of [SWARM.INTERACTION_ROLE.REQUESTER, SWARM.INTERACTION_ROLE.COORDINATOR]) {
+    if (!participantRoles.has(required)) throw new Error(`swarm interaction missing ${required} participant`);
+  }
+  assertInteractionStateName(record.state, "swarm interaction state");
+  assertOptionalCapabilityList(record.capabilityRefs, "swarm interaction capabilityRefs");
+  assertOptionalReferenceList(record.channelRefs, "swarm interaction channelRefs");
+  const authority = assertOptionalObject(record.authority, "swarm interaction authority");
+  if (authority.domains !== undefined) requireArray(authority.domains, "swarm interaction authority domains").forEach((domain) => assertAuthorityDomain(domain));
+  if (authority.grantRefs !== undefined) assertOptionalReferenceList(authority.grantRefs, "swarm interaction authority grantRefs");
+  if (record.routingScope !== undefined) assertRoutingScopePosture(record.routingScope, "swarm interaction routingScope");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm interaction safeFacts");
+  assertPrivateRefList(record.privateRefs, "swarm interaction privateRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm interaction missing issuedAt");
+  return record;
+}
+
+export function assertSwarmActivation(record) {
+  if (!isObject(record)) throw new Error("swarm activation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_ACTIVATION, "swarm activation");
+  requireString(record.activationId, "swarm activation activationId");
+  requireString(record.interactionId, "swarm activation interactionId");
+  requireString(record.nodeRef, "swarm activation nodeRef");
+  assertCapabilityName(record.capabilityRef);
+  assertResolvedMemberRef(record.requesterRef, "swarm activation requesterRef");
+  assertResolvedMemberRef(record.runtimeMemberRef, "swarm activation runtimeMemberRef");
+  assertInteractionStateName(record.state, "swarm activation state");
+  const summary = assertOptionalObject(record.authoritySummary, "swarm activation authoritySummary");
+  for (const domain of ["requester", "runtime", "gateway", "service"]) {
+    const entry = summary[domain];
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`swarm activation authoritySummary missing ${domain}`);
+    }
+    if (!String(entry.state || "").trim()) throw new Error(`swarm activation authoritySummary ${domain} missing state`);
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "swarm activation safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm activation missing issuedAt");
+  return record;
+}
+
+export function assertSwarmRelease(record) {
+  if (!isObject(record)) throw new Error("swarm release must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_RELEASE, "swarm release");
+  requireString(record.releaseId, "swarm release releaseId");
+  requireString(record.interactionId, "swarm release interactionId");
+  requireString(record.releasedBy, "swarm release releasedBy");
+  requireString(record.reasonCode, "swarm release reasonCode");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm release missing issuedAt");
+  return record;
+}
+
+export function assertSwarmRevocation(record) {
+  if (!isObject(record)) throw new Error("swarm revocation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SWARM_REVOCATION, "swarm revocation");
+  requireString(record.revocationId, "swarm revocation revocationId");
+  requireString(record.targetRef, "swarm revocation targetRef");
+  requireString(record.issuerRef, "swarm revocation issuerRef");
+  assertAuthorityDomain(record.authorityDomain, "swarm revocation authorityDomain");
+  requireString(record.reasonCode, "swarm revocation reasonCode");
+  if (!Number(record.issuedAt || 0)) throw new Error("swarm revocation missing issuedAt");
+  return record;
+}
+
+export function assertSwarmIdentityGraph(records) {
+  const graphRecords = requireArray(records, "swarm identity graph");
+  const liveKinds = new Set([
+    SWARM.RECORD_KIND.SWARM_INTERACTION,
+    SWARM.RECORD_KIND.SWARM_ACTIVATION,
+    SWARM.RECORD_KIND.ROUTE_PROMISE,
+    SWARM.RECORD_KIND.CONTRIBUTION_LIFECYCLE,
+    SWARM.RECORD_KIND.MATERIALIZATION_BUDGET,
+    SWARM.RECORD_KIND.CONSUMER_FLOOR,
+    SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
+    SWARM.RECORD_KIND.MEDIA_TRANSPORT_OBSERVATION,
+    "stream.session.offer",
+    "stream.session.answer",
+    "stream.session.candidate",
+    "stream.session.control",
+    "stream.session.health",
+    "stream.session.close",
+  ]);
+  for (const record of graphRecords) {
+    if (!isObject(record)) throw new Error("swarm identity graph record must be an object");
+    const kind = String(record.kind || record.recordKind || "").trim();
+    if (liveKinds.has(kind)) throw new Error("swarm identity graph must not contain live lease or activation state");
+    if (record.lease || record.routePromise || record.activeSession || record.streamSession) {
+      throw new Error("swarm identity graph must not contain live lease or activation state");
+    }
+  }
+  return graphRecords;
+}
+
+function isFixturePlaceholderEnvelope(envelope) {
+  if (!isObject(envelope)) return false;
+  const values = [
+    envelope.envelopeId,
+    envelope.signature,
+    envelope.sealedPayload,
+    envelope.placeholder,
+    envelope.ciphertext,
+  ].map((value) => String(value || ""));
+  if (values.some((value) => value && SWARM.FIXTURE_CAAC_PLACEHOLDERS.includes(value))) return true;
+  if (envelope.envelopeId && !envelope.alg && !envelope.recipients && !envelope.signature) return true;
+  return false;
+}
+
+export function assertCaacEnvelopeForMode(envelope, {
+  mode = SWARM.CAAC_VALIDATION_MODE.PRODUCT,
+  now = nowSeconds(),
+} = {}) {
+  if (!isObject(envelope)) throw new Error("caac envelope must be an object");
+  const validationMode = requireString(mode, "caac validation mode");
+  if (!Object.values(SWARM.CAAC_VALIDATION_MODE).includes(validationMode)) throw new Error("unsupported caac validation mode");
+  if (validationMode === SWARM.CAAC_VALIDATION_MODE.FIXTURE) {
+    if (isFixturePlaceholderEnvelope(envelope)) return envelope;
+  }
+  if (validationMode === SWARM.CAAC_VALIDATION_MODE.STRUCTURAL) {
+    requireString(envelope.envelopeId, "caac envelope envelopeId");
+    return envelope;
+  }
+  if (isFixturePlaceholderEnvelope(envelope)) throw new Error("fixture caac placeholder rejected in product mode");
+  if (Number(envelope.version) !== CAAC_VERSION) throw new Error("unsupported caac envelope version");
+  if (envelope.alg !== CAAC_ALG_V1) throw new Error("unsupported caac envelope algorithm");
+  requireString(envelope.kind, "caac envelope kind");
+  requireString(envelope.envelopeId, "caac envelope envelopeId");
+  requireString(envelope.issuerPk, "caac envelope issuerPk");
+  if (!Number(envelope.issuedAt || 0)) throw new Error("caac envelope missing issuedAt");
+  if (!Number(envelope.expiresAt || 0)) throw new Error("caac envelope missing expiresAt");
+  if (Number(envelope.expiresAt) <= now) throw new Error("caac envelope expired");
+  requireString(envelope.signature, "caac envelope signature");
+  const recipients = requireNonEmptyArray(envelope.recipients, "caac envelope recipients");
+  for (const recipient of recipients) {
+    if (!isObject(recipient)) throw new Error("caac envelope recipient must be an object");
+    requireString(recipient.recipientPk, "caac envelope recipientPk");
+    requireString(recipient.nonce, "caac envelope recipient nonce");
+    requireString(recipient.ciphertext, "caac envelope recipient ciphertext");
+  }
+  if (!verifyEnvelopeSignature(envelope)) throw new Error("invalid caac envelope signature");
+  return envelope;
+}
+
+export function assertAppRecipe(record) {
+  if (!isObject(record)) throw new Error("app recipe must be an object");
+  requireString(record.recipeId, "app recipe id");
+  requireString(record.name, "app recipe name");
+  requireArray(record.requiredCapabilities, "app recipe requiredCapabilities").forEach(assertCapabilityName);
+  requireArray(record.requiredChannels, "app recipe requiredChannels");
+  requireArray(record.roles, "app recipe roles");
+  return record;
+}
+
+export function assertAppRunnerAdvertisement(record) {
+  if (!isObject(record)) throw new Error("app runner advertisement must be an object");
+  requireString(record.runnerId, "app runner id");
+  assertResolvedMemberRef(record.memberRef, "app runner memberRef");
+  requireString(record.version, "app runner version");
+  if (!isObject(record.capacity)) throw new Error("app runner capacity must be an object");
+  if (!isObject(record.health)) throw new Error("app runner health must be an object");
+  return record;
 }

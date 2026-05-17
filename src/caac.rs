@@ -348,7 +348,7 @@ mod tests {
             "sourceIds": ["front-door"],
         });
         let envelope = seal_envelope_with_options(
-            "service_access.capability",
+            "capability.bootstrap",
             &claims,
             ISSUER_SK,
             &[gateway_pk, service_pk],
@@ -378,7 +378,7 @@ mod tests {
     fn rejects_tamper_expiry_and_replay() {
         let gateway_pk = pubkey_from_sk_hex(GATEWAY_SK).expect("gateway pk");
         let envelope = seal_envelope(
-            "service_access.request",
+            "capability.request",
             &json!({"requestId": "req-1"}),
             ISSUER_SK,
             &[gateway_pk],

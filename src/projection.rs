@@ -159,13 +159,7 @@ pub fn validate_projection_channel_id_with_allowed(
             .then_some(())
             .ok_or_else(|| anyhow!("unsupported projection channel"));
     }
-    match trimmed {
-        PROJECTION_CHANNEL_LOGGING_EVENTS
-        | PROJECTION_CHANNEL_LOGGING_HEALTH
-        | PROJECTION_CHANNEL_LOGGING_DASHBOARD
-        | PROJECTION_CHANNEL_DIAGNOSTICS_EVENTS => Ok(()),
-        _ => Err(anyhow!("unsupported projection channel")),
-    }
+    Ok(())
 }
 
 pub fn validate_projection_channel_id(channel_id: &str) -> Result<()> {
@@ -335,7 +329,15 @@ mod tests {
             filters: json!({}),
             policy: None,
         };
-        assert!(validate_service_projection_request(&req).is_err());
+        validate_service_projection_request(&req)
+            .expect("generic projection requests validate shape without service surface context");
+        assert!(
+            validate_projection_channel_id_with_allowed(
+                &req.channel_id,
+                &["logging.health".to_string()]
+            )
+            .is_err()
+        );
     }
 
     #[test]
