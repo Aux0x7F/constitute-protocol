@@ -108,6 +108,7 @@ export const STORAGE_KEY_GRANULARITY = Object.freeze({
 export const LOGGING = Object.freeze({
   SCHEMA_VERSION: 1,
   EVENT_ID_PREFIX: "constitute-log-event-v1",
+  EVIDENCE_PROFILE_RECORD_KIND: "logging.evidence.profile",
   SEVERITY: Object.freeze({
     DEBUG: "debug",
     INFO: "info",
@@ -155,6 +156,18 @@ export const LOGGING = Object.freeze({
     ROLLING: "rolling",
     SHORT: "short",
     EPHEMERAL: "ephemeral",
+  }),
+  EVIDENCE_PROFILE_EVENT_CLASS: Object.freeze({
+    SECURITY_AUDIT: "securityAudit",
+    RUNTIME_DIAGNOSTIC: "runtimeDiagnostic",
+    SERVICE_EVENT: "serviceEvent",
+    STORAGE_ACCESS: "storageAccess",
+    MEDIA_PATH: "mediaPath",
+  }),
+  EVIDENCE_DETAIL_CUSTODY: Object.freeze({
+    SAFE_FACTS_ONLY: "safeFactsOnly",
+    ENCRYPTED_DETAIL_REF: "encryptedDetailRef",
+    ENCRYPTED_RAW_REF: "encryptedRawRef",
   }),
 });
 
@@ -596,6 +609,64 @@ export function assertLogEventEnvelope(event) {
   }
   if (event.eventId !== logEventId(event)) throw new Error("log event id mismatch");
   return event;
+}
+
+export function assertLogEvidenceProfile(profile) {
+  if (!isObject(profile)) throw new Error("log evidence profile must be an object");
+  assertRecordKind(profile, LOGGING.EVIDENCE_PROFILE_RECORD_KIND, "log evidence profile");
+  requireString(profile.profileId, "log evidence profile profileId");
+  requireString(profile.consumerRef, "log evidence profile consumerRef");
+  const eventClasses = requireNonEmptyArray(profile.eventClasses, "log evidence profile eventClasses")
+    .map((eventClass) => requireString(eventClass, "log evidence profile eventClass"));
+  const allowedClasses = Object.values(LOGGING.EVIDENCE_PROFILE_EVENT_CLASS);
+  for (const eventClass of eventClasses) {
+    if (!allowedClasses.includes(eventClass)) throw new Error("invalid log evidence profile eventClass");
+  }
+  requireString(profile.retentionWindow, "log evidence profile retentionWindow");
+  assertReferenceList(profile.safeIndexRefs, "log evidence profile safeIndexRefs");
+  const detailCustody = requireString(profile.detailCustody, "log evidence profile detailCustody");
+  if (!Object.values(LOGGING.EVIDENCE_DETAIL_CUSTODY).includes(detailCustody)) {
+    throw new Error("invalid log evidence profile detailCustody");
+  }
+  if (typeof profile.encryptedDetailRequired !== "boolean") {
+    throw new Error("log evidence profile encryptedDetailRequired must be boolean");
+  }
+  const accessGrantRefs = assertOptionalReferenceList(profile.accessGrantRefs, "log evidence profile accessGrantRefs");
+  const storageContainerRefs = assertOptionalReferenceList(profile.storageContainerRefs, "log evidence profile storageContainerRefs");
+  if (profile.encryptedDetailRequired && accessGrantRefs.length === 0) {
+    throw new Error("encrypted log evidence profile requires accessGrantRefs");
+  }
+  if (profile.encryptedDetailRequired && storageContainerRefs.length === 0) {
+    throw new Error("encrypted log evidence profile requires storageContainerRefs");
+  }
+  if (profile.materializationBudgetRef !== undefined) {
+    requireString(profile.materializationBudgetRef, "log evidence profile materializationBudgetRef");
+  }
+  if (!Number(profile.issuedAt || 0)) throw new Error("log evidence profile missing issuedAt");
+  if (profile.expiresAt !== undefined && Number(profile.expiresAt) <= Number(profile.issuedAt)) {
+    throw new Error("log evidence profile expiresAt must be after issuedAt");
+  }
+  rejectForbiddenKeys(profile, new Set([
+    "secret",
+    "password",
+    "token",
+    "privateKey",
+    "secretKey",
+    "value",
+    "contents",
+    "rawPayload",
+    "rawEvent",
+    "payloadBytes",
+    "body",
+  ]), "log evidence profile");
+  rejectMediaByteFields(profile, "log evidence profile");
+  return {
+    ...profile,
+    eventClasses,
+    detailCustody,
+    accessGrantRefs,
+    storageContainerRefs,
+  };
 }
 
 export function makeLogEventEnvelope({

@@ -42,6 +42,7 @@ import {
   assertStoragePinAttestation,
   assertStoragePinIntent,
   assertLogEventEnvelope,
+  assertLogEvidenceProfile,
   assertDiagnosticEvent,
   assertHostedServiceDescriptor,
   assertProjectionDelta,
@@ -822,6 +823,45 @@ test("logging helpers validate safe event envelopes", () => {
   badDetail.encryptedDetailRefs = [{ objectId: "object-only" }];
   badDetail.eventId = event.eventId;
   assert.throws(() => assertLogEventEnvelope(badDetail), /encryptedDetailRefs entry missing containerId/);
+});
+
+test("logging evidence profiles declare security custody without raw payload", () => {
+  const profile = assertLogEvidenceProfile({
+    kind: LOGGING.EVIDENCE_PROFILE_RECORD_KIND,
+    profileId: "logging.security.default",
+    consumerRef: "constitute-security",
+    eventClasses: [
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.SECURITY_AUDIT,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.RUNTIME_DIAGNOSTIC,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.SERVICE_EVENT,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.STORAGE_ACCESS,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.MEDIA_PATH,
+    ],
+    retentionWindow: "90d",
+    safeIndexRefs: ["logging.events.safeIndex", "logging.dashboard.securitySummary"],
+    detailCustody: LOGGING.EVIDENCE_DETAIL_CUSTODY.ENCRYPTED_DETAIL_REF,
+    encryptedDetailRequired: true,
+    accessGrantRefs: ["grant:logging.security.default"],
+    storageContainerRefs: ["logging-archive"],
+    materializationBudgetRef: "logging.security.default.90d",
+    issuedAt: 1700000000,
+    expiresAt: 1707776000,
+  });
+  assert.equal(profile.consumerRef, "constitute-security");
+  assert.equal(profile.detailCustody, LOGGING.EVIDENCE_DETAIL_CUSTODY.ENCRYPTED_DETAIL_REF);
+
+  assert.throws(() => assertLogEvidenceProfile({
+    ...profile,
+    accessGrantRefs: [],
+  }), /requires accessGrantRefs/);
+  assert.throws(() => assertLogEvidenceProfile({
+    ...profile,
+    eventClasses: ["debugEverything"],
+  }), /invalid log evidence profile eventClass/);
+  assert.throws(() => assertLogEvidenceProfile({
+    ...profile,
+    rawPayload: "forbidden",
+  }), /forbidden protocol field/);
 });
 
 const TEST_COVERAGE = {

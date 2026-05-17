@@ -171,6 +171,13 @@ export type LogOutcome = "observed" | "succeeded" | "failed" | "denied" | "degra
 export type LogRedactionClass = "safe" | "redacted" | "encryptedDetail" | "sensitiveOmitted";
 export type LogVerbosityClass = "critical" | "normal" | "verbose" | "noise";
 export type LogRetentionClass = "forever" | "long" | "rolling" | "short" | "ephemeral";
+export type LogEvidenceProfileEventClass =
+  | "securityAudit"
+  | "runtimeDiagnostic"
+  | "serviceEvent"
+  | "storageAccess"
+  | "mediaPath";
+export type LogEvidenceDetailCustody = "safeFactsOnly" | "encryptedDetailRef" | "encryptedRawRef";
 
 export type LogProducerRef = {
   service: string;
@@ -215,6 +222,22 @@ export type LogEventEnvelope = {
   detailRef?: EncryptedDetailRef;
   encryptedDetailRefs?: EncryptedDetailRef[];
   redaction?: LogRedactionClass[];
+};
+
+export type LogEvidenceProfile = {
+  kind?: "logging.evidence.profile";
+  profileId: string;
+  consumerRef: string;
+  eventClasses: LogEvidenceProfileEventClass[];
+  retentionWindow: string;
+  safeIndexRefs: string[];
+  detailCustody: LogEvidenceDetailCustody;
+  encryptedDetailRequired: boolean;
+  accessGrantRefs?: string[];
+  storageContainerRefs?: string[];
+  materializationBudgetRef?: string;
+  issuedAt: number;
+  expiresAt?: number;
 };
 
 export type ProjectionFreshnessState = "fresh" | "stale" | "missing" | "error";
@@ -1634,6 +1657,7 @@ export function assertStorageIndexShard(shard: unknown): StorageIndexShard;
 export function logEventId(event: Partial<LogEventEnvelope>): string;
 export function rejectSensitiveSafeFacts(value: unknown): void;
 export function assertLogEventEnvelope(event: unknown): LogEventEnvelope;
+export function assertLogEvidenceProfile(profile: unknown): LogEvidenceProfile;
 export function assertEncryptedDetailRef(ref: unknown, context?: string): EncryptedDetailRef;
 export function makeLogEventEnvelope(input: Partial<LogEventEnvelope>): LogEventEnvelope;
 export function rejectUnsafeSafeFacts(value: unknown): void;
