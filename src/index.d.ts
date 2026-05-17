@@ -1494,7 +1494,7 @@ export type SurfaceAppContract = {
   projectionSubscriptions?: unknown[];
   permissionRequirements?: unknown[];
   capabilityRequirements?: unknown[];
-  materializationBudgets?: unknown[];
+  materializationBudgets?: MaterializationBudget[];
   fallbackPolicy?: Record<string, unknown>;
   updatePosture?: { state?: SurfaceAppUpdatePostureState; [key: string]: unknown };
   releasePosture?: Record<string, unknown>;

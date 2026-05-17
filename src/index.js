@@ -3730,7 +3730,8 @@ export function assertSurfaceAppContract(record) {
   requireArray(record.projectionSubscriptions || [], "surface app contract projectionSubscriptions");
   requireArray(record.permissionRequirements || [], "surface app contract permissionRequirements");
   requireArray(record.capabilityRequirements || [], "surface app contract capabilityRequirements");
-  requireArray(record.materializationBudgets || [], "surface app contract materializationBudgets");
+  requireArray(record.materializationBudgets || [], "surface app contract materializationBudgets")
+    .map((budget) => assertMaterializationBudget(budget, "surface app contract materializationBudget"));
   if (record.fallbackPolicy !== undefined && !isObject(record.fallbackPolicy)) throw new Error("surface app contract fallbackPolicy must be an object");
   if (record.updatePosture !== undefined) {
     if (!isObject(record.updatePosture)) throw new Error("surface app contract updatePosture must be an object");
