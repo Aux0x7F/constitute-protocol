@@ -1005,6 +1005,8 @@ export const SWARM = Object.freeze({
     MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
     MEDIA_TRANSPORT_PATH: "media.transport.path",
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
+    SERVICE_REGISTRY_CLAIM: "service.registry.claim",
+    SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1044,6 +1046,8 @@ export const SWARM = Object.freeze({
     MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
     MEDIA_TRANSPORT_PATH: "media.transport.path",
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
+    SERVICE_REGISTRY_CLAIM: "service.registry.claim",
+    SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -1484,6 +1488,29 @@ export const SWARM = Object.freeze({
   }),
   STREAM_CANDIDATE_ACTIONABILITY: Object.freeze({
     USABLE: "usable",
+    BLOCKED: "blocked",
+  }),
+});
+
+export const SERVICE_REGISTRY = Object.freeze({
+  SCHEMA_VERSION: 1,
+  CLAIM_KIND: Object.freeze({
+    SERVICE: "service",
+    MEMBER: "member",
+    CAPABILITY: "capability",
+    CHANNEL: "channel",
+    SURFACE: "surface",
+  }),
+  CLAIM_STATE: Object.freeze({
+    CLAIMED: "claimed",
+    RETRACTED: "retracted",
+    EXPIRED: "expired",
+    BLOCKED: "blocked",
+  }),
+  MATERIALIZATION_STATE: Object.freeze({
+    READY: "ready",
+    PARTIAL: "partial",
+    STALE: "stale",
     BLOCKED: "blocked",
   }),
 });
@@ -2384,6 +2411,58 @@ export function assertDirectoryEntry(record) {
   if (record.capabilityRef !== undefined) assertCapabilityName(record.capabilityRef);
   if (record.channelId !== undefined) requireString(record.channelId, "directory entry channelId");
   if (!Number(record.issuedAt || 0)) throw new Error("directory entry missing issuedAt");
+  return record;
+}
+
+export function assertServiceRegistryClaim(record) {
+  if (!isObject(record)) throw new Error("service registry claim must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_REGISTRY_CLAIM, "service registry claim");
+  requireString(record.claimId, "service registry claim claimId");
+  if (Number(record.schemaVersion || 0) !== SERVICE_REGISTRY.SCHEMA_VERSION) throw new Error("unsupported service registry claim schemaVersion");
+  requireString(record.claimKind, "service registry claim claimKind");
+  if (!Object.values(SERVICE_REGISTRY.CLAIM_KIND).includes(record.claimKind)) throw new Error("invalid service registry claim kind");
+  requireString(record.state, "service registry claim state");
+  if (!Object.values(SERVICE_REGISTRY.CLAIM_STATE).includes(record.state)) throw new Error("invalid service registry claim state");
+  requireString(record.ownerRef, "service registry claim ownerRef");
+  requireString(record.writerRef, "service registry claim writerRef");
+  requireString(record.subjectRef, "service registry claim subjectRef");
+  requireString(record.scopeRef, "service registry claim scopeRef");
+  if (record.service !== undefined) requireString(record.service, "service registry claim service");
+  if (record.servicePk !== undefined) requireString(record.servicePk, "service registry claim servicePk");
+  if (record.serviceRef !== undefined) requireString(record.serviceRef, "service registry claim serviceRef");
+  if (record.memberRef !== undefined) requireString(record.memberRef, "service registry claim memberRef");
+  if (record.hostGatewayPk !== undefined) requireString(record.hostGatewayPk, "service registry claim hostGatewayPk");
+  requireArray(record.capabilityRefs || [], "service registry claim capabilityRefs").forEach(assertCapabilityName);
+  requireArray(record.channelRefs || [], "service registry claim channelRefs").forEach((entry) => requireString(entry, "service registry claim channelRef"));
+  requireArray(record.nodeRefs || [], "service registry claim nodeRefs").forEach((entry) => requireString(entry, "service registry claim nodeRef"));
+  requireArray(record.surfaceRefs || [], "service registry claim surfaceRefs").forEach((entry) => requireString(entry, "service registry claim surfaceRef"));
+  requireArray(record.evidenceRefs || [], "service registry claim evidenceRefs").forEach((entry) => requireString(entry, "service registry claim evidenceRef"));
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service registry claim safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("service registry claim missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("service registry claim expires before issuedAt");
+  if (record.retractedAt !== undefined && Number(record.retractedAt || 0) <= Number(record.issuedAt || 0)) throw new Error("service registry claim retracted before issuedAt");
+  return record;
+}
+
+export function assertServiceRegistryMaterialization(record) {
+  if (!isObject(record)) throw new Error("service registry materialization must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_REGISTRY_MATERIALIZATION, "service registry materialization");
+  requireString(record.registryId, "service registry materialization registryId");
+  if (Number(record.schemaVersion || 0) !== SERVICE_REGISTRY.SCHEMA_VERSION) throw new Error("unsupported service registry materialization schemaVersion");
+  requireString(record.scopeRef, "service registry materialization scopeRef");
+  requireString(record.state, "service registry materialization state");
+  if (!Object.values(SERVICE_REGISTRY.MATERIALIZATION_STATE).includes(record.state)) throw new Error("invalid service registry materialization state");
+  if (!Number.isFinite(Number(record.revision))) throw new Error("service registry materialization missing revision");
+  requireArray(record.claimRefs || [], "service registry materialization claimRefs").forEach((entry) => requireString(entry, "service registry materialization claimRef"));
+  requireArray(record.participantRefs || [], "service registry materialization participantRefs").forEach((entry) => requireString(entry, "service registry materialization participantRef"));
+  requireArray(record.serviceRefs || [], "service registry materialization serviceRefs").forEach((entry) => requireString(entry, "service registry materialization serviceRef"));
+  requireArray(record.services || [], "service registry materialization services").forEach(assertHostedServiceDescriptor);
+  requireArray(record.entries || [], "service registry materialization entries").forEach(assertDirectoryEntry);
+  if (record.coverage !== undefined) assertProjectionCoverage(record.coverage);
+  if (record.freshness !== undefined) assertProjectionFreshness(record.freshness);
+  requireArray(record.blockedReasons || [], "service registry materialization blockedReasons").forEach((entry) => requireString(entry, "service registry materialization blockedReason"));
+  if (!Number(record.issuedAt || 0)) throw new Error("service registry materialization missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("service registry materialization expires before issuedAt");
   return record;
 }
 
