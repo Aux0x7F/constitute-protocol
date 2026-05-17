@@ -1483,6 +1483,25 @@ export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storage
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
 export type SurfaceAppBootstrapPostureState = "static" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerPostureState = "manual" | "ready" | "degraded" | "blocked" | "unavailable";
+export type ServiceManagerOperation =
+  | "install"
+  | "update"
+  | "start"
+  | "stop"
+  | "restart"
+  | "rollback"
+  | "healthCheck"
+  | "promote";
+export type ServiceManagerOperationState =
+  | "requested"
+  | "accepted"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "blocked"
+  | "cancelled"
+  | "superseded";
+export type ServiceManagerProofState = "pending" | "proved" | "failed" | "blocked" | "expired";
 export type SurfaceSecretBoundaryState = "notRequired" | "resolved" | "blocked" | "unavailable";
 export type SurfaceReleasePostureState = "static" | "buildReady" | "releaseReady" | "rollbackReady" | "blocked" | "unavailable";
 
@@ -1560,12 +1579,64 @@ export type ServiceManagerPosture = {
   state: ServiceManagerPostureState;
   serviceRefs?: string[];
   capabilityRefs?: string[];
+  operationRefs?: string[];
+  proofDigestRefs?: string[];
   secretBoundary?: SurfaceSecretBoundary;
   releasePosture?: SurfaceReleasePosture;
   rollbackPosture?: SurfaceReleasePosture;
   evidenceRefs?: string[];
   blockedReasons?: string[];
   issuedAt: number;
+  expiresAt?: number;
+};
+
+export type ServiceManagerOperationPosture = {
+  kind?: "service.manager.operation.posture";
+  operationId: string;
+  managerId: string;
+  subjectRef: string;
+  managerRef: string;
+  requesterRef: string;
+  operation: ServiceManagerOperation;
+  state: ServiceManagerOperationState;
+  serviceRefs?: string[];
+  capabilityRefs?: string[];
+  authorityRefs?: string[];
+  releaseRef?: string;
+  rollbackRef?: string;
+  secretBoundary?: SurfaceSecretBoundary;
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  requestedAt: number;
+  acceptedAt?: number;
+  startedAt?: number;
+  completedAt?: number;
+  observedAt?: number;
+  expiresAt?: number;
+};
+
+export type ServiceManagerProofDigest = {
+  kind?: "service.manager.proof.digest";
+  digestId: string;
+  operationId: string;
+  managerId: string;
+  subjectRef: string;
+  state: ServiceManagerProofState;
+  trainRef?: string;
+  releaseRef?: string;
+  rollbackRef?: string;
+  commitRefs?: string[];
+  artifactRefs?: string[];
+  proofRefs?: string[];
+  metricsRefs?: string[];
+  environmentRefs?: string[];
+  serviceRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
   expiresAt?: number;
 };
 
@@ -1776,6 +1847,8 @@ export function assertMediaTransportObservation(record: unknown): MediaTransport
 export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
 export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
 export function assertServiceManagerPosture(record: unknown): ServiceManagerPosture;
+export function assertServiceManagerOperationPosture(record: unknown): ServiceManagerOperationPosture;
+export function assertServiceManagerProofDigest(record: unknown): ServiceManagerProofDigest;
 export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBootstrapPosture;
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;

@@ -81,6 +81,8 @@ import {
   assertMediaTransportPath,
   assertMediaTransportObservation,
   assertServiceManagerPosture,
+  assertServiceManagerOperationPosture,
+  assertServiceManagerProofDigest,
   assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
@@ -734,6 +736,118 @@ test("surface bootstrap contracts gate service manager release and secret postur
     },
     issuedAt,
   }), /forbidden protocol field/);
+});
+
+test("service manager operations and proof digests validate release train evidence", () => {
+  const requestedAt = 1700000000;
+  const operation = assertServiceManagerOperationPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+    operationId: "operation:gateway:promote:2026-05-17",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.PROMOTE,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.SUCCEEDED,
+    serviceRefs: ["service:gateway"],
+    capabilityRefs: ["service.manage"],
+    authorityRefs: ["identity:operator"],
+    releaseRef: "release:gateway:2026-05-17",
+    evidenceRefs: ["ci:gateway:linux", "ci:gateway:windows"],
+    proofRefs: ["proof:gateway:smoke"],
+    safeFacts: {
+      ci: "passed",
+      architecture: "surface-bootstrap",
+    },
+    requestedAt,
+    acceptedAt: requestedAt + 10,
+    startedAt: requestedAt + 20,
+    completedAt: requestedAt + 60,
+    expiresAt: requestedAt + 3600,
+  });
+  assert.equal(operation.operation, SURFACE_APP.SERVICE_MANAGER_OPERATION.PROMOTE);
+
+  const digest = assertServiceManagerProofDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
+    digestId: "proof-digest:gateway:2026-05-17",
+    operationId: operation.operationId,
+    managerId: operation.managerId,
+    subjectRef: operation.subjectRef,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    trainRef: "train:runtime-product:2026-05-17",
+    releaseRef: "release:gateway:2026-05-17",
+    commitRefs: ["git:gateway:4c9a49c"],
+    artifactRefs: ["artifact:gateway:ci"],
+    proofRefs: ["proof:gateway:linux", "proof:gateway:windows"],
+    metricsRefs: ["metrics:spine:service-manager"],
+    environmentRefs: ["env:github-actions"],
+    serviceRefs: ["service:gateway"],
+    safeFacts: {
+      linux: "passed",
+      windows: "passed",
+    },
+    observedAt: requestedAt + 80,
+    expiresAt: requestedAt + 7200,
+  });
+  assert.equal(digest.state, SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED);
+
+  const serviceManager = assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+    serviceRefs: ["service:gateway"],
+    operationRefs: [operation.operationId],
+    proofDigestRefs: [digest.digestId],
+    issuedAt: requestedAt,
+  });
+  assert.deepEqual(serviceManager.operationRefs, [operation.operationId]);
+
+  assert.throws(() => assertServiceManagerOperationPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+    operationId: "operation:bad",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.ROLLBACK,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.REQUESTED,
+    requestedAt,
+  }), /rollback operation requires rollbackRef/);
+  assert.throws(() => assertServiceManagerOperationPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+    operationId: "operation:blocked",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.UPDATE,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED,
+    requestedAt,
+  }), /blocked or failed operation requires blockedReasons/);
+  assert.throws(() => assertServiceManagerProofDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
+    digestId: "proof-digest:empty",
+    operationId: operation.operationId,
+    managerId: operation.managerId,
+    subjectRef: operation.subjectRef,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    observedAt: requestedAt + 80,
+  }), /proved proof digest requires artifactRefs or proofRefs/);
+  assert.throws(() => assertServiceManagerProofDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
+    digestId: "proof-digest:leaky",
+    operationId: operation.operationId,
+    managerId: operation.managerId,
+    subjectRef: operation.subjectRef,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.BLOCKED,
+    blockedReasons: ["secret-boundary"],
+    safeFacts: {
+      token: "inline-secret",
+    },
+    observedAt: requestedAt + 80,
+  }), /unsafe safe fact key|forbidden protocol field/);
 });
 
 test("storage manifest helpers validate ciphertext-addressed objects", () => {

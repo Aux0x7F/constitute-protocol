@@ -75,6 +75,33 @@ export const SURFACE_APP = Object.freeze({
     BLOCKED: "blocked",
     UNAVAILABLE: "unavailable",
   }),
+  SERVICE_MANAGER_OPERATION: Object.freeze({
+    INSTALL: "install",
+    UPDATE: "update",
+    START: "start",
+    STOP: "stop",
+    RESTART: "restart",
+    ROLLBACK: "rollback",
+    HEALTH_CHECK: "healthCheck",
+    PROMOTE: "promote",
+  }),
+  SERVICE_MANAGER_OPERATION_STATE: Object.freeze({
+    REQUESTED: "requested",
+    ACCEPTED: "accepted",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    FAILED: "failed",
+    BLOCKED: "blocked",
+    CANCELLED: "cancelled",
+    SUPERSEDED: "superseded",
+  }),
+  SERVICE_MANAGER_PROOF_STATE: Object.freeze({
+    PENDING: "pending",
+    PROVED: "proved",
+    FAILED: "failed",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
   SECRET_BOUNDARY: Object.freeze({
     NOT_REQUIRED: "notRequired",
     RESOLVED: "resolved",
@@ -1128,6 +1155,8 @@ export const SWARM = Object.freeze({
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
+    SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
+    SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
   RECORD_KIND: Object.freeze({
@@ -1171,6 +1200,8 @@ export const SWARM = Object.freeze({
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
+    SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
+    SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
@@ -3858,6 +3889,8 @@ export function assertServiceManagerPosture(record) {
   if (!Object.values(SURFACE_APP.SERVICE_MANAGER_POSTURE).includes(state)) throw new Error("invalid service manager posture state");
   assertOptionalReferenceList(record.serviceRefs, "service manager posture serviceRefs");
   assertOptionalCapabilityList(record.capabilityRefs, "service manager posture capabilityRefs");
+  assertOptionalReferenceList(record.operationRefs, "service manager posture operationRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "service manager posture proofDigestRefs");
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager secretBoundary");
   if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "service manager releasePosture");
   if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "service manager rollbackPosture");
@@ -3868,6 +3901,94 @@ export function assertServiceManagerPosture(record) {
   }
   if (!Number(record.issuedAt || 0)) throw new Error("service manager posture missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) throw new Error("service manager posture expires before issuedAt");
+  return record;
+}
+
+function assertSurfaceOperationTimeline(record, context, baseField = "requestedAt") {
+  const base = Number(record[baseField] || 0);
+  if (!base) throw new Error(`${context} missing ${baseField}`);
+  for (const field of ["acceptedAt", "startedAt", "completedAt", "observedAt", "expiresAt"]) {
+    if (record[field] === undefined) continue;
+    const value = Number(record[field] || 0);
+    if (!value) throw new Error(`${context} invalid ${field}`);
+    if (value <= base && field === "expiresAt") throw new Error(`${context} expires before ${baseField}`);
+    if (value < base && field !== "expiresAt") throw new Error(`${context} ${field} before ${baseField}`);
+  }
+  if (record.startedAt !== undefined && record.completedAt !== undefined && Number(record.completedAt || 0) < Number(record.startedAt || 0)) {
+    throw new Error(`${context} completedAt before startedAt`);
+  }
+}
+
+function assertSurfaceManagerSensitiveBoundary(record, context) {
+  rejectForbiddenKeys(record, new Set(["secret", "password", "token", "privateKey", "secretKey", "value", "contents", "plaintext", "ciphertext"]), context);
+  rejectRouteControlByteFields(record, context);
+}
+
+export function assertServiceManagerOperationPosture(record) {
+  if (!isObject(record)) throw new Error("service manager operation posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE, "service manager operation posture");
+  requireString(record.operationId, "service manager operation posture operationId");
+  requireString(record.managerId, "service manager operation posture managerId");
+  requireString(record.subjectRef, "service manager operation posture subjectRef");
+  requireString(record.managerRef, "service manager operation posture managerRef");
+  requireString(record.requesterRef, "service manager operation posture requesterRef");
+  const operation = requireString(record.operation, "service manager operation posture operation");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_OPERATION).includes(operation)) throw new Error("invalid service manager operation");
+  const state = requireString(record.state, "service manager operation posture state");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE).includes(state)) throw new Error("invalid service manager operation state");
+  assertOptionalReferenceList(record.serviceRefs, "service manager operation posture serviceRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "service manager operation posture capabilityRefs");
+  assertOptionalReferenceList(record.authorityRefs, "service manager operation posture authorityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager operation posture evidenceRefs");
+  assertOptionalReferenceList(record.proofRefs, "service manager operation posture proofRefs");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "service manager operation posture releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager operation posture rollbackRef");
+  if (operation === SURFACE_APP.SERVICE_MANAGER_OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("service manager rollback operation requires rollbackRef");
+  }
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager operation secretBoundary");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager operation posture blockedReasons");
+  if ([SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED, SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.FAILED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("service manager blocked or failed operation requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager operation posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager operation posture");
+  assertSurfaceOperationTimeline(record, "service manager operation posture", "requestedAt");
+  return record;
+}
+
+export function assertServiceManagerProofDigest(record) {
+  if (!isObject(record)) throw new Error("service manager proof digest must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST, "service manager proof digest");
+  requireString(record.digestId, "service manager proof digest digestId");
+  requireString(record.operationId, "service manager proof digest operationId");
+  requireString(record.managerId, "service manager proof digest managerId");
+  requireString(record.subjectRef, "service manager proof digest subjectRef");
+  const state = requireString(record.state, "service manager proof digest state");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_PROOF_STATE).includes(state)) throw new Error("invalid service manager proof digest state");
+  if (record.trainRef !== undefined) requireString(record.trainRef, "service manager proof digest trainRef");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "service manager proof digest releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager proof digest rollbackRef");
+  assertOptionalReferenceList(record.commitRefs, "service manager proof digest commitRefs");
+  assertOptionalReferenceList(record.artifactRefs, "service manager proof digest artifactRefs");
+  assertOptionalReferenceList(record.proofRefs, "service manager proof digest proofRefs");
+  assertOptionalReferenceList(record.metricsRefs, "service manager proof digest metricsRefs");
+  assertOptionalReferenceList(record.environmentRefs, "service manager proof digest environmentRefs");
+  assertOptionalReferenceList(record.serviceRefs, "service manager proof digest serviceRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager proof digest evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager proof digest blockedReasons");
+  if ([SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.BLOCKED, SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.FAILED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("service manager blocked or failed proof digest requires blockedReasons");
+  }
+  const artifactRefs = assertOptionalReferenceList(record.artifactRefs, "service manager proof digest artifactRefs");
+  const proofRefs = assertOptionalReferenceList(record.proofRefs, "service manager proof digest proofRefs");
+  if (state === SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED && artifactRefs.length === 0 && proofRefs.length === 0) {
+    throw new Error("service manager proved proof digest requires artifactRefs or proofRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager proof digest safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager proof digest");
+  if (!Number(record.observedAt || 0)) throw new Error("service manager proof digest missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) throw new Error("service manager proof digest expires before observedAt");
   return record;
 }
 
