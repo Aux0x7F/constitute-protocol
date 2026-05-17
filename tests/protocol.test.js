@@ -42,6 +42,7 @@ import {
   assertStoragePinAttestation,
   assertStoragePinIntent,
   assertLogEventEnvelope,
+  assertLogEvidenceProfile,
   assertDiagnosticEvent,
   assertHostedServiceDescriptor,
   assertProjectionDelta,
@@ -79,6 +80,8 @@ import {
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertServiceManagerPosture,
+  assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
   assertConsumerFloor,
@@ -589,7 +592,24 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
       { projectionId: "nvr.inventory", channelId: "nvr.inventory" },
     ],
     materializationBudgets: [
-      { budgetId: "nvr.preview", maxItems: 2, maxBytes: 1000000 },
+      {
+        kind: SWARM.RECORD_KIND.MATERIALIZATION_BUDGET,
+        budgetId: "nvr.preview",
+        sourceAuthority: "runtime.media.transport.path",
+        consumerRef: "nvr-ui.preview",
+        payloadClass: SWARM.MATERIALIZATION_PAYLOAD_CLASS.MEDIA,
+        copyRole: SWARM.MATERIALIZATION_COPY_ROLE.TRANSPORT,
+        transferMode: SWARM.MATERIALIZATION_TRANSFER_MODE.NATIVE,
+        privacyTier: SWARM.MATERIALIZATION_PRIVACY_TIER.UI_PROJECTION,
+        state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+        limits: { maxItems: 2, maxBytes: 1000000 },
+        snapshotPolicy: { mode: "none" },
+        deltaPolicy: { mode: "media-evidence" },
+        coalescing: { key: "sourceId" },
+        cardinality: { maxSourceIds: 2 },
+        schema: { state: SWARM.MATERIALIZATION_SCHEMA_STATE.CURRENT, version: "nvr.preview.v1" },
+        issuedAt,
+      },
     ],
     updatePosture: {
       state: SURFACE_APP.UPDATE_POSTURE.STATIC,
@@ -607,6 +627,113 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     ...runtimeClient,
     role: "runtimePolicy",
   }), /invalid surface module role/);
+});
+
+test("surface bootstrap contracts gate service manager release and secret posture", () => {
+  const issuedAt = 1700000000;
+  const serviceManager = assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+    serviceRefs: ["service:gateway"],
+    capabilityRefs: ["service.manage"],
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.RESOLVED,
+      secretRefs: ["secret:gateway-lab"],
+      authorityRefs: ["identity:operator"],
+    },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:gateway:2026-05-17",
+      releaseRef: "release:gateway:2026-05-17",
+      rollbackRef: "rollback:gateway:previous",
+      evidenceRefs: ["ci:gateway:build"],
+    },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(serviceManager.state, SURFACE_APP.SERVICE_MANAGER_POSTURE.READY);
+
+  const bootstrap = assertSurfaceAppBootstrapPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_POSTURE,
+    bootstrapId: "bootstrap:nvr-ui:lab",
+    contractId: "surface-app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    state: SURFACE_APP.BOOTSTRAP_POSTURE.READY,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    moduleRefs: ["constitute-ui/runtime-surface-client@0.1.0"],
+    serviceManagerRef: "manager:lab-gateway",
+    serviceManagerPosture: serviceManager,
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.STATIC,
+      evidenceRefs: ["build:nvr-ui:local"],
+    },
+    issuedAt,
+  });
+  assert.equal(bootstrap.state, SURFACE_APP.BOOTSTRAP_POSTURE.READY);
+
+  const contract = assertSurfaceAppContract({
+    contractId: "surface-app:nvr-ui",
+    schemaVersion: SURFACE_APP.SCHEMA_VERSION,
+    appId: "constitute-nvr-ui",
+    version: "0.1.0",
+    displayName: "Security Cameras",
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    modules: [
+      {
+        moduleRef: "constitute-ui/runtime-surface-client@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        version: "0.1.0",
+        primitiveRefs: ["runtime.attach"],
+        issuedAt,
+      },
+    ],
+    serviceManagerPosture: serviceManager,
+    bootstrapPosture: bootstrap,
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.STATIC,
+    },
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED,
+    },
+    issuedAt,
+  });
+  assert.equal(contract.bootstrapPosture.state, SURFACE_APP.BOOTSTRAP_POSTURE.READY);
+
+  assert.throws(() => assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:blocked",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.BLOCKED,
+    issuedAt,
+  }), /blocked state requires blockedReasons/);
+  assert.throws(() => assertSurfaceAppBootstrapPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_POSTURE,
+    bootstrapId: "bootstrap:bad",
+    contractId: "surface-app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    state: SURFACE_APP.BOOTSTRAP_POSTURE.READY,
+    sourceMode: "httpEval",
+    issuedAt,
+  }), /invalid surface app bootstrap sourceMode/);
+  assert.throws(() => assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:leaky",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.RESOLVED,
+      token: "inline-secret",
+    },
+    issuedAt,
+  }), /forbidden protocol field/);
 });
 
 test("storage manifest helpers validate ciphertext-addressed objects", () => {
@@ -696,6 +823,45 @@ test("logging helpers validate safe event envelopes", () => {
   badDetail.encryptedDetailRefs = [{ objectId: "object-only" }];
   badDetail.eventId = event.eventId;
   assert.throws(() => assertLogEventEnvelope(badDetail), /encryptedDetailRefs entry missing containerId/);
+});
+
+test("logging evidence profiles declare security custody without raw payload", () => {
+  const profile = assertLogEvidenceProfile({
+    kind: LOGGING.EVIDENCE_PROFILE_RECORD_KIND,
+    profileId: "logging.security.default",
+    consumerRef: "constitute-security",
+    eventClasses: [
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.SECURITY_AUDIT,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.RUNTIME_DIAGNOSTIC,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.SERVICE_EVENT,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.STORAGE_ACCESS,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.MEDIA_PATH,
+    ],
+    retentionWindow: "90d",
+    safeIndexRefs: ["logging.events.safeIndex", "logging.dashboard.securitySummary"],
+    detailCustody: LOGGING.EVIDENCE_DETAIL_CUSTODY.ENCRYPTED_DETAIL_REF,
+    encryptedDetailRequired: true,
+    accessGrantRefs: ["grant:logging.security.default"],
+    storageContainerRefs: ["logging-archive"],
+    materializationBudgetRef: "logging.security.default.90d",
+    issuedAt: 1700000000,
+    expiresAt: 1707776000,
+  });
+  assert.equal(profile.consumerRef, "constitute-security");
+  assert.equal(profile.detailCustody, LOGGING.EVIDENCE_DETAIL_CUSTODY.ENCRYPTED_DETAIL_REF);
+
+  assert.throws(() => assertLogEvidenceProfile({
+    ...profile,
+    accessGrantRefs: [],
+  }), /requires accessGrantRefs/);
+  assert.throws(() => assertLogEvidenceProfile({
+    ...profile,
+    eventClasses: ["debugEverything"],
+  }), /invalid log evidence profile eventClass/);
+  assert.throws(() => assertLogEvidenceProfile({
+    ...profile,
+    rawPayload: "forbidden",
+  }), /forbidden protocol field/);
 });
 
 const TEST_COVERAGE = {
