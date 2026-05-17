@@ -529,6 +529,20 @@ export function rejectSensitiveSafeFacts(value) {
   }
 }
 
+export function assertEncryptedDetailRef(ref, context = "encrypted detail ref") {
+  if (!ref || typeof ref !== "object" || Array.isArray(ref)) throw new Error(`${context} must be an object`);
+  for (const field of ["objectId", "containerId", "keyRef", "manifestHash"]) {
+    if (!String(ref[field] || "").trim()) throw new Error(`${context} missing ${field}`);
+  }
+  if (ref.summaryTags !== undefined) {
+    if (!Array.isArray(ref.summaryTags)) throw new Error(`${context} summaryTags must be an array`);
+    for (const tag of ref.summaryTags) {
+      if (!String(tag || "").trim()) throw new Error(`${context} summaryTags must be non-empty strings`);
+    }
+  }
+  return ref;
+}
+
 export function assertLogEventEnvelope(event) {
   if (!event || typeof event !== "object") throw new Error("log event must be an object");
   if (event.schemaVersion !== LOGGING.SCHEMA_VERSION) throw new Error("unsupported log schema version");
@@ -547,6 +561,11 @@ export function assertLogEventEnvelope(event) {
     throw new Error("log safe facts must be an object");
   }
   rejectSensitiveSafeFacts(event.safeFacts);
+  if (event.detailRef !== undefined) assertEncryptedDetailRef(event.detailRef, "log detailRef");
+  if (event.encryptedDetailRefs !== undefined) {
+    if (!Array.isArray(event.encryptedDetailRefs)) throw new Error("log encryptedDetailRefs must be an array");
+    for (const ref of event.encryptedDetailRefs) assertEncryptedDetailRef(ref, "log encryptedDetailRefs entry");
+  }
   if (event.eventId !== logEventId(event)) throw new Error("log event id mismatch");
   return event;
 }
@@ -564,6 +583,7 @@ export function makeLogEventEnvelope({
   tags = [],
   safeFacts = {},
   detailRef,
+  encryptedDetailRefs = [],
   redaction = [LOGGING.REDACTION.SAFE],
 } = {}) {
   const event = {
@@ -583,6 +603,7 @@ export function makeLogEventEnvelope({
   if (resource) event.resource = resource;
   if (correlation) event.correlation = correlation;
   if (detailRef) event.detailRef = detailRef;
+  if (encryptedDetailRefs?.length) event.encryptedDetailRefs = encryptedDetailRefs;
   event.eventId = logEventId(event);
   return assertLogEventEnvelope(event);
 }

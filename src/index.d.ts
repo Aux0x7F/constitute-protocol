@@ -213,6 +213,7 @@ export type LogEventEnvelope = {
   tags?: string[];
   safeFacts: Record<string, unknown>;
   detailRef?: EncryptedDetailRef;
+  encryptedDetailRefs?: EncryptedDetailRef[];
   redaction?: LogRedactionClass[];
 };
 
@@ -1570,6 +1571,7 @@ export function assertStorageIndexShard(shard: unknown): StorageIndexShard;
 export function logEventId(event: Partial<LogEventEnvelope>): string;
 export function rejectSensitiveSafeFacts(value: unknown): void;
 export function assertLogEventEnvelope(event: unknown): LogEventEnvelope;
+export function assertEncryptedDetailRef(ref: unknown, context?: string): EncryptedDetailRef;
 export function makeLogEventEnvelope(input: Partial<LogEventEnvelope>): LogEventEnvelope;
 export function rejectUnsafeSafeFacts(value: unknown): void;
 export function assertHostedServiceDescriptor(descriptor: unknown): HostedServiceDescriptor;

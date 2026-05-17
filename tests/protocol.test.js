@@ -666,8 +666,17 @@ test("logging helpers validate safe event envelopes", () => {
       operation: "request",
       result: "accepted",
     },
+    encryptedDetailRefs: [{
+      objectId: "object-log-detail-1",
+      containerId: "container-log-detail",
+      keyRef: "container-log-detail:key",
+      manifestHash: "sha256:manifest-log-detail",
+      summaryTags: ["debug-detail"],
+    }],
+    redaction: [LOGGING.REDACTION.SAFE, LOGGING.REDACTION.ENCRYPTED_DETAIL],
   });
   assertLogEventEnvelope(event);
+  assert.equal(event.encryptedDetailRefs.length, 1);
 
   const bad = structuredClone(event);
   bad.safeFacts.privateToken = "secret";
@@ -682,6 +691,11 @@ test("logging helpers validate safe event envelopes", () => {
   const mismatch = structuredClone(event);
   mismatch.eventId = "bad";
   assert.throws(() => assertLogEventEnvelope(mismatch), /log event id mismatch/);
+
+  const badDetail = structuredClone(event);
+  badDetail.encryptedDetailRefs = [{ objectId: "object-only" }];
+  badDetail.eventId = event.eventId;
+  assert.throws(() => assertLogEventEnvelope(badDetail), /encryptedDetailRefs entry missing containerId/);
 });
 
 const TEST_COVERAGE = {
