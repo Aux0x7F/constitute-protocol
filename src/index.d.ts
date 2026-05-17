@@ -6,6 +6,7 @@ export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
 export const SURFACE_APP: Readonly<Record<string, unknown>>;
+export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
 export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
 export const LOGGING: Readonly<Record<string, unknown>>;
@@ -652,6 +653,55 @@ export type DirectoryEntry = {
   capabilityRef?: string;
   channelId?: string;
   issuedAt: number;
+};
+
+export type ServiceRegistryClaimState = "claimed" | "retracted" | "expired" | "blocked";
+export type ServiceRegistryClaimKind = "service" | "member" | "capability" | "channel" | "surface";
+export type ServiceRegistryMaterializationState = "ready" | "partial" | "stale" | "blocked";
+
+export type ServiceRegistryClaim = {
+  kind?: "service.registry.claim";
+  claimId: string;
+  schemaVersion: 1;
+  claimKind: ServiceRegistryClaimKind;
+  state: ServiceRegistryClaimState;
+  ownerRef: string;
+  writerRef: string;
+  subjectRef: string;
+  scopeRef: string;
+  service?: string;
+  servicePk?: string;
+  serviceRef?: string;
+  memberRef?: string;
+  hostGatewayPk?: string;
+  capabilityRefs?: string[];
+  channelRefs?: string[];
+  nodeRefs?: string[];
+  surfaceRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+  retractedAt?: number;
+};
+
+export type ServiceRegistryMaterialization = {
+  kind?: "service.registry.materialization";
+  registryId: string;
+  schemaVersion: 1;
+  scopeRef: string;
+  state: ServiceRegistryMaterializationState;
+  revision: number;
+  claimRefs?: string[];
+  participantRefs?: string[];
+  serviceRefs?: string[];
+  services?: unknown[];
+  entries?: DirectoryEntry[];
+  coverage?: ProjectionCoverage;
+  freshness?: ProjectionFreshness;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
 };
 
 export type BootstrapCarrierRecord = {
@@ -1576,6 +1626,8 @@ export function assertRouteObservation(record: unknown): RouteObservation;
 export function assertStreamRoutePlan(record: unknown): StreamRoutePlan;
 export function assertMemberPresence(record: unknown, opts?: { now?: number }): MemberPresence;
 export function assertDirectoryEntry(record: unknown): DirectoryEntry;
+export function assertServiceRegistryClaim(record: unknown): ServiceRegistryClaim;
+export function assertServiceRegistryMaterialization(record: unknown): ServiceRegistryMaterialization;
 export function assertBootstrapCarrierRecord(record: unknown): BootstrapCarrierRecord;
 export function assertSwarmIdentity(record: unknown): SwarmIdentityRecord;
 export function assertSwarmDevice(record: unknown): SwarmDeviceRecord;

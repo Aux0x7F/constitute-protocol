@@ -8,6 +8,7 @@ import {
   PROJECTION,
   ReplayCache,
   SERVICE_SURFACE,
+  SERVICE_REGISTRY,
   SURFACE_APP,
   STORAGE,
   STREAM_SESSION_LIFECYCLE_PHASE,
@@ -55,6 +56,8 @@ import {
   assertServiceNodeProjectionRecord,
   assertServiceNodeSetRequest,
   assertServiceSurfaceProjection,
+  assertServiceRegistryClaim,
+  assertServiceRegistryMaterialization,
   assertServiceProjectionRequest,
   assertRuntimeActivationRequest,
   assertRoutingScopePosture,
@@ -401,6 +404,104 @@ test("service surface helpers validate node projections and settable fields", ()
     nodePath: "health",
     desired: { status: "ok" },
   }, surface), /not settable/);
+});
+
+test("service registry primitives validate participant claims and materialized directories", () => {
+  const issuedAt = 1700000000;
+  const servicePk = pubkeyFromSecretKey(SERVICE_SK);
+  const gatewayPk = pubkeyFromSecretKey(GATEWAY_SK);
+  const claim = assertServiceRegistryClaim({
+    kind: SWARM.RECORD_KIND.SERVICE_REGISTRY_CLAIM,
+    claimId: "service-registry-claim:nvr",
+    schemaVersion: SERVICE_REGISTRY.SCHEMA_VERSION,
+    claimKind: SERVICE_REGISTRY.CLAIM_KIND.SERVICE,
+    state: SERVICE_REGISTRY.CLAIM_STATE.CLAIMED,
+    ownerRef: `service:${servicePk}`,
+    writerRef: `gateway:${gatewayPk}`,
+    subjectRef: `service:${servicePk}`,
+    scopeRef: "zone:lab",
+    service: "nvr",
+    servicePk,
+    serviceRef: `service:nvr:${servicePk}`,
+    memberRef: servicePk,
+    hostGatewayPk: gatewayPk,
+    capabilityRefs: ["media.stream.preview"],
+    channelRefs: ["nvr.streams"],
+    nodeRefs: ["nvr.streams.preview"],
+    surfaceRefs: ["nvr.surface"],
+    evidenceRefs: ["swarm.edge.session:service"],
+    safeFacts: { service: "nvr" },
+    issuedAt,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(claim.claimKind, SERVICE_REGISTRY.CLAIM_KIND.SERVICE);
+
+  const materialized = assertServiceRegistryMaterialization({
+    kind: SWARM.RECORD_KIND.SERVICE_REGISTRY_MATERIALIZATION,
+    registryId: "service-registry:lab",
+    schemaVersion: SERVICE_REGISTRY.SCHEMA_VERSION,
+    scopeRef: "zone:lab",
+    state: SERVICE_REGISTRY.MATERIALIZATION_STATE.READY,
+    revision: 7,
+    claimRefs: [claim.claimId],
+    participantRefs: [claim.writerRef],
+    serviceRefs: [claim.serviceRef],
+    services: [
+      {
+        service: "nvr",
+        servicePk,
+        serviceRef: claim.serviceRef,
+        hostGatewayPk: gatewayPk,
+        surfaceChannel: "nvr.surface",
+        nodes: [
+          {
+            path: "streams",
+            nodeId: "nvr.streams.preview",
+            label: "Streams",
+            backingChannel: "nvr.streams",
+            fields: [
+              {
+                fieldId: "sourceId",
+                label: "Source",
+                valueKind: "string",
+                capabilities: [SERVICE_SURFACE.FIELD_CAPABILITY.READ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    entries: [
+      {
+        kind: SWARM.RECORD_KIND.DIRECTORY_ENTRY,
+        entryId: "directory:nvr-streams",
+        subjectRef: claim.subjectRef,
+        source: "memberRecord",
+        capabilityRef: "media.stream.preview",
+        channelId: "nvr.streams",
+        issuedAt,
+      },
+    ],
+    coverage: {
+      materializedCount: 1,
+      targetCount: 1,
+      completionRatio: 1,
+      syncState: PROJECTION.SYNC_STATE.COMPLETE_ENOUGH,
+    },
+    freshness: { state: PROJECTION.FRESHNESS.FRESH, updatedAt: issuedAt },
+    issuedAt,
+  });
+  assert.equal(materialized.services.length, 1);
+
+  assert.throws(() => assertServiceRegistryClaim({
+    ...claim,
+    kind: SWARM.RECORD_KIND.SERVICE_REGISTRY_CLAIM,
+    safeFacts: { servicePrivateUrl: "rtsp://camera" },
+  }), /unsafe safe fact key/);
+  assert.throws(() => assertServiceRegistryMaterialization({
+    ...materialized,
+    state: "complete",
+  }), /invalid service registry materialization state/);
 });
 
 test("surface app contracts validate module roles and fulfillment boundaries", () => {
