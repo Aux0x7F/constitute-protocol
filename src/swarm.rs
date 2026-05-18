@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::caac::{CAAC_ALG_V1, CAAC_VERSION, CaacEnvelope, verify_envelope_signature};
 
@@ -51,6 +51,15 @@ pub const AGREEMENT_STATE_REJECTED: &str = "rejected";
 pub const AGREEMENT_STATE_BLOCKED: &str = "blocked";
 pub const AGREEMENT_STATE_EXPIRED: &str = "expired";
 pub const AGREEMENT_STATE_REVOKED: &str = "revoked";
+pub const AUTHORITY_PROOF_STATE_PROVED: &str = "proved";
+pub const AUTHORITY_PROOF_STATE_DEGRADED: &str = "degraded";
+pub const AUTHORITY_PROOF_STATE_BLOCKED: &str = "blocked";
+pub const AUTHORITY_PROOF_STATE_EXPIRED: &str = "expired";
+pub const AUTHORITY_PROOF_STATE_REVOKED: &str = "revoked";
+pub const AUTHORITY_PROOF_CHECK_SYNC: &str = "sync";
+pub const AUTHORITY_PROOF_CHECK_READ: &str = "read";
+pub const AUTHORITY_PROOF_CHECK_WRITE_REDUCE: &str = "writeReduce";
+pub const AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE: &str = "revokeExpire";
 
 pub const RECORD_NODE_CAPABILITY: &str = "node.capability";
 pub const RECORD_RUNTIME_ACTIVATION_REQUEST: &str = "runtime.activation.request";
@@ -78,6 +87,7 @@ pub const RECORD_AUTHORITY_ROOT_OPERATION: &str = "authority.root.operation";
 pub const RECORD_AUTHORITY_ACTION_GRANT: &str = "authority.action.grant";
 pub const RECORD_AUTHORITY_ACTION_EXERCISE: &str = "authority.action.exercise";
 pub const RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE: &str = "authority.grant.revocationPosture";
+pub const RECORD_AUTHORITY_MULTI_IDENTITY_PROOF: &str = "authority.multiIdentity.proof";
 pub const RECORD_ACCESS_GROUP: &str = "access.group";
 pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
 pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
@@ -1506,6 +1516,69 @@ pub struct AuthorityGrantRevocationPostureRecord {
     pub issued_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub effective_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityProofCheck {
+    pub check: String,
+    pub plane: String,
+    pub state: String,
+    pub target_ref: String,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub access_epoch_refs: Vec<String>,
+    #[serde(default)]
+    pub exercise_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityMultiIdentityProofRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub proof_id: String,
+    pub owner_identity_ref: String,
+    pub grantee_identity_ref: String,
+    pub grantee_member_ref: String,
+    #[serde(default)]
+    pub subject_refs: Vec<String>,
+    #[serde(default)]
+    pub action_grant_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub access_epoch_refs: Vec<String>,
+    #[serde(default)]
+    pub private_envelope_refs: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
+    pub checks: Vec<AuthorityProofCheck>,
+    #[serde(default = "default_authority_proof_state")]
+    pub state: String,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+fn default_authority_proof_state() -> String {
+    AUTHORITY_PROOF_STATE_PROVED.to_string()
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -3259,6 +3332,192 @@ pub fn validate_authority_grant_revocation_posture(
     Ok(())
 }
 
+fn validate_authority_proof_check_record(record: &AuthorityProofCheck) -> Result<()> {
+    validate_authority_proof_check(&record.check)?;
+    validate_agreement_plane(&record.plane)?;
+    validate_authority_proof_state(&record.state)?;
+    require_non_empty(&record.target_ref, "authority proof check missing targetRef")?;
+    for reference in &record.grant_refs {
+        require_non_empty(reference, "authority proof check missing grantRef")?;
+    }
+    for reference in &record.access_group_refs {
+        require_non_empty(reference, "authority proof check missing accessGroupRef")?;
+    }
+    for reference in &record.access_epoch_refs {
+        require_non_empty(reference, "authority proof check missing accessEpochRef")?;
+    }
+    for reference in &record.exercise_refs {
+        require_non_empty(reference, "authority proof check missing exerciseRef")?;
+    }
+    for reference in &record.evidence_refs {
+        require_non_empty(reference, "authority proof check missing evidenceRef")?;
+    }
+    if matches!(
+        record.state.as_str(),
+        AUTHORITY_PROOF_STATE_DEGRADED
+            | AUTHORITY_PROOF_STATE_BLOCKED
+            | AUTHORITY_PROOF_STATE_EXPIRED
+            | AUTHORITY_PROOF_STATE_REVOKED
+    ) && record
+        .blocked_reason
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "non-proved authority proof check requires blockedReason"
+        ));
+    }
+    match record.check.as_str() {
+        AUTHORITY_PROOF_CHECK_SYNC if record.plane != AGREEMENT_PLANE_DELIVERY_WITNESS => {
+            return Err(anyhow!(
+                "sync authority proof check must use deliveryWitness plane"
+            ));
+        }
+        AUTHORITY_PROOF_CHECK_READ if record.plane != AGREEMENT_PLANE_ACCESS_AUTHORITY => {
+            return Err(anyhow!(
+                "read authority proof check must use accessAuthority plane"
+            ));
+        }
+        AUTHORITY_PROOF_CHECK_WRITE_REDUCE | AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE
+            if record.plane != AGREEMENT_PLANE_ACTION_AUTHORITY =>
+        {
+            return Err(anyhow!(
+                "write/revoke authority proof checks must use actionAuthority plane"
+            ));
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+pub fn validate_authority_multi_identity_proof(
+    record: &AuthorityMultiIdentityProofRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_AUTHORITY_MULTI_IDENTITY_PROOF,
+        "authority multi-identity proof",
+    )?;
+    require_non_empty(
+        &record.proof_id,
+        "authority multi-identity proof missing proofId",
+    )?;
+    require_non_empty(
+        &record.owner_identity_ref,
+        "authority multi-identity proof missing ownerIdentityRef",
+    )?;
+    require_non_empty(
+        &record.grantee_identity_ref,
+        "authority multi-identity proof missing granteeIdentityRef",
+    )?;
+    require_non_empty(
+        &record.grantee_member_ref,
+        "authority multi-identity proof missing granteeMemberRef",
+    )?;
+    require_non_empty_vec(
+        &record.subject_refs,
+        "authority multi-identity proof missing subjectRefs",
+    )?;
+    require_non_empty_vec(
+        &record.action_grant_refs,
+        "authority multi-identity proof missing actionGrantRefs",
+    )?;
+    require_non_empty_vec(
+        &record.access_group_refs,
+        "authority multi-identity proof missing accessGroupRefs",
+    )?;
+    if record.checks.is_empty() {
+        return Err(anyhow!("authority multi-identity proof missing checks"));
+    }
+    validate_authority_proof_state(&record.state)?;
+    let mut kinds = BTreeSet::new();
+    let mut has_action = false;
+    let mut has_access = false;
+    let mut has_delivery = false;
+    let mut read_has_group = false;
+    let mut revoke_has_expiry = false;
+    for check in &record.checks {
+        validate_authority_proof_check_record(check)?;
+        kinds.insert(check.check.as_str());
+        has_action |= check.plane == AGREEMENT_PLANE_ACTION_AUTHORITY;
+        has_access |= check.plane == AGREEMENT_PLANE_ACCESS_AUTHORITY;
+        has_delivery |= check.plane == AGREEMENT_PLANE_DELIVERY_WITNESS;
+        if check.check == AUTHORITY_PROOF_CHECK_READ && !check.access_group_refs.is_empty() {
+            read_has_group = true;
+        }
+        if check.check == AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE && check.expires_at.is_some() {
+            revoke_has_expiry = true;
+        }
+    }
+    for required in [
+        AUTHORITY_PROOF_CHECK_SYNC,
+        AUTHORITY_PROOF_CHECK_READ,
+        AUTHORITY_PROOF_CHECK_WRITE_REDUCE,
+        AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE,
+    ] {
+        if !kinds.contains(required) {
+            return Err(anyhow!(
+                "authority multi-identity proof missing {required} check"
+            ));
+        }
+    }
+    if !has_action {
+        return Err(anyhow!(
+            "authority multi-identity proof requires actionAuthority check"
+        ));
+    }
+    if !has_access {
+        return Err(anyhow!(
+            "authority multi-identity proof requires accessAuthority check"
+        ));
+    }
+    if !has_delivery {
+        return Err(anyhow!(
+            "authority multi-identity proof requires deliveryWitness check"
+        ));
+    }
+    if !read_has_group {
+        return Err(anyhow!(
+            "read authority proof check requires accessGroupRefs"
+        ));
+    }
+    if record.revocation_refs.is_empty() && !revoke_has_expiry {
+        return Err(anyhow!(
+            "revoke/expire authority proof requires revocationRefs or expiresAt"
+        ));
+    }
+    if matches!(
+        record.state.as_str(),
+        AUTHORITY_PROOF_STATE_BLOCKED | AUTHORITY_PROOF_STATE_DEGRADED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked or degraded authority multi-identity proof requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "authority multi-identity proof safeFacts")?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "authority multi-identity proof safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!(
+            "authority multi-identity proof missing issuedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "authority multi-identity proof expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_access_group(record: &AccessGroupRecord) -> Result<()> {
     validate_optional_kind(&record.kind, RECORD_ACCESS_GROUP, "access group")?;
     require_non_empty(&record.group_id, "access group missing groupId")?;
@@ -5003,6 +5262,35 @@ fn validate_action_grant_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported action grant state"))
+    }
+}
+
+fn validate_authority_proof_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        AUTHORITY_PROOF_STATE_PROVED
+            | AUTHORITY_PROOF_STATE_DEGRADED
+            | AUTHORITY_PROOF_STATE_BLOCKED
+            | AUTHORITY_PROOF_STATE_EXPIRED
+            | AUTHORITY_PROOF_STATE_REVOKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported authority proof state"))
+    }
+}
+
+fn validate_authority_proof_check(check: &str) -> Result<()> {
+    if matches!(
+        check,
+        AUTHORITY_PROOF_CHECK_SYNC
+            | AUTHORITY_PROOF_CHECK_READ
+            | AUTHORITY_PROOF_CHECK_WRITE_REDUCE
+            | AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported authority proof check"))
     }
 }
 
@@ -8036,14 +8324,14 @@ mod tests {
         let revocation = AuthorityGrantRevocationPostureRecord {
             kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),
             revocation_id: "revocation:logging:writer".to_string(),
-            target_grant_ref: grant.grant_id,
-            issuer_ref,
+            target_grant_ref: grant.grant_id.clone(),
+            issuer_ref: issuer_ref.clone(),
             authority_domain: "identity".to_string(),
             affected_grant_refs: vec![
                 "grant:logging:writer".to_string(),
                 "grant:logging:writer:delegated".to_string(),
             ],
-            affected_access_group_refs: vec![group.group_id],
+            affected_access_group_refs: vec![group.group_id.clone()],
             inherited_scope_refs: vec!["contract:logging.default".to_string()],
             state: AGREEMENT_STATE_REVOKED.to_string(),
             reason_code: "operatorRevoked".to_string(),
@@ -8053,6 +8341,97 @@ mod tests {
         };
         validate_authority_grant_revocation_posture(&revocation)
             .expect("valid grant revocation posture");
+
+        let proof = AuthorityMultiIdentityProofRecord {
+            kind: Some(RECORD_AUTHORITY_MULTI_IDENTITY_PROOF.to_string()),
+            proof_id: "authority-proof:aux-to-agent:full-access".to_string(),
+            owner_identity_ref: "identity:aux".to_string(),
+            grantee_identity_ref: "identity:agent-dev".to_string(),
+            grantee_member_ref: browser_member.clone(),
+            subject_refs: vec![
+                "contract:gateway.default".to_string(),
+                "contract:logging.default".to_string(),
+                "contract:nvr.streams".to_string(),
+            ],
+            action_grant_refs: vec![grant.grant_id.clone()],
+            access_group_refs: vec![group.group_id.clone()],
+            access_epoch_refs: vec![epoch.epoch_id.clone()],
+            private_envelope_refs: vec![envelope.envelope_id.clone()],
+            revocation_refs: vec![revocation.revocation_id.clone()],
+            checks: vec![
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_SYNC.to_string(),
+                    plane: AGREEMENT_PLANE_DELIVERY_WITNESS.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: "contract:gateway.default".to_string(),
+                    grant_refs: vec![grant.grant_id.clone()],
+                    access_group_refs: vec![],
+                    access_epoch_refs: vec![],
+                    exercise_refs: vec![],
+                    evidence_refs: vec!["witness:gateway:agent-sync".to_string()],
+                    blocked_reason: None,
+                    expires_at: None,
+                },
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_READ.to_string(),
+                    plane: AGREEMENT_PLANE_ACCESS_AUTHORITY.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: "event-fabric:logging.default".to_string(),
+                    grant_refs: vec![],
+                    access_group_refs: vec![group.group_id.clone()],
+                    access_epoch_refs: vec![epoch.epoch_id.clone()],
+                    exercise_refs: vec![],
+                    evidence_refs: vec!["proof:caac-open:agent-dev".to_string()],
+                    blocked_reason: None,
+                    expires_at: None,
+                },
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_WRITE_REDUCE.to_string(),
+                    plane: AGREEMENT_PLANE_ACTION_AUTHORITY.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: "contract:logging.default".to_string(),
+                    grant_refs: vec![grant.grant_id.clone()],
+                    access_group_refs: vec![],
+                    access_epoch_refs: vec![],
+                    exercise_refs: vec!["exercise:logging:agent-writer:1".to_string()],
+                    evidence_refs: vec!["event:logging:agent-test".to_string()],
+                    blocked_reason: None,
+                    expires_at: None,
+                },
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE.to_string(),
+                    plane: AGREEMENT_PLANE_ACTION_AUTHORITY.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: grant.grant_id.clone(),
+                    grant_refs: vec![grant.grant_id.clone()],
+                    access_group_refs: vec![],
+                    access_epoch_refs: vec![],
+                    exercise_refs: vec![],
+                    evidence_refs: vec![revocation.revocation_id.clone()],
+                    blocked_reason: None,
+                    expires_at: Some(1_700_000_610),
+                },
+            ],
+            state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+            blocked_reasons: vec![],
+            evidence_refs: vec!["proof:multi-identity:agent-dev".to_string()],
+            safe_facts: json!({ "proofClass": "multiIdentityFullAccess" }),
+            issued_at: 1_700_000_090,
+            expires_at: Some(1_700_000_610),
+        };
+        validate_authority_multi_identity_proof(&proof)
+            .expect("valid multi-identity authority proof");
+        let mut missing_sync = proof.clone();
+        missing_sync
+            .checks
+            .retain(|check| check.check != AUTHORITY_PROOF_CHECK_SYNC);
+        assert!(validate_authority_multi_identity_proof(&missing_sync).is_err());
+        let mut wrong_read = proof.clone();
+        wrong_read.checks[1].access_group_refs.clear();
+        assert!(validate_authority_multi_identity_proof(&wrong_read).is_err());
+        let mut wrong_write_plane = proof.clone();
+        wrong_write_plane.checks[2].plane = AGREEMENT_PLANE_ACCESS_AUTHORITY.to_string();
+        assert!(validate_authority_multi_identity_proof(&wrong_write_plane).is_err());
     }
 
     #[test]

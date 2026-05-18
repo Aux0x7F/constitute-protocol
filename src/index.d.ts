@@ -1166,6 +1166,8 @@ export type SwarmRevocationRecord = {
 
 export type AgreementPlane = "actionAuthority" | "accessAuthority" | "deliveryWitness" | "materialization";
 export type ActionGrantState = "requested" | "accepted" | "applied" | "rejected" | "blocked" | "expired" | "revoked";
+export type AuthorityProofState = "proved" | "degraded" | "blocked" | "expired" | "revoked";
+export type AuthorityProofCheckKind = "sync" | "read" | "writeReduce" | "revokeExpire";
 export type RootAuthorityOperation = "addRoot" | "refreshRoot" | "rotateRoot" | "revokeRoot" | "enrollDevice" | "revokeDevice";
 export type AccessEpochChangeKind = "create" | "addMember" | "removeMember" | "rotateKey" | "revokeMember" | "partitionSplit" | "partitionMerge" | "purposeKey";
 export type AgreementContentClass = "safeFacts" | "safeIndex" | "uiProjection" | "encryptedDetail" | "encryptedRaw" | "mediaReference" | "diagnosticDetail";
@@ -1248,6 +1250,41 @@ export type AuthorityGrantRevocationPostureRecord = {
   evidenceRefs?: string[];
   issuedAt: number;
   effectiveAt?: number;
+};
+
+export type AuthorityProofCheck = {
+  check: AuthorityProofCheckKind;
+  plane: AgreementPlane;
+  state: AuthorityProofState;
+  targetRef: string;
+  grantRefs?: string[];
+  accessGroupRefs?: string[];
+  accessEpochRefs?: string[];
+  exerciseRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReason?: string;
+  expiresAt?: number;
+};
+
+export type AuthorityMultiIdentityProofRecord = {
+  kind?: "authority.multiIdentity.proof";
+  proofId: string;
+  ownerIdentityRef: string;
+  granteeIdentityRef: string;
+  granteeMemberRef: string;
+  subjectRefs: string[];
+  actionGrantRefs: string[];
+  accessGroupRefs: string[];
+  accessEpochRefs?: string[];
+  privateEnvelopeRefs?: string[];
+  revocationRefs?: string[];
+  checks: AuthorityProofCheck[];
+  state?: AuthorityProofState;
+  blockedReasons?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
 };
 
 export type AccessGroupRecord = {
@@ -2091,6 +2128,7 @@ export function assertAuthorityRootOperation(record: unknown): AuthorityRootOper
 export function assertActionAuthorityGrant(record: unknown): ActionAuthorityGrantRecord;
 export function assertActionAuthorityExercise(record: unknown): ActionAuthorityExerciseRecord;
 export function assertAuthorityGrantRevocationPosture(record: unknown): AuthorityGrantRevocationPostureRecord;
+export function assertAuthorityMultiIdentityProof(record: unknown): AuthorityMultiIdentityProofRecord;
 export function assertAccessGroup(record: unknown): AccessGroupRecord;
 export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;

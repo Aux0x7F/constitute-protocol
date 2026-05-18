@@ -97,6 +97,7 @@ import {
   assertActionAuthorityExercise,
   assertActionAuthorityGrant,
   assertAuthorityGrantRevocationPosture,
+  assertAuthorityMultiIdentityProof,
   assertAuthorityRootOperation,
   assertConsumerFloor,
   assertContributionLifecycle,
@@ -2153,6 +2154,98 @@ test("agreement grammar separates action authority, access epochs, private reada
     issuedAt: 1700000080,
     effectiveAt: 1700000081,
   }).plane, AGREEMENT.PLANE.ACTION_AUTHORITY);
+});
+
+test("multi-identity authority proof covers sync, read, write/reduce, and revoke/expire separately", () => {
+  const proof = {
+    kind: SWARM.RECORD_KIND.AUTHORITY_MULTI_IDENTITY_PROOF,
+    proofId: "authority-proof:aux-to-agent:full-access",
+    ownerIdentityRef: "identity:aux",
+    granteeIdentityRef: "identity:agent-dev",
+    granteeMemberRef: `member:${BROWSER_PK}`,
+    subjectRefs: [
+      "contract:gateway.default",
+      "contract:logging.default",
+      "contract:nvr.streams",
+      "contract:storage.default",
+    ],
+    actionGrantRefs: [
+      "grant:gateway:agent-full-access",
+      "grant:logging:agent-writer",
+      "grant:nvr:agent-preview",
+    ],
+    accessGroupRefs: ["access-group:identity:aux:security-events"],
+    accessEpochRefs: ["access-epoch:identity:aux:security-events:3"],
+    privateEnvelopeRefs: ["private-envelope:logging-event:sample"],
+    revocationRefs: ["revocation:grant:agent-full-access"],
+    checks: [
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.SYNC,
+        plane: AGREEMENT.PLANE.DELIVERY_WITNESS,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "contract:gateway.default",
+        grantRefs: ["grant:gateway:agent-full-access"],
+        evidenceRefs: ["witness:gateway:agent-sync"],
+      },
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.READ,
+        plane: AGREEMENT.PLANE.ACCESS_AUTHORITY,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "event-fabric:logging.default",
+        accessGroupRefs: ["access-group:identity:aux:security-events"],
+        accessEpochRefs: ["access-epoch:identity:aux:security-events:3"],
+        evidenceRefs: ["proof:caac-open:agent-dev"],
+      },
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.WRITE_REDUCE,
+        plane: AGREEMENT.PLANE.ACTION_AUTHORITY,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "contract:logging.default",
+        grantRefs: ["grant:logging:agent-writer"],
+        exerciseRefs: ["exercise:logging:agent-writer:1"],
+        evidenceRefs: ["event:logging:agent-test"],
+      },
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.REVOKE_EXPIRE,
+        plane: AGREEMENT.PLANE.ACTION_AUTHORITY,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "grant:gateway:agent-full-access",
+        grantRefs: ["grant:gateway:agent-full-access"],
+        evidenceRefs: ["revocation:grant:agent-full-access"],
+        expiresAt: 1700000900,
+      },
+    ],
+    state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+    evidenceRefs: ["proof:multi-identity:agent-dev"],
+    safeFacts: { proofClass: "multiIdentityFullAccess", grantee: "agent-dev" },
+    issuedAt: 1700000300,
+    expiresAt: 1700000900,
+  };
+
+  assert.equal(assertAuthorityMultiIdentityProof(proof).state, AGREEMENT.AUTHORITY_PROOF_STATE.PROVED);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    checks: proof.checks.filter((check) => check.check !== AGREEMENT.AUTHORITY_PROOF_CHECK.SYNC),
+  }), /missing sync check/);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    checks: proof.checks.map((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.READ
+      ? { ...check, accessGroupRefs: [] }
+      : check),
+  }), /read authority proof check requires accessGroupRefs/);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    checks: proof.checks.map((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.WRITE_REDUCE
+      ? { ...check, plane: AGREEMENT.PLANE.ACCESS_AUTHORITY }
+      : check),
+  }), /write\/revoke authority proof checks/);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    revocationRefs: [],
+    checks: proof.checks.map((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.REVOKE_EXPIRE
+      ? { ...check, expiresAt: undefined }
+      : check),
+  }), /revoke\/expire authority proof requires revocationRefs or expiresAt/);
 });
 
 test("swarm frame IDs canonicalize absent CAAC body fields like Rust validators", () => {

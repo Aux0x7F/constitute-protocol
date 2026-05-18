@@ -149,6 +149,19 @@ export const AGREEMENT = Object.freeze({
     EXPIRED: "expired",
     REVOKED: "revoked",
   }),
+  AUTHORITY_PROOF_STATE: Object.freeze({
+    PROVED: "proved",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+    REVOKED: "revoked",
+  }),
+  AUTHORITY_PROOF_CHECK: Object.freeze({
+    SYNC: "sync",
+    READ: "read",
+    WRITE_REDUCE: "writeReduce",
+    REVOKE_EXPIRE: "revokeExpire",
+  }),
   ROOT_OPERATION: Object.freeze({
     ADD_ROOT: "addRoot",
     REFRESH_ROOT: "refreshRoot",
@@ -1213,6 +1226,7 @@ export const SWARM = Object.freeze({
     AUTHORITY_ACTION_GRANT: "authority.action.grant",
     AUTHORITY_ACTION_EXERCISE: "authority.action.exercise",
     AUTHORITY_GRANT_REVOCATION_POSTURE: "authority.grant.revocationPosture",
+    AUTHORITY_MULTI_IDENTITY_PROOF: "authority.multiIdentity.proof",
     ACCESS_GROUP: "access.group",
     ACCESS_EPOCH: "access.epoch",
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
@@ -1271,6 +1285,7 @@ export const SWARM = Object.freeze({
     AUTHORITY_ACTION_GRANT: "authority.action.grant",
     AUTHORITY_ACTION_EXERCISE: "authority.action.exercise",
     AUTHORITY_GRANT_REVOCATION_POSTURE: "authority.grant.revocationPosture",
+    AUTHORITY_MULTI_IDENTITY_PROOF: "authority.multiIdentity.proof",
     ACCESS_GROUP: "access.group",
     ACCESS_EPOCH: "access.epoch",
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
@@ -3872,6 +3887,18 @@ function assertActionGrantStateName(value, name = "action grant state") {
   return state;
 }
 
+function assertAuthorityProofStateName(value, name = "authority proof state") {
+  const state = requireString(value, name);
+  if (!Object.values(AGREEMENT.AUTHORITY_PROOF_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertAuthorityProofCheckName(value, name = "authority proof check") {
+  const check = requireString(value, name);
+  if (!Object.values(AGREEMENT.AUTHORITY_PROOF_CHECK).includes(check)) throw new Error(`unsupported ${name}`);
+  return check;
+}
+
 function assertRootOperationName(value, name = "root operation") {
   const operation = requireString(value, name);
   if (!Object.values(AGREEMENT.ROOT_OPERATION).includes(operation)) throw new Error(`unsupported ${name}`);
@@ -4020,6 +4047,84 @@ export function assertAuthorityGrantRevocationPosture(record) {
     throw new Error("authority grant revocation posture effectiveAt must not be before issuedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.ACTION_AUTHORITY, state };
+}
+
+function assertAuthorityProofCheck(record) {
+  if (!isObject(record)) throw new Error("authority proof check must be an object");
+  const check = assertAuthorityProofCheckName(record.check, "authority proof check check");
+  const plane = assertAgreementPlaneName(record.plane, "authority proof check plane");
+  const state = assertAuthorityProofStateName(record.state, "authority proof check state");
+  requireString(record.targetRef, "authority proof check targetRef");
+  assertOptionalReferenceList(record.grantRefs, "authority proof check grantRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "authority proof check accessGroupRefs");
+  assertOptionalReferenceList(record.accessEpochRefs, "authority proof check accessEpochRefs");
+  assertOptionalReferenceList(record.exerciseRefs, "authority proof check exerciseRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "authority proof check evidenceRefs");
+  const blockedReason = String(record.blockedReason || "").trim();
+  if ([AGREEMENT.AUTHORITY_PROOF_STATE.BLOCKED, AGREEMENT.AUTHORITY_PROOF_STATE.DEGRADED, AGREEMENT.AUTHORITY_PROOF_STATE.EXPIRED, AGREEMENT.AUTHORITY_PROOF_STATE.REVOKED].includes(state) && !blockedReason) {
+    throw new Error("non-proved authority proof check requires blockedReason");
+  }
+  if (record.expiresAt !== undefined) assertOptionalTimeField(record.expiresAt, "authority proof check expiresAt");
+  if (check === AGREEMENT.AUTHORITY_PROOF_CHECK.SYNC && plane !== AGREEMENT.PLANE.DELIVERY_WITNESS) {
+    throw new Error("sync authority proof check must use deliveryWitness plane");
+  }
+  if (check === AGREEMENT.AUTHORITY_PROOF_CHECK.READ && plane !== AGREEMENT.PLANE.ACCESS_AUTHORITY) {
+    throw new Error("read authority proof check must use accessAuthority plane");
+  }
+  if ([AGREEMENT.AUTHORITY_PROOF_CHECK.WRITE_REDUCE, AGREEMENT.AUTHORITY_PROOF_CHECK.REVOKE_EXPIRE].includes(check) && plane !== AGREEMENT.PLANE.ACTION_AUTHORITY) {
+    throw new Error("write/revoke authority proof checks must use actionAuthority plane");
+  }
+  return { ...record, check, plane, state };
+}
+
+export function assertAuthorityMultiIdentityProof(record) {
+  if (!isObject(record)) throw new Error("authority multi-identity proof must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.AUTHORITY_MULTI_IDENTITY_PROOF, "authority multi-identity proof");
+  requireString(record.proofId, "authority multi-identity proof proofId");
+  requireString(record.ownerIdentityRef, "authority multi-identity proof ownerIdentityRef");
+  requireString(record.granteeIdentityRef, "authority multi-identity proof granteeIdentityRef");
+  requireString(record.granteeMemberRef, "authority multi-identity proof granteeMemberRef");
+  assertReferenceList(record.subjectRefs, "authority multi-identity proof subjectRefs");
+  assertReferenceList(record.actionGrantRefs, "authority multi-identity proof actionGrantRefs");
+  assertReferenceList(record.accessGroupRefs, "authority multi-identity proof accessGroupRefs");
+  assertOptionalReferenceList(record.accessEpochRefs, "authority multi-identity proof accessEpochRefs");
+  assertOptionalReferenceList(record.privateEnvelopeRefs, "authority multi-identity proof privateEnvelopeRefs");
+  assertOptionalReferenceList(record.revocationRefs, "authority multi-identity proof revocationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "authority multi-identity proof evidenceRefs");
+  const state = assertAuthorityProofStateName(record.state || AGREEMENT.AUTHORITY_PROOF_STATE.PROVED, "authority multi-identity proof state");
+  const checks = requireNonEmptyArray(record.checks, "authority multi-identity proof checks").map(assertAuthorityProofCheck);
+  const checkKinds = new Set(checks.map((check) => check.check));
+  for (const required of Object.values(AGREEMENT.AUTHORITY_PROOF_CHECK)) {
+    if (!checkKinds.has(required)) throw new Error(`authority multi-identity proof missing ${required} check`);
+  }
+  if (!checks.some((check) => check.plane === AGREEMENT.PLANE.ACCESS_AUTHORITY)) {
+    throw new Error("authority multi-identity proof requires accessAuthority check");
+  }
+  if (!checks.some((check) => check.plane === AGREEMENT.PLANE.ACTION_AUTHORITY)) {
+    throw new Error("authority multi-identity proof requires actionAuthority check");
+  }
+  if (!checks.some((check) => check.plane === AGREEMENT.PLANE.DELIVERY_WITNESS)) {
+    throw new Error("authority multi-identity proof requires deliveryWitness check");
+  }
+  const readCheck = checks.find((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.READ);
+  if (!readCheck || !assertOptionalReferenceList(readCheck.accessGroupRefs, "read authority proof check accessGroupRefs").length) {
+    throw new Error("read authority proof check requires accessGroupRefs");
+  }
+  const revokeCheck = checks.find((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.REVOKE_EXPIRE);
+  if (!revokeCheck || (!assertOptionalReferenceList(record.revocationRefs, "authority multi-identity proof revocationRefs").length && !revokeCheck.expiresAt)) {
+    throw new Error("revoke/expire authority proof requires revocationRefs or expiresAt");
+  }
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "authority multi-identity proof blockedReasons");
+  if ([AGREEMENT.AUTHORITY_PROOF_STATE.BLOCKED, AGREEMENT.AUTHORITY_PROOF_STATE.DEGRADED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked or degraded authority multi-identity proof requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "authority multi-identity proof safeFacts");
+  assertNoPrivateContentFields(record.safeFacts || {}, "authority multi-identity proof safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("authority multi-identity proof missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("authority multi-identity proof expiresAt must be after issuedAt");
+  }
+  return { ...record, state, checks };
 }
 
 export function assertAccessGroup(record) {
