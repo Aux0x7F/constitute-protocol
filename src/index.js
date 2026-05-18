@@ -211,6 +211,17 @@ export const RUNNER = Object.freeze({
     REJECTED: "rejected",
     CANCELLED: "cancelled",
   }),
+  HOST_FULFILLMENT_STATE: Object.freeze({
+    READY: "ready",
+    ACCEPTED: "accepted",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    RELEASED: "released",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    REJECTED: "rejected",
+    CANCELLED: "cancelled",
+  }),
 });
 
 export const AGREEMENT = Object.freeze({
@@ -1354,6 +1365,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
+    RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
@@ -1432,6 +1444,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
+    RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
@@ -5804,6 +5817,61 @@ export function assertRunnerOperation(record) {
   return record;
 }
 
+export function assertRunnerHostFulfillmentPosture(record) {
+  if (!isObject(record)) throw new Error("runner host fulfillment posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RUNNER_HOST_FULFILLMENT_POSTURE, "runner host fulfillment posture");
+  requireString(record.postureId, "runner host fulfillment posture postureId");
+  requireString(record.runnerId, "runner host fulfillment posture runnerId");
+  assertResolvedMemberRef(record.runnerRef, "runner host fulfillment posture runnerRef");
+  requireString(record.hostRef, "runner host fulfillment posture hostRef");
+  requireString(record.operationId, "runner host fulfillment posture operationId");
+  const operation = requireString(record.operation, "runner host fulfillment posture operation");
+  if (!Object.values(RUNNER.OPERATION).includes(operation)) throw new Error("invalid runner host fulfillment operation");
+  const state = requireString(record.state, "runner host fulfillment posture state");
+  if (!Object.values(RUNNER.HOST_FULFILLMENT_STATE).includes(state)) throw new Error("invalid runner host fulfillment posture state");
+  requireString(record.requesterRef, "runner host fulfillment posture requesterRef");
+  requireString(record.subjectRef, "runner host fulfillment posture subjectRef");
+  requireString(record.contractRef, "runner host fulfillment posture contractRef");
+  const grantRefs = assertReferenceList(record.grantRefs, "runner host fulfillment posture grantRefs");
+  assertOptionalReferenceList(record.serviceRefs, "runner host fulfillment posture serviceRefs");
+  assertOptionalReferenceList(record.contractRefs, "runner host fulfillment posture contractRefs");
+  assertOptionalReferenceList(record.capabilityRefs, "runner host fulfillment posture capabilityRefs");
+  assertOptionalReferenceList(record.inputRefs, "runner host fulfillment posture inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "runner host fulfillment posture outputRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "runner host fulfillment posture evidenceRefs");
+  assertOptionalReferenceList(record.proofRefs, "runner host fulfillment posture proofRefs");
+  assertOptionalReferenceList(record.releaseRefs, "runner host fulfillment posture releaseRefs");
+  assertOptionalReferenceList(record.witnessRefs, "runner host fulfillment posture witnessRefs");
+  if (!isObject(record.resourceBudget)) throw new Error("runner host fulfillment posture resourceBudget must be an object");
+  assertSafeObject(record.resourceBudget, "runner host fulfillment posture resourceBudget");
+  if (record.resourcePosture !== undefined && record.resourcePosture !== null) assertResourcePosture(record.resourcePosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "runner host fulfillment posture secretBoundary");
+  if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "runner host fulfillment posture releasePosture");
+  if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "runner host fulfillment posture rollbackPosture");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "runner host fulfillment posture releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "runner host fulfillment posture rollbackRef");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "runner host fulfillment posture blockedReasons");
+  if ([RUNNER.HOST_FULFILLMENT_STATE.BLOCKED, RUNNER.HOST_FULFILLMENT_STATE.REJECTED, RUNNER.HOST_FULFILLMENT_STATE.CANCELLED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked, rejected, or cancelled runner host fulfillment posture requires blockedReasons");
+  }
+  if ([RUNNER.HOST_FULFILLMENT_STATE.ACCEPTED, RUNNER.HOST_FULFILLMENT_STATE.RUNNING, RUNNER.HOST_FULFILLMENT_STATE.SUCCEEDED, RUNNER.HOST_FULFILLMENT_STATE.RELEASED].includes(state) && grantRefs.length === 0) {
+    throw new Error("actionable runner host fulfillment posture requires grantRefs");
+  }
+  if (operation === RUNNER.OPERATION.RELEASE && !String(record.releaseRef || "").trim() && !(Array.isArray(record.releaseRefs) && record.releaseRefs.length)) {
+    throw new Error("runner host release posture requires releaseRef or releaseRefs");
+  }
+  if (operation === RUNNER.OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("runner host rollback posture requires rollbackRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "runner host fulfillment posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "runner host fulfillment posture");
+  if (!Number(record.observedAt || 0)) throw new Error("runner host fulfillment posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("runner host fulfillment posture expiresAt must be after observedAt");
+  }
+  return record;
+}
+
 function assertRunnerFulfillmentState(value, context = "runner fulfillment state") {
   const state = requireString(value, context);
   if (!Object.values(RUNNER.FULFILLMENT_STATE).includes(state)) throw new Error("invalid runner fulfillment state");
@@ -5845,6 +5913,7 @@ export function assertAppRunnerFulfillmentReport(record) {
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment report secretBoundary");
   if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment report releasePosture");
   if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment report rollbackPosture");
+  if (record.hostFulfillmentPosture !== undefined && record.hostFulfillmentPosture !== null) assertRunnerHostFulfillmentPosture(record.hostFulfillmentPosture);
   if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment report releaseRef");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment report rollbackRef");
   const operationPosture = assertOptionalObject(record.operationPosture, "app runner fulfillment report operationPosture");
@@ -5932,6 +6001,7 @@ export function assertAppRunnerFulfillmentLifecycle(record) {
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment lifecycle secretBoundary");
   if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment lifecycle releasePosture");
   if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment lifecycle rollbackPosture");
+  if (record.hostFulfillmentPosture !== undefined && record.hostFulfillmentPosture !== null) assertRunnerHostFulfillmentPosture(record.hostFulfillmentPosture);
   if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment lifecycle releaseRef");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment lifecycle rollbackRef");
   if (record.operationPosture !== undefined && record.operationPosture !== null) assertSafeObject(assertOptionalObject(record.operationPosture, "app runner fulfillment lifecycle operationPosture"), "app runner fulfillment lifecycle operationPosture");

@@ -1829,6 +1829,16 @@ export type AppRunnerFulfillmentState =
   | "failed"
   | "rejected"
   | "cancelled";
+export type RunnerHostFulfillmentState =
+  | "ready"
+  | "accepted"
+  | "running"
+  | "succeeded"
+  | "released"
+  | "degraded"
+  | "blocked"
+  | "rejected"
+  | "cancelled";
 
 export type SurfaceModuleClaim = {
   moduleRef: string;
@@ -2600,6 +2610,41 @@ export type RunnerOperationRecord = {
   expiresAt?: number;
 };
 
+export type RunnerHostFulfillmentPosture = {
+  kind?: "runner.host.fulfillment.posture";
+  postureId: string;
+  runnerId: string;
+  runnerRef: string;
+  hostRef: string;
+  operationId: string;
+  operation: RunnerOperation;
+  state: RunnerHostFulfillmentState;
+  requesterRef: string;
+  subjectRef: string;
+  contractRef: string;
+  serviceRefs?: string[];
+  contractRefs?: string[];
+  grantRefs: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  releaseRefs?: string[];
+  witnessRefs?: string[];
+  resourceBudget: Record<string, unknown>;
+  resourcePosture?: ResourcePosture | null;
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture | null;
+  rollbackPosture?: SurfaceReleasePosture | null;
+  releaseRef?: string;
+  rollbackRef?: string;
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type AppRunnerFulfillmentReport = {
   kind?: "app.runner.fulfillment.report";
   reportId: string;
@@ -2630,6 +2675,7 @@ export type AppRunnerFulfillmentReport = {
   secretBoundary?: SurfaceSecretBoundary;
   releasePosture?: SurfaceReleasePosture | null;
   rollbackPosture?: SurfaceReleasePosture | null;
+  hostFulfillmentPosture?: RunnerHostFulfillmentPosture | null;
   releaseRef?: string;
   rollbackRef?: string;
   operationPosture: Record<string, unknown>;
@@ -2673,6 +2719,7 @@ export type AppRunnerFulfillmentLifecycle = {
   secretBoundary?: SurfaceSecretBoundary;
   releasePosture?: SurfaceReleasePosture | null;
   rollbackPosture?: SurfaceReleasePosture | null;
+  hostFulfillmentPosture?: RunnerHostFulfillmentPosture | null;
   releaseRef?: string;
   rollbackRef?: string;
   operationPosture?: Record<string, unknown> | null;
@@ -2901,5 +2948,6 @@ export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBoo
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
 export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
+export function assertRunnerHostFulfillmentPosture(record: unknown): RunnerHostFulfillmentPosture;
 export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;
 export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerFulfillmentLifecycle;

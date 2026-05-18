@@ -20,6 +20,7 @@ import {
   assertAppRunnerAdvertisement,
   assertAppRunnerFulfillmentReport,
   assertAppRunnerFulfillmentLifecycle,
+  assertRunnerHostFulfillmentPosture,
   assertRunnerOperation,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
@@ -1578,6 +1579,43 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
   assert.equal(operation.operation, RUNNER.OPERATION.EXECUTE);
   assert.equal(operation.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
 
+  const hostPosture = assertRunnerHostFulfillmentPosture({
+    kind: SWARM.RECORD_KIND.RUNNER_HOST_FULFILLMENT_POSTURE,
+    postureId: "runner-host:lab-gateway:security-bootstrap:execute:1",
+    runnerId: operation.runnerId,
+    runnerRef: operation.runnerRef,
+    hostRef: operation.hostRef,
+    operationId: operation.operationId,
+    operation: operation.operation,
+    state: RUNNER.HOST_FULFILLMENT_STATE.SUCCEEDED,
+    requesterRef: operation.requesterRef,
+    subjectRef: operation.subjectRef,
+    contractRef: operation.contractRef,
+    serviceRefs: ["service:security-bootstrap"],
+    contractRefs: [operation.contractRef],
+    grantRefs: operation.grantRefs,
+    capabilityRefs: operation.capabilityRefs,
+    inputRefs: operation.inputRefs,
+    outputRefs: operation.outputRefs,
+    evidenceRefs: ["evidence:runner-host:accepted", "evidence:runner-host:completed"],
+    proofRefs: operation.proofRefs,
+    releaseRefs: operation.releaseRefs,
+    witnessRefs: ["witness:runner-host:observed"],
+    resourceBudget: operation.resourceBudget,
+    resourcePosture: operation.resourcePosture,
+    secretBoundary: operation.secretBoundary,
+    releasePosture: operation.releasePosture,
+    releaseRef: operation.releaseRef,
+    safeFacts: {
+      hostRef: operation.hostRef,
+      serviceHostIdentitySeparated: operation.hostRef !== operation.contractRef,
+    },
+    observedAt: requestedAt + 12,
+    expiresAt: requestedAt + 3600,
+  });
+  assert.equal(hostPosture.hostRef, "host:lab-gateway");
+  assert.notEqual(hostPosture.hostRef, hostPosture.contractRef);
+
   assert.throws(() => assertRunnerOperation({
     ...operation,
     operationId: "runner-operation:bad:grantless",
@@ -1603,6 +1641,19 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
     operationId: "runner-operation:bad:secret",
     safeFacts: { token: "inline-secret" },
   }), /unsafe safe fact key|forbidden protocol field/);
+
+  assert.throws(() => assertRunnerHostFulfillmentPosture({
+    ...hostPosture,
+    postureId: "runner-host:bad:secret",
+    safeFacts: { token: "nope" },
+  }), /unsafe.*token|runner host fulfillment posture/);
+
+  assert.throws(() => assertRunnerHostFulfillmentPosture({
+    ...hostPosture,
+    postureId: "runner-host:bad:blocked",
+    state: RUNNER.HOST_FULFILLMENT_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /requires blockedReasons/);
 });
 
 test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {
@@ -1672,6 +1723,53 @@ test("app runner fulfillment reports reduce operation lifecycle, release, resour
       proofRefs: ["proof:runner-proof:surface"],
       evidenceRefs: ["evidence:runner:completed"],
     },
+    hostFulfillmentPosture: {
+      kind: SWARM.RECORD_KIND.RUNNER_HOST_FULFILLMENT_POSTURE,
+      postureId: "runner-host:lab-gateway:runner-proof:execute:1",
+      runnerId: "runner:lab-gateway:app-proof",
+      runnerRef: BROWSER_PK,
+      hostRef: "host:lab-gateway",
+      operationId: "runner-operation:app-proof:execute:1",
+      operation: RUNNER.OPERATION.EXECUTE,
+      state: RUNNER.HOST_FULFILLMENT_STATE.SUCCEEDED,
+      requesterRef: "identity:aux",
+      subjectRef: "app:runner-proof",
+      contractRef: "app:runner-proof",
+      serviceRefs: ["app:runner-proof"],
+      contractRefs: ["app:runner-proof"],
+      grantRefs: ["grant:app:runner-proof:run"],
+      capabilityRefs: ["app.runner.pin"],
+      inputRefs: ["manifest:runner-proof", "app:runner-proof"],
+      outputRefs: ["artifact:runner-proof:dist"],
+      evidenceRefs: ["evidence:runner-host:accepted", "evidence:runner-host:completed"],
+      proofRefs: ["proof:runner-proof:surface"],
+      releaseRefs: ["release:runner-proof"],
+      resourceBudget: {
+        profileRef: "resource-profile:operator-dev",
+        maxMemoryMiB: 256,
+        maxCpuPct: 25,
+      },
+      resourcePosture: {
+        kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+        postureId: "resource-posture:runner:app-proof",
+        profileId: "resource-profile:operator-dev",
+        state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+        counts: { memoryMiB: 96, cpuPct: 4 },
+        budgets: { memoryMiB: 256, cpuPct: 25 },
+        sampledAt: observedAt,
+      },
+      secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+      releasePosture: {
+        state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+        buildRef: "build:runner-proof",
+        releaseRef: "release:runner-proof",
+        rollbackRef: "rollback:runner-proof",
+      },
+      releaseRef: "release:runner-proof",
+      safeFacts: { serviceHostIdentitySeparated: true },
+      observedAt,
+      expiresAt: observedAt + 3600,
+    },
     safeFacts: {
       appId: "constitute-runner-proof",
       version: "0.1.0",
@@ -1686,6 +1784,7 @@ test("app runner fulfillment reports reduce operation lifecycle, release, resour
   });
   assert.equal(report.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
   assert.equal(report.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
+  assert.equal(report.hostFulfillmentPosture.hostRef, "host:lab-gateway");
 
   const lifecycle = assertAppRunnerFulfillmentLifecycle({
     ...report,
