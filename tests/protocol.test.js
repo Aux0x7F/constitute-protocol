@@ -1195,6 +1195,8 @@ test("surface app instance grammar validates clean selection and runner posture 
       sourceClass: "storagePinned",
       candidateRefs: ["storage-object:logging-ui@0.2.0"],
       releaseContractRef: "release:logging-ui@0.2.0",
+      digestRefs: ["sha256:logging-ui@0.2.0"],
+      signatureRefs: ["sig:logging-ui@0.2.0"],
       proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
       rollbackRefs: ["rollback:logging-ui@0.1.0"],
       compatibilityRefs: ["protocol:surface-app:v1"],
@@ -1202,6 +1204,24 @@ test("surface app instance grammar validates clean selection and runner posture 
       issuedAt,
     }),
     /requires secretBoundaryRefs/
+  );
+  assert.throws(
+    () => assertSurfaceAppSourceCandidatePosture({
+      kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+      state: "ready",
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+      sourceClass: "storagePinned",
+      candidateRefs: ["storage-object:logging-ui@0.2.0"],
+      releaseContractRef: "release:logging-ui@0.2.0",
+      signatureRefs: ["sig:logging-ui@0.2.0"],
+      proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
+      rollbackRefs: ["rollback:logging-ui@0.1.0"],
+      secretBoundaryRefs: ["secret-boundary:logging-ui"],
+      compatibilityRefs: ["protocol:surface-app:v1"],
+      blockedReasons: [],
+      issuedAt,
+    }),
+    /requires digestRefs/
   );
   const manifestRunnerPlan = assertSurfaceAppManifestRunnerPlan({
     kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_RUNNER_PLAN,

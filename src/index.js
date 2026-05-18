@@ -57,6 +57,15 @@ export const SURFACE_APP = Object.freeze({
     NATIVE_INSTALLED: "nativeInstalled",
     DEV_OVERLAY: "devOverlay",
   }),
+  SOURCE_CLASS: Object.freeze({
+    BUNDLED: "bundled",
+    STORAGE_PINNED: "storagePinned",
+    RELEASE_FETCHED: "releaseFetched",
+    SWARM_HOSTED: "swarmHosted",
+    NATIVE_INSTALLED: "nativeInstalled",
+    DEV_OVERLAY: "devOverlay",
+    UNKNOWN: "unknown",
+  }),
   UPDATE_POSTURE: Object.freeze({
     STATIC: "static",
     COMPATIBLE: "compatible",
@@ -5450,13 +5459,19 @@ export function assertSurfaceAppSourceCandidatePosture(record) {
   const state = assertSurfaceAppRecordState(record, "surface app source candidate posture", ["ready", "degraded", "blocked"]);
   const sourceMode = requireString(record.sourceMode, "surface app source candidate posture sourceMode");
   if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app source candidate posture sourceMode");
-  requireString(record.sourceClass, "surface app source candidate posture sourceClass");
+  const sourceClass = requireString(record.sourceClass, "surface app source candidate posture sourceClass");
+  if (!Object.values(SURFACE_APP.SOURCE_CLASS).includes(sourceClass)) throw new Error("invalid surface app source candidate posture sourceClass");
   assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
   assertOptionalReferenceList(record.bundledSourceRefs, "surface app source candidate posture bundledSourceRefs");
   assertOptionalReferenceList(record.remoteSourceRefs, "surface app source candidate posture remoteSourceRefs");
   assertOptionalReferenceList(record.storageObjectRefs, "surface app source candidate posture storageObjectRefs");
   assertOptionalReferenceList(record.releaseSourceRefs, "surface app source candidate posture releaseSourceRefs");
   assertOptionalReferenceList(record.swarmSourceRefs, "surface app source candidate posture swarmSourceRefs");
+  assertOptionalReferenceList(record.digestRefs, "surface app source candidate posture digestRefs");
+  assertOptionalReferenceList(record.signatureRefs, "surface app source candidate posture signatureRefs");
+  assertOptionalReferenceList(record.publisherRefs, "surface app source candidate posture publisherRefs");
+  assertOptionalReferenceList(record.sourceAuthorityRefs, "surface app source candidate posture sourceAuthorityRefs");
+  assertOptionalReferenceList(record.releaseEvidenceRefs, "surface app source candidate posture releaseEvidenceRefs");
   assertOptionalReferenceList(record.compatibilityRefs, "surface app source candidate posture compatibilityRefs");
   assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs");
   assertOptionalReferenceList(record.rollbackRefs, "surface app source candidate posture rollbackRefs");
@@ -5470,6 +5485,12 @@ export function assertSurfaceAppSourceCandidatePosture(record) {
     const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
     if (!candidateRefs.length) throw new Error("remote surface app source candidate requires candidateRefs");
     if (!String(record.releaseContractRef || "").trim()) throw new Error("remote surface app source candidate requires releaseContractRef");
+    if (!assertOptionalReferenceList(record.digestRefs, "surface app source candidate posture digestRefs").length) {
+      throw new Error("remote surface app source candidate requires digestRefs");
+    }
+    if (!assertOptionalReferenceList(record.signatureRefs, "surface app source candidate posture signatureRefs").length) {
+      throw new Error("remote surface app source candidate requires signatureRefs");
+    }
     if (!assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs").length) {
       throw new Error("remote surface app source candidate requires proofDigestRefs");
     }

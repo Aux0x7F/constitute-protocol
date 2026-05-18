@@ -2358,6 +2358,11 @@ export type SurfaceAppSourceCandidatePosture = {
   releaseSourceRefs?: string[];
   swarmSourceRefs?: string[];
   releaseContractRef?: string;
+  digestRefs?: string[];
+  signatureRefs?: string[];
+  publisherRefs?: string[];
+  sourceAuthorityRefs?: string[];
+  releaseEvidenceRefs?: string[];
   compatibilityRefs?: string[];
   proofDigestRefs?: string[];
   rollbackRefs?: string[];
