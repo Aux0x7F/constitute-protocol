@@ -116,6 +116,21 @@ export const SURFACE_APP = Object.freeze({
     BLOCKED: "blocked",
     UNAVAILABLE: "unavailable",
   }),
+  SERVICE_MANAGER_CONTRACT_STATE: Object.freeze({
+    DRAFT: "draft",
+    READY: "ready",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+    EXPIRED: "expired",
+  }),
+  SERVICE_MANAGER_PROOF_PROFILE: Object.freeze({
+    SURFACE_LANDSCAPE: "surfaceLandscape",
+    NVR_LIVE_30S: "nvrLive30s",
+    LONG_STREAM_10M: "longStream10m",
+    LOGGING_PRESSURE: "loggingPressure",
+    DIRECT_EDGE: "directEdge",
+    NATIVE_CHECKS: "nativeChecks",
+  }),
 });
 
 export const AGREEMENT = Object.freeze({
@@ -1222,6 +1237,11 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
     SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
     SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
+    SERVICE_MANAGER_RELEASE_CONTRACT: "service.manager.release.contract",
+    SERVICE_MANAGER_SECRET_BOUNDARY: "service.manager.secretBoundary",
+    SERVICE_MANAGER_TRAIN_DIGEST: "service.manager.train.digest",
+    SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
+    SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
   RECORD_KIND: Object.freeze({
@@ -1275,6 +1295,11 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
     SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
     SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
+    SERVICE_MANAGER_RELEASE_CONTRACT: "service.manager.release.contract",
+    SERVICE_MANAGER_SECRET_BOUNDARY: "service.manager.secretBoundary",
+    SERVICE_MANAGER_TRAIN_DIGEST: "service.manager.train.digest",
+    SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
+    SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
@@ -4283,6 +4308,206 @@ function assertSurfaceOperationTimeline(record, context, baseField = "requestedA
 function assertSurfaceManagerSensitiveBoundary(record, context) {
   rejectForbiddenKeys(record, new Set(["secret", "password", "token", "privateKey", "secretKey", "value", "contents", "plaintext", "ciphertext"]), context);
   rejectRouteControlByteFields(record, context);
+}
+
+function assertServiceManagerContractState(value, context) {
+  const state = requireString(value, `${context} state`);
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE).includes(state)) {
+    throw new Error(`invalid ${context} state`);
+  }
+  return state;
+}
+
+export function assertServiceManagerSecretBoundary(record) {
+  if (!isObject(record)) throw new Error("service manager secret boundary must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_SECRET_BOUNDARY, "service manager secret boundary");
+  requireString(record.boundaryId, "service manager secret boundary boundaryId");
+  requireString(record.managerId, "service manager secret boundary managerId");
+  requireString(record.subjectRef, "service manager secret boundary subjectRef");
+  const state = requireString(record.state, "service manager secret boundary state");
+  if (!Object.values(SURFACE_APP.SECRET_BOUNDARY).includes(state)) throw new Error("invalid service manager secret boundary state");
+  assertOptionalReferenceList(record.secretRefs, "service manager secret boundary secretRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "service manager secret boundary accessGroupRefs");
+  assertOptionalReferenceList(record.authorityRefs, "service manager secret boundary authorityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager secret boundary evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager secret boundary blockedReasons");
+  if (state === SURFACE_APP.SECRET_BOUNDARY.RESOLVED) {
+    const secretRefs = assertOptionalReferenceList(record.secretRefs, "service manager secret boundary secretRefs");
+    const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "service manager secret boundary accessGroupRefs");
+    if (secretRefs.length === 0 && accessGroupRefs.length === 0) {
+      throw new Error("service manager resolved secret boundary requires secretRefs or accessGroupRefs");
+    }
+  }
+  if (state === SURFACE_APP.SECRET_BOUNDARY.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("service manager blocked secret boundary requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager secret boundary safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager secret boundary");
+  if (!Number(record.issuedAt || 0)) throw new Error("service manager secret boundary missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("service manager secret boundary expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertServiceManagerReleaseContract(record) {
+  if (!isObject(record)) throw new Error("service manager release contract must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_RELEASE_CONTRACT, "service manager release contract");
+  requireString(record.contractId, "service manager release contract contractId");
+  requireString(record.managerId, "service manager release contract managerId");
+  requireString(record.subjectRef, "service manager release contract subjectRef");
+  requireString(record.managerRef, "service manager release contract managerRef");
+  const state = assertServiceManagerContractState(record.state, "service manager release contract");
+  if (record.appContractRef !== undefined) requireString(record.appContractRef, "service manager release contract appContractRef");
+  if (record.version !== undefined) requireString(record.version, "service manager release contract version");
+  if (record.buildRef !== undefined) requireString(record.buildRef, "service manager release contract buildRef");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "service manager release contract releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager release contract rollbackRef");
+  assertOptionalReferenceList(record.compatibilityRefs, "service manager release contract compatibilityRefs");
+  assertOptionalReferenceList(record.authorityRefs, "service manager release contract authorityRefs");
+  assertOptionalReferenceList(record.secretBoundaryRefs, "service manager release contract secretBoundaryRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "service manager release contract proofDigestRefs");
+  assertOptionalReferenceList(record.labProofRefs, "service manager release contract labProofRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager release contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager release contract blockedReasons");
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager release contract secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "service manager release contract releasePosture");
+  if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "service manager release contract rollbackPosture");
+  if (state === SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY) {
+    if (!String(record.buildRef || "").trim()) throw new Error("service manager ready release contract requires buildRef");
+    if (!String(record.releaseRef || "").trim()) throw new Error("service manager ready release contract requires releaseRef");
+    if (record.rollbackRequired !== false && !String(record.rollbackRef || "").trim()) {
+      throw new Error("service manager ready release contract requires rollbackRef unless rollbackRequired is false");
+    }
+  }
+  if (state === SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("service manager blocked release contract requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager release contract safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager release contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("service manager release contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("service manager release contract expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertServiceManagerLabProof(record) {
+  if (!isObject(record)) throw new Error("service manager lab proof must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_LAB_PROOF, "service manager lab proof");
+  requireString(record.proofId, "service manager lab proof proofId");
+  requireString(record.managerId, "service manager lab proof managerId");
+  requireString(record.subjectRef, "service manager lab proof subjectRef");
+  const profile = requireString(record.profile, "service manager lab proof profile");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_PROOF_PROFILE).includes(profile)) throw new Error("invalid service manager lab proof profile");
+  const state = requireString(record.state, "service manager lab proof state");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_PROOF_STATE).includes(state)) throw new Error("invalid service manager lab proof state");
+  if (record.trainRef !== undefined) requireString(record.trainRef, "service manager lab proof trainRef");
+  if (record.releaseContractRef !== undefined) requireString(record.releaseContractRef, "service manager lab proof releaseContractRef");
+  if (record.appContractRef !== undefined) requireString(record.appContractRef, "service manager lab proof appContractRef");
+  assertOptionalReferenceList(record.surfaceRefs, "service manager lab proof surfaceRefs");
+  assertOptionalReferenceList(record.serviceRefs, "service manager lab proof serviceRefs");
+  assertOptionalReferenceList(record.environmentRefs, "service manager lab proof environmentRefs");
+  assertOptionalReferenceList(record.artifactRefs, "service manager lab proof artifactRefs");
+  assertOptionalReferenceList(record.metricsRefs, "service manager lab proof metricsRefs");
+  assertOptionalReferenceList(record.proofRefs, "service manager lab proof proofRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager lab proof evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager lab proof blockedReasons");
+  if ([SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.BLOCKED, SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.FAILED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("service manager blocked or failed lab proof requires blockedReasons");
+  }
+  if (state === SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED) {
+    const artifactRefs = assertOptionalReferenceList(record.artifactRefs, "service manager lab proof artifactRefs");
+    const metricsRefs = assertOptionalReferenceList(record.metricsRefs, "service manager lab proof metricsRefs");
+    const proofRefs = assertOptionalReferenceList(record.proofRefs, "service manager lab proof proofRefs");
+    if (artifactRefs.length === 0 && metricsRefs.length === 0 && proofRefs.length === 0) {
+      throw new Error("service manager proved lab proof requires artifactRefs, metricsRefs, or proofRefs");
+    }
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager lab proof safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager lab proof");
+  assertSurfaceOperationTimeline(record, "service manager lab proof", "startedAt");
+  return record;
+}
+
+export function assertServiceManagerTrainDigest(record) {
+  if (!isObject(record)) throw new Error("service manager train digest must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_TRAIN_DIGEST, "service manager train digest");
+  requireString(record.trainId, "service manager train digest trainId");
+  requireString(record.managerId, "service manager train digest managerId");
+  requireString(record.subjectRef, "service manager train digest subjectRef");
+  const state = requireString(record.state, "service manager train digest state");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_PROOF_STATE).includes(state)) throw new Error("invalid service manager train digest state");
+  assertOptionalReferenceList(record.repoRefs, "service manager train digest repoRefs");
+  assertOptionalReferenceList(record.commitRefs, "service manager train digest commitRefs");
+  assertOptionalReferenceList(record.appContractRefs, "service manager train digest appContractRefs");
+  assertOptionalReferenceList(record.releaseContractRefs, "service manager train digest releaseContractRefs");
+  assertOptionalReferenceList(record.operationRefs, "service manager train digest operationRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "service manager train digest proofDigestRefs");
+  assertOptionalReferenceList(record.labProofRefs, "service manager train digest labProofRefs");
+  assertOptionalReferenceList(record.metricsRefs, "service manager train digest metricsRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager train digest evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager train digest blockedReasons");
+  if ([SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.BLOCKED, SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.FAILED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("service manager blocked or failed train digest requires blockedReasons");
+  }
+  if (state === SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED) {
+    const releaseContractRefs = assertOptionalReferenceList(record.releaseContractRefs, "service manager train digest releaseContractRefs");
+    const labProofRefs = assertOptionalReferenceList(record.labProofRefs, "service manager train digest labProofRefs");
+    const proofDigestRefs = assertOptionalReferenceList(record.proofDigestRefs, "service manager train digest proofDigestRefs");
+    if (releaseContractRefs.length === 0) throw new Error("service manager proved train digest requires releaseContractRefs");
+    if (labProofRefs.length === 0 && proofDigestRefs.length === 0) {
+      throw new Error("service manager proved train digest requires labProofRefs or proofDigestRefs");
+    }
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager train digest safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager train digest");
+  if (!Number(record.observedAt || 0)) throw new Error("service manager train digest missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("service manager train digest expires before observedAt");
+  }
+  return record;
+}
+
+export function assertSurfaceAppBootstrapContract(record) {
+  if (!isObject(record)) throw new Error("surface app bootstrap contract must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_CONTRACT, "surface app bootstrap contract");
+  requireString(record.bootstrapContractId, "surface app bootstrap contract bootstrapContractId");
+  requireString(record.appContractRef, "surface app bootstrap contract appContractRef");
+  requireString(record.appId, "surface app bootstrap contract appId");
+  const state = assertServiceManagerContractState(record.state, "surface app bootstrap contract");
+  const sourceMode = requireString(record.sourceMode, "surface app bootstrap contract sourceMode");
+  if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app bootstrap contract sourceMode");
+  const moduleRefs = assertOptionalReferenceList(record.moduleRefs, "surface app bootstrap contract moduleRefs");
+  if (record.serviceManagerRef !== undefined) requireString(record.serviceManagerRef, "surface app bootstrap contract serviceManagerRef");
+  if (record.releaseContractRef !== undefined) requireString(record.releaseContractRef, "surface app bootstrap contract releaseContractRef");
+  if (record.secretBoundaryRef !== undefined) requireString(record.secretBoundaryRef, "surface app bootstrap contract secretBoundaryRef");
+  if (record.trainDigestRef !== undefined) requireString(record.trainDigestRef, "surface app bootstrap contract trainDigestRef");
+  assertOptionalReferenceList(record.labProofProfileRefs, "surface app bootstrap contract labProofProfileRefs");
+  assertOptionalReferenceList(record.authorityRefs, "surface app bootstrap contract authorityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app bootstrap contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app bootstrap contract blockedReasons");
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "surface app bootstrap contract secretBoundary");
+  if (record.releaseContract !== undefined) assertServiceManagerReleaseContract(record.releaseContract);
+  if (state === SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY) {
+    if (moduleRefs.length === 0) throw new Error("surface app ready bootstrap contract requires moduleRefs");
+    if (
+      [SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE, SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT, SURFACE_APP.FULFILLMENT_MODE.NATIVE_INSTALLED].includes(sourceMode)
+      && !String(record.releaseContractRef || "").trim()
+    ) {
+      throw new Error("surface app non-bundled bootstrap contract requires releaseContractRef");
+    }
+  }
+  if (state === SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("surface app blocked bootstrap contract requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface app bootstrap contract safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "surface app bootstrap contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app bootstrap contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app bootstrap contract expires before issuedAt");
+  }
+  return record;
 }
 
 export function assertServiceManagerOperationPosture(record) {

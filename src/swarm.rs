@@ -95,6 +95,34 @@ pub const RECORD_CONTRIBUTION_LIFECYCLE: &str = "contribution.lifecycle";
 pub const RECORD_MEDIA_FULFILLMENT_EVIDENCE: &str = "media.fulfillment.evidence";
 pub const RECORD_MEDIA_TRANSPORT_PATH: &str = "media.transport.path";
 pub const RECORD_MEDIA_TRANSPORT_OBSERVATION: &str = "media.transport.observation";
+pub const RECORD_SERVICE_MANAGER_RELEASE_CONTRACT: &str = "service.manager.release.contract";
+pub const RECORD_SERVICE_MANAGER_SECRET_BOUNDARY: &str = "service.manager.secretBoundary";
+pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.digest";
+pub const RECORD_SERVICE_MANAGER_LAB_PROOF: &str = "service.manager.labProof";
+pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
+
+pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
+pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";
+pub const SURFACE_APP_CONTRACT_STATE_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_CONTRACT_STATE_SUPERSEDED: &str = "superseded";
+pub const SURFACE_APP_CONTRACT_STATE_EXPIRED: &str = "expired";
+
+pub const SURFACE_SECRET_BOUNDARY_NOT_REQUIRED: &str = "notRequired";
+pub const SURFACE_SECRET_BOUNDARY_RESOLVED: &str = "resolved";
+pub const SURFACE_SECRET_BOUNDARY_BLOCKED: &str = "blocked";
+pub const SURFACE_SECRET_BOUNDARY_UNAVAILABLE: &str = "unavailable";
+
+pub const SERVICE_MANAGER_PROOF_STATE_PENDING: &str = "pending";
+pub const SERVICE_MANAGER_PROOF_STATE_PROVED: &str = "proved";
+pub const SERVICE_MANAGER_PROOF_STATE_FAILED: &str = "failed";
+pub const SERVICE_MANAGER_PROOF_STATE_BLOCKED: &str = "blocked";
+pub const SERVICE_MANAGER_PROOF_STATE_EXPIRED: &str = "expired";
+
+pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
+pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
+pub const SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT: &str = "storageObject";
+pub const SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED: &str = "nativeInstalled";
+pub const SURFACE_FULFILLMENT_MODE_DEV_OVERLAY: &str = "devOverlay";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -1573,6 +1601,191 @@ pub struct EventFabricAccessClassRecord {
     #[serde(default)]
     pub safe_facts: Value,
     pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerSecretBoundaryRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub boundary_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub secret_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerReleaseContractRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub contract_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub manager_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_required: Option<bool>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub secret_boundary_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_digest_refs: Vec<String>,
+    #[serde(default)]
+    pub lab_proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerLabProofRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub proof_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub profile: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub train_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_contract_ref: Option<String>,
+    #[serde(default)]
+    pub surface_refs: Vec<String>,
+    #[serde(default)]
+    pub service_refs: Vec<String>,
+    #[serde(default)]
+    pub environment_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub metrics_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub started_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accepted_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerTrainDigestRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub train_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub repo_refs: Vec<String>,
+    #[serde(default)]
+    pub commit_refs: Vec<String>,
+    #[serde(default)]
+    pub app_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub release_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub operation_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_digest_refs: Vec<String>,
+    #[serde(default)]
+    pub lab_proof_refs: Vec<String>,
+    #[serde(default)]
+    pub metrics_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppBootstrapContractRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub bootstrap_contract_id: String,
+    pub app_contract_ref: String,
+    pub app_id: String,
+    pub state: String,
+    pub source_mode: String,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_manager_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret_boundary_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub train_digest_ref: Option<String>,
+    #[serde(default)]
+    pub lab_proof_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -3226,6 +3439,531 @@ pub fn validate_event_fabric_access_class(record: &EventFabricAccessClassRecord)
     Ok(())
 }
 
+pub fn validate_service_manager_secret_boundary(
+    record: &ServiceManagerSecretBoundaryRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_SECRET_BOUNDARY,
+        "service manager secret boundary",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager secret boundary",
+    )?;
+    require_non_empty(
+        &record.boundary_id,
+        "service manager secret boundary missing boundaryId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager secret boundary missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager secret boundary missing subjectRef",
+    )?;
+    validate_surface_secret_boundary_state(&record.state)?;
+    validate_reference_list(
+        &record.secret_refs,
+        "service manager secret boundary missing secretRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "service manager secret boundary missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "service manager secret boundary missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager secret boundary missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_SECRET_BOUNDARY_RESOLVED
+        && record.secret_refs.is_empty()
+        && record.access_group_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager resolved secret boundary requires secretRefs or accessGroupRefs"
+        ));
+    }
+    if record.state == SURFACE_SECRET_BOUNDARY_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "service manager blocked secret boundary requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager secret boundary missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "service manager secret boundary safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("service manager secret boundary missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "service manager secret boundary expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_release_contract(
+    record: &ServiceManagerReleaseContractRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_RELEASE_CONTRACT,
+        "service manager release contract",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager release contract",
+    )?;
+    require_non_empty(
+        &record.contract_id,
+        "service manager release contract missing contractId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager release contract missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager release contract missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.manager_ref,
+        "service manager release contract missing managerRef",
+    )?;
+    validate_service_manager_contract_state(&record.state)?;
+    validate_optional_ref(
+        record.app_contract_ref.as_deref(),
+        "service manager release contract missing appContractRef",
+    )?;
+    validate_optional_ref(
+        record.version.as_deref(),
+        "service manager release contract missing version",
+    )?;
+    validate_optional_ref(
+        record.build_ref.as_deref(),
+        "service manager release contract missing buildRef",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "service manager release contract missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "service manager release contract missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "service manager release contract missing compatibilityRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "service manager release contract missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.secret_boundary_refs,
+        "service manager release contract missing secretBoundaryRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_digest_refs,
+        "service manager release contract missing proofDigestRefs",
+    )?;
+    validate_reference_list(
+        &record.lab_proof_refs,
+        "service manager release contract missing labProofRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager release contract missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_APP_CONTRACT_STATE_READY {
+        if record
+            .build_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "service manager ready release contract requires buildRef"
+            ));
+        }
+        if record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "service manager ready release contract requires releaseRef"
+            ));
+        }
+        if record.rollback_required.unwrap_or(true)
+            && record
+                .rollback_ref
+                .as_deref()
+                .unwrap_or_default()
+                .trim()
+                .is_empty()
+        {
+            return Err(anyhow!(
+                "service manager ready release contract requires rollbackRef unless rollbackRequired is false"
+            ));
+        }
+    }
+    if record.state == SURFACE_APP_CONTRACT_STATE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "service manager blocked release contract requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager release contract missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "service manager release contract safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("service manager release contract missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "service manager release contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_lab_proof(record: &ServiceManagerLabProofRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_LAB_PROOF,
+        "service manager lab proof",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "service manager lab proof")?;
+    require_non_empty(
+        &record.proof_id,
+        "service manager lab proof missing proofId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager lab proof missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager lab proof missing subjectRef",
+    )?;
+    validate_service_manager_proof_profile(&record.profile)?;
+    validate_service_manager_proof_state(&record.state)?;
+    validate_optional_ref(
+        record.train_ref.as_deref(),
+        "service manager lab proof missing trainRef",
+    )?;
+    validate_optional_ref(
+        record.release_contract_ref.as_deref(),
+        "service manager lab proof missing releaseContractRef",
+    )?;
+    validate_optional_ref(
+        record.app_contract_ref.as_deref(),
+        "service manager lab proof missing appContractRef",
+    )?;
+    validate_reference_list(
+        &record.surface_refs,
+        "service manager lab proof missing surfaceRefs",
+    )?;
+    validate_reference_list(
+        &record.service_refs,
+        "service manager lab proof missing serviceRefs",
+    )?;
+    validate_reference_list(
+        &record.environment_refs,
+        "service manager lab proof missing environmentRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "service manager lab proof missing artifactRefs",
+    )?;
+    validate_reference_list(
+        &record.metrics_refs,
+        "service manager lab proof missing metricsRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "service manager lab proof missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager lab proof missing evidenceRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SERVICE_MANAGER_PROOF_STATE_BLOCKED | SERVICE_MANAGER_PROOF_STATE_FAILED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager blocked or failed lab proof requires blockedReasons"
+        ));
+    }
+    if record.state == SERVICE_MANAGER_PROOF_STATE_PROVED
+        && record.artifact_refs.is_empty()
+        && record.metrics_refs.is_empty()
+        && record.proof_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager proved lab proof requires artifactRefs, metricsRefs, or proofRefs"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager lab proof missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "service manager lab proof safeFacts")?;
+    if record.started_at == 0 {
+        return Err(anyhow!("service manager lab proof missing startedAt"));
+    }
+    if record
+        .completed_at
+        .is_some_and(|completed_at| completed_at < record.started_at)
+    {
+        return Err(anyhow!(
+            "service manager lab proof completedAt must not be before startedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.started_at)
+    {
+        return Err(anyhow!(
+            "service manager lab proof expiresAt must be after startedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_train_digest(
+    record: &ServiceManagerTrainDigestRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_TRAIN_DIGEST,
+        "service manager train digest",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager train digest",
+    )?;
+    require_non_empty(
+        &record.train_id,
+        "service manager train digest missing trainId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager train digest missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager train digest missing subjectRef",
+    )?;
+    validate_service_manager_proof_state(&record.state)?;
+    validate_reference_list(
+        &record.repo_refs,
+        "service manager train digest missing repoRefs",
+    )?;
+    validate_reference_list(
+        &record.commit_refs,
+        "service manager train digest missing commitRefs",
+    )?;
+    validate_reference_list(
+        &record.app_contract_refs,
+        "service manager train digest missing appContractRefs",
+    )?;
+    validate_reference_list(
+        &record.release_contract_refs,
+        "service manager train digest missing releaseContractRefs",
+    )?;
+    validate_reference_list(
+        &record.operation_refs,
+        "service manager train digest missing operationRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_digest_refs,
+        "service manager train digest missing proofDigestRefs",
+    )?;
+    validate_reference_list(
+        &record.lab_proof_refs,
+        "service manager train digest missing labProofRefs",
+    )?;
+    validate_reference_list(
+        &record.metrics_refs,
+        "service manager train digest missing metricsRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager train digest missing evidenceRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SERVICE_MANAGER_PROOF_STATE_BLOCKED | SERVICE_MANAGER_PROOF_STATE_FAILED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager blocked or failed train digest requires blockedReasons"
+        ));
+    }
+    if record.state == SERVICE_MANAGER_PROOF_STATE_PROVED {
+        require_non_empty_vec(
+            &record.release_contract_refs,
+            "service manager proved train digest requires releaseContractRefs",
+        )?;
+        if record.lab_proof_refs.is_empty() && record.proof_digest_refs.is_empty() {
+            return Err(anyhow!(
+                "service manager proved train digest requires labProofRefs or proofDigestRefs"
+            ));
+        }
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager train digest missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "service manager train digest safeFacts")?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("service manager train digest missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "service manager train digest expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_surface_app_bootstrap_contract(
+    record: &SurfaceAppBootstrapContractRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT,
+        "surface app bootstrap contract",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "surface app bootstrap contract",
+    )?;
+    require_non_empty(
+        &record.bootstrap_contract_id,
+        "surface app bootstrap contract missing bootstrapContractId",
+    )?;
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app bootstrap contract missing appContractRef",
+    )?;
+    require_non_empty(
+        &record.app_id,
+        "surface app bootstrap contract missing appId",
+    )?;
+    validate_service_manager_contract_state(&record.state)?;
+    validate_surface_fulfillment_mode(&record.source_mode)?;
+    validate_reference_list(
+        &record.module_refs,
+        "surface app bootstrap contract missing moduleRefs",
+    )?;
+    validate_optional_ref(
+        record.service_manager_ref.as_deref(),
+        "surface app bootstrap contract missing serviceManagerRef",
+    )?;
+    validate_optional_ref(
+        record.release_contract_ref.as_deref(),
+        "surface app bootstrap contract missing releaseContractRef",
+    )?;
+    validate_optional_ref(
+        record.secret_boundary_ref.as_deref(),
+        "surface app bootstrap contract missing secretBoundaryRef",
+    )?;
+    validate_optional_ref(
+        record.train_digest_ref.as_deref(),
+        "surface app bootstrap contract missing trainDigestRef",
+    )?;
+    validate_reference_list(
+        &record.lab_proof_profile_refs,
+        "surface app bootstrap contract missing labProofProfileRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app bootstrap contract missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app bootstrap contract missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_APP_CONTRACT_STATE_READY {
+        require_non_empty_vec(
+            &record.module_refs,
+            "surface app ready bootstrap contract requires moduleRefs",
+        )?;
+        if matches!(
+            record.source_mode.as_str(),
+            SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE
+                | SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT
+                | SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED
+        ) && record
+            .release_contract_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "surface app non-bundled bootstrap contract requires releaseContractRef"
+            ));
+        }
+    }
+    if record.state == SURFACE_APP_CONTRACT_STATE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "surface app blocked bootstrap contract requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app bootstrap contract missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "surface app bootstrap contract safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("surface app bootstrap contract missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app bootstrap contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_swarm_identity_graph(records: &[Value]) -> Result<()> {
     for record in records {
         let Some(object) = record.as_object() else {
@@ -4114,6 +4852,20 @@ fn require_non_empty_vec(values: &[String], message: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_reference_list(values: &[String], message: &str) -> Result<()> {
+    for value in values {
+        require_non_empty(value, message)?;
+    }
+    Ok(())
+}
+
+fn validate_optional_ref(value: Option<&str>, message: &str) -> Result<()> {
+    if let Some(value) = value {
+        require_non_empty(value, message)?;
+    }
+    Ok(())
+}
+
 fn validate_capability_names(values: &[String]) -> Result<()> {
     for value in values {
         validate_capability_name(value)?;
@@ -4129,6 +4881,81 @@ fn validate_authority_domain(domain: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported authority domain"))
+    }
+}
+
+fn validate_service_manager_contract_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_CONTRACT_STATE_DRAFT
+            | SURFACE_APP_CONTRACT_STATE_READY
+            | SURFACE_APP_CONTRACT_STATE_BLOCKED
+            | SURFACE_APP_CONTRACT_STATE_SUPERSEDED
+            | SURFACE_APP_CONTRACT_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager contract state"))
+    }
+}
+
+fn validate_surface_secret_boundary_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_SECRET_BOUNDARY_NOT_REQUIRED
+            | SURFACE_SECRET_BOUNDARY_RESOLVED
+            | SURFACE_SECRET_BOUNDARY_BLOCKED
+            | SURFACE_SECRET_BOUNDARY_UNAVAILABLE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface secret boundary state"))
+    }
+}
+
+fn validate_service_manager_proof_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_MANAGER_PROOF_STATE_PENDING
+            | SERVICE_MANAGER_PROOF_STATE_PROVED
+            | SERVICE_MANAGER_PROOF_STATE_FAILED
+            | SERVICE_MANAGER_PROOF_STATE_BLOCKED
+            | SERVICE_MANAGER_PROOF_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager proof state"))
+    }
+}
+
+fn validate_service_manager_proof_profile(profile: &str) -> Result<()> {
+    if matches!(
+        profile,
+        "surfaceLandscape"
+            | "nvrLive30s"
+            | "longStream10m"
+            | "loggingPressure"
+            | "directEdge"
+            | "nativeChecks"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager proof profile"))
+    }
+}
+
+fn validate_surface_fulfillment_mode(mode: &str) -> Result<()> {
+    if matches!(
+        mode,
+        SURFACE_FULFILLMENT_MODE_BUNDLED
+            | SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE
+            | SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT
+            | SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED
+            | SURFACE_FULFILLMENT_MODE_DEV_OVERLAY
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface fulfillment mode"))
     }
 }
 
@@ -7187,6 +8014,145 @@ mod tests {
         };
         validate_authority_grant_revocation_posture(&revocation)
             .expect("valid grant revocation posture");
+    }
+
+    #[test]
+    fn validates_service_manager_protected_bootstrap_contracts() {
+        let secret_boundary = ServiceManagerSecretBoundaryRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_SECRET_BOUNDARY.to_string()),
+            boundary_id: "secret-boundary:lab-gateway".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            state: SURFACE_SECRET_BOUNDARY_RESOLVED.to_string(),
+            secret_refs: vec!["secret:gateway-lab".to_string()],
+            access_group_refs: vec!["access:ops:epoch-7".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            evidence_refs: vec!["evidence:secret-resolution".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "posture": "resolved" }),
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_service_manager_secret_boundary(&secret_boundary).expect("valid secret boundary");
+
+        let release_contract = ServiceManagerReleaseContractRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_RELEASE_CONTRACT.to_string()),
+            contract_id: "release-contract:gateway:2026-05-18".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            manager_ref: "member:gateway-manager".to_string(),
+            state: SURFACE_APP_CONTRACT_STATE_READY.to_string(),
+            app_contract_ref: Some("surface-app:gateway-ui@0.1.0".to_string()),
+            version: Some("2026.05.18".to_string()),
+            build_ref: Some("build:gateway:2026-05-18".to_string()),
+            release_ref: Some("release:gateway:2026-05-18".to_string()),
+            rollback_ref: Some("rollback:gateway:previous".to_string()),
+            rollback_required: None,
+            compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            secret_boundary_refs: vec![secret_boundary.boundary_id.clone()],
+            proof_digest_refs: vec![],
+            lab_proof_refs: vec!["lab-proof:gateway:surface-landscape".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "compatibility": "current" }),
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_007_200),
+        };
+        validate_service_manager_release_contract(&release_contract)
+            .expect("valid release contract");
+
+        let lab_proof = ServiceManagerLabProofRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_LAB_PROOF.to_string()),
+            proof_id: "lab-proof:gateway:surface-landscape".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            profile: "surfaceLandscape".to_string(),
+            state: SERVICE_MANAGER_PROOF_STATE_PROVED.to_string(),
+            train_ref: Some("train:surface-bootstrap:2026-05-18".to_string()),
+            release_contract_ref: Some(release_contract.contract_id.clone()),
+            app_contract_ref: Some("surface-app:gateway-ui@0.1.0".to_string()),
+            surface_refs: vec![
+                "surface:account".to_string(),
+                "surface:gateway-ui".to_string(),
+            ],
+            service_refs: vec!["service:gateway".to_string()],
+            environment_refs: vec!["env:lab".to_string()],
+            artifact_refs: vec!["artifact:proof:surface-landscape".to_string()],
+            metrics_refs: vec!["metrics:proof:surface-landscape".to_string()],
+            proof_refs: vec!["proof:surface-landscape:pass".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "profile": "surfaceLandscape", "verdict": "passed" }),
+            started_at: 1_700_000_010,
+            accepted_at: None,
+            completed_at: Some(1_700_000_610),
+            observed_at: Some(1_700_000_620),
+            expires_at: Some(1_700_007_200),
+        };
+        validate_service_manager_lab_proof(&lab_proof).expect("valid lab proof");
+
+        let train_digest = ServiceManagerTrainDigestRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_TRAIN_DIGEST.to_string()),
+            train_id: "train:surface-bootstrap:2026-05-18".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            state: SERVICE_MANAGER_PROOF_STATE_PROVED.to_string(),
+            repo_refs: vec!["repo:constitute-gateway-ui".to_string()],
+            commit_refs: vec!["git:gateway-ui:275e05b".to_string()],
+            app_contract_refs: vec!["surface-app:gateway-ui@0.1.0".to_string()],
+            release_contract_refs: vec![release_contract.contract_id.clone()],
+            operation_refs: vec![],
+            proof_digest_refs: vec![],
+            lab_proof_refs: vec![lab_proof.proof_id.clone()],
+            metrics_refs: vec!["metrics:spine:service-bootstrap".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at: 1_700_000_630,
+            expires_at: Some(1_700_007_200),
+        };
+        validate_service_manager_train_digest(&train_digest).expect("valid train digest");
+
+        let bootstrap_contract = SurfaceAppBootstrapContractRecord {
+            kind: Some(RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT.to_string()),
+            bootstrap_contract_id: "bootstrap-contract:gateway-ui".to_string(),
+            app_contract_ref: "surface-app:gateway-ui@0.1.0".to_string(),
+            app_id: "constitute-gateway-ui".to_string(),
+            state: SURFACE_APP_CONTRACT_STATE_READY.to_string(),
+            source_mode: SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE.to_string(),
+            module_refs: vec![
+                "module:surface-runtime-client@0.1.0".to_string(),
+                "module:gateway-view@0.1.0".to_string(),
+            ],
+            service_manager_ref: Some("manager:lab-gateway".to_string()),
+            release_contract_ref: Some(release_contract.contract_id.clone()),
+            secret_boundary_ref: Some(secret_boundary.boundary_id),
+            train_digest_ref: Some(train_digest.train_id),
+            lab_proof_profile_refs: vec!["surfaceLandscape".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            evidence_refs: vec!["evidence:bootstrap-resolution".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_007_200),
+        };
+        validate_surface_app_bootstrap_contract(&bootstrap_contract)
+            .expect("valid bootstrap contract");
+
+        let mut bad_release = release_contract;
+        bad_release.rollback_ref = None;
+        assert!(validate_service_manager_release_contract(&bad_release).is_err());
+
+        let mut bad_proof = lab_proof;
+        bad_proof.artifact_refs.clear();
+        bad_proof.metrics_refs.clear();
+        bad_proof.proof_refs.clear();
+        assert!(validate_service_manager_lab_proof(&bad_proof).is_err());
+
+        let mut bad_bootstrap = bootstrap_contract;
+        bad_bootstrap.release_contract_ref = None;
+        assert!(validate_surface_app_bootstrap_contract(&bad_bootstrap).is_err());
     }
 
     #[test]
