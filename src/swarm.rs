@@ -115,6 +115,8 @@ pub const RECORD_SURFACE_APP_MANIFEST: &str = "surface.app.manifest";
 pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
 pub const RECORD_SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: &str =
     "surface.app.fulfillment.identity.posture";
+pub const RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE: &str =
+    "surface.app.authority.access.posture";
 pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
 pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
 
@@ -2242,6 +2244,56 @@ pub struct SurfaceAppFulfillmentIdentityPostureRecord {
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub identity_posture: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppAuthorityAccessPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub state: String,
+    pub app_contract_ref: String,
+    pub app_id: String,
+    #[serde(default)]
+    pub action_required: bool,
+    #[serde(default)]
+    pub access_required: bool,
+    #[serde(default)]
+    pub root_refs: Vec<String>,
+    #[serde(default)]
+    pub device_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub required_content_classes: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
+    pub exercise_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub action_posture: Value,
+    #[serde(default)]
+    pub access_posture: Value,
+    #[serde(default)]
+    pub revocation_posture: Value,
+    #[serde(default)]
+    pub expiry_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revocation_state: Option<String>,
     #[serde(default)]
     pub safe_facts: Value,
     #[serde(default)]
@@ -5260,6 +5312,143 @@ pub fn validate_surface_app_fulfillment_identity_posture(
     {
         return Err(anyhow!(
             "surface app fulfillment identity posture expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_surface_app_authority_access_posture(
+    record: &SurfaceAppAuthorityAccessPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE,
+        "surface app authority access posture",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "surface app authority access posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "surface app authority access posture missing postureId",
+    )?;
+    validate_surface_app_fulfillment_identity_state(&record.state)?;
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app authority access posture missing appContractRef",
+    )?;
+    require_non_empty(
+        &record.app_id,
+        "surface app authority access posture missing appId",
+    )?;
+    validate_reference_list(
+        &record.root_refs,
+        "surface app authority access posture missing rootRefs",
+    )?;
+    validate_reference_list(
+        &record.device_refs,
+        "surface app authority access posture missing deviceRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "surface app authority access posture missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app authority access posture missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "surface app authority access posture missing accessGroupRefs",
+    )?;
+    for content_class in &record.required_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.revocation_refs,
+        "surface app authority access posture missing revocationRefs",
+    )?;
+    validate_reference_list(
+        &record.exercise_refs,
+        "surface app authority access posture missing exerciseRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app authority access posture missing evidenceRefs",
+    )?;
+    validate_safe_facts(
+        &record.action_posture,
+        "surface app authority access posture actionPosture",
+    )?;
+    validate_safe_facts(
+        &record.access_posture,
+        "surface app authority access posture accessPosture",
+    )?;
+    validate_safe_facts(
+        &record.revocation_posture,
+        "surface app authority access posture revocationPosture",
+    )?;
+    validate_safe_facts(
+        &record.expiry_posture,
+        "surface app authority access posture expiryPosture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "surface app authority access posture safeFacts",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app authority access posture missing blockedReasons",
+    )?;
+    if record.action_required
+        && record.grant_refs.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture action requires grantRefs"
+        ));
+    }
+    if record.access_required
+        && record.access_group_refs.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture access requires accessGroupRefs"
+        ));
+    }
+    if record.access_required
+        && record.required_content_classes.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture access requires requiredContentClasses"
+        ));
+    }
+    if record.state == SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "surface app blocked authority access posture requires blockedReasons"
+        ));
+    }
+    if record.revocation_state.as_deref() == Some("revoked")
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture revoked state must be blocked"
+        ));
+    }
+    if record.issued_at == 0 {
+        return Err(anyhow!(
+            "surface app authority access posture missing issuedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app authority access posture expiresAt must be after issuedAt"
         ));
     }
     Ok(())
@@ -11036,6 +11225,72 @@ mod tests {
         missing_service.identity_id = "identity:surface-app:nvr-ui:missing-service".to_string();
         missing_service.service_contract_ref = None;
         assert!(validate_surface_app_fulfillment_identity_posture(&missing_service).is_err());
+    }
+
+    #[test]
+    fn validates_surface_app_authority_access_posture() {
+        let posture = SurfaceAppAuthorityAccessPostureRecord {
+            kind: Some(RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE.to_string()),
+            posture_id: "authority-access:surface-app:nvr-ui".to_string(),
+            state: SURFACE_APP_FULFILLMENT_IDENTITY_READY.to_string(),
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            app_id: "constitute-nvr-ui".to_string(),
+            action_required: true,
+            access_required: true,
+            root_refs: vec!["root:aux".to_string()],
+            device_refs: vec!["device:aux-browser".to_string()],
+            grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+            authority_refs: vec!["authority:aux-browser".to_string()],
+            access_group_refs: vec!["access-group:nvr-ui:media-preview".to_string()],
+            required_content_classes: vec![
+                "uiProjection".to_string(),
+                "mediaReference".to_string(),
+            ],
+            revocation_refs: vec![],
+            exercise_refs: vec!["exercise:app:nvr-ui:run".to_string()],
+            evidence_refs: vec!["proof:nvr-ui:authority".to_string()],
+            action_posture: json!({
+                "state": "ready",
+                "grantRefCount": 1
+            }),
+            access_posture: json!({
+                "state": "ready",
+                "accessGroupRefCount": 1,
+                "requiredContentClassCount": 2
+            }),
+            revocation_posture: json!({
+                "state": "clear"
+            }),
+            expiry_posture: json!({
+                "state": "fresh"
+            }),
+            revocation_state: None,
+            safe_facts: json!({
+                "actionRequired": true,
+                "accessRequired": true
+            }),
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_surface_app_authority_access_posture(&posture)
+            .expect("valid authority access posture");
+
+        let mut missing_grant = posture.clone();
+        missing_grant.posture_id = "authority-access:surface-app:nvr-ui:missing-grant".to_string();
+        missing_grant.grant_refs = vec![];
+        assert!(validate_surface_app_authority_access_posture(&missing_grant).is_err());
+
+        let mut missing_access_group = posture.clone();
+        missing_access_group.posture_id =
+            "authority-access:surface-app:nvr-ui:missing-access".to_string();
+        missing_access_group.access_group_refs = vec![];
+        assert!(validate_surface_app_authority_access_posture(&missing_access_group).is_err());
+
+        let mut revoked_ready = posture;
+        revoked_ready.posture_id = "authority-access:surface-app:nvr-ui:revoked".to_string();
+        revoked_ready.revocation_state = Some("revoked".to_string());
+        assert!(validate_surface_app_authority_access_posture(&revoked_ready).is_err());
     }
 
     #[test]

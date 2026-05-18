@@ -1319,6 +1319,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
     SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: "surface.app.fulfillment.identity.posture",
+    SURFACE_APP_AUTHORITY_ACCESS_POSTURE: "surface.app.authority.access.posture",
     SURFACE_APP_RUNNER_PLAN: "surface.app.runner.plan",
     SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
@@ -1391,6 +1392,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
     SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: "surface.app.fulfillment.identity.posture",
+    SURFACE_APP_AUTHORITY_ACCESS_POSTURE: "surface.app.authority.access.posture",
     SURFACE_APP_RUNNER_PLAN: "surface.app.runner.plan",
     SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
@@ -3727,6 +3729,11 @@ function assertOptionalCapabilityList(value, name) {
   return assertOptionalReferenceList(value, name).map(assertCapabilityName);
 }
 
+function assertOptionalContentClassList(value, name) {
+  if (value === undefined || value === null) return [];
+  return requireArray(value, name).map((entry) => assertContentClassName(entry, `${name} entry`));
+}
+
 function assertSafeObject(value, name) {
   const object = assertOptionalObject(value, name);
   rejectRouteControlByteFields(object, name);
@@ -5093,6 +5100,12 @@ export function assertSurfaceAppContract(record) {
   if (record.serviceRef !== undefined) requireString(record.serviceRef, "surface app contract serviceRef");
   assertOptionalReferenceList(record.serviceRouteRefs, "surface app contract serviceRouteRefs");
   assertOptionalReferenceList(record.hostRefs, "surface app contract hostRefs");
+  assertOptionalReferenceList(record.rootRefs, "surface app contract rootRefs");
+  assertOptionalReferenceList(record.deviceRefs, "surface app contract deviceRefs");
+  assertOptionalReferenceList(record.grantRefs, "surface app contract grantRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "surface app contract accessGroupRefs");
+  assertOptionalContentClassList(record.requiredContentClasses, "surface app contract requiredContentClasses");
+  assertOptionalReferenceList(record.revocationRefs, "surface app contract revocationRefs");
   requireArray(record.requiredPrimitives || [], "surface app contract requiredPrimitives");
   const requiredRoles = requireNonEmptyArray(record.requiredModuleRoles, "surface app contract requiredModuleRoles");
   for (const role of requiredRoles) {
@@ -5166,6 +5179,58 @@ export function assertSurfaceAppFulfillmentIdentityPosture(record) {
     ...record,
     runnerRefs,
     memberRefs,
+  };
+}
+
+export function assertSurfaceAppAuthorityAccessPosture(record) {
+  if (!isObject(record)) throw new Error("surface app authority access posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_AUTHORITY_ACCESS_POSTURE, "surface app authority access posture");
+  const state = assertSurfaceAppRecordState(record, "surface app authority access posture", ["ready", "degraded", "blocked", "unknown", "unchecked"]);
+  requireString(record.postureId, "surface app authority access posture postureId");
+  requireString(record.appContractRef, "surface app authority access posture appContractRef");
+  requireString(record.appId, "surface app authority access posture appId");
+  if (record.actionRequired !== undefined && typeof record.actionRequired !== "boolean") throw new Error("surface app authority access posture actionRequired must be boolean");
+  if (record.accessRequired !== undefined && typeof record.accessRequired !== "boolean") throw new Error("surface app authority access posture accessRequired must be boolean");
+  assertOptionalReferenceList(record.rootRefs, "surface app authority access posture rootRefs");
+  assertOptionalReferenceList(record.deviceRefs, "surface app authority access posture deviceRefs");
+  const grantRefs = assertOptionalReferenceList(record.grantRefs, "surface app authority access posture grantRefs");
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "surface app authority access posture authorityRefs");
+  const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "surface app authority access posture accessGroupRefs");
+  const requiredContentClasses = assertOptionalContentClassList(record.requiredContentClasses, "surface app authority access posture requiredContentClasses");
+  assertOptionalReferenceList(record.revocationRefs, "surface app authority access posture revocationRefs");
+  assertOptionalReferenceList(record.exerciseRefs, "surface app authority access posture exerciseRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app authority access posture evidenceRefs");
+  if (record.actionPosture !== undefined) assertSafeObject(record.actionPosture, "surface app authority access posture actionPosture");
+  if (record.accessPosture !== undefined) assertSafeObject(record.accessPosture, "surface app authority access posture accessPosture");
+  if (record.revocationPosture !== undefined) assertSafeObject(record.revocationPosture, "surface app authority access posture revocationPosture");
+  if (record.expiryPosture !== undefined) assertSafeObject(record.expiryPosture, "surface app authority access posture expiryPosture");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface app authority access posture safeFacts");
+  if (record.actionRequired === true && grantRefs.length === 0 && state !== "blocked") {
+    throw new Error("surface app authority access posture action requires grantRefs");
+  }
+  if (record.accessRequired === true && accessGroupRefs.length === 0 && state !== "blocked") {
+    throw new Error("surface app authority access posture access requires accessGroupRefs");
+  }
+  if (record.accessRequired === true && requiredContentClasses.length === 0 && state !== "blocked") {
+    throw new Error("surface app authority access posture access requires requiredContentClasses");
+  }
+  if (String(record.revocationState || "").trim()) {
+    const revocationState = requireString(record.revocationState, "surface app authority access posture revocationState");
+    if (revocationState === "revoked" && state !== "blocked") {
+      throw new Error("surface app authority access posture revoked state must be blocked");
+    }
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app authority access posture missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app authority access posture expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface app authority access posture");
+  return {
+    ...record,
+    grantRefs,
+    authorityRefs,
+    accessGroupRefs,
+    requiredContentClasses,
   };
 }
 
@@ -5319,6 +5384,9 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   if (record.fulfillmentIdentityPosture !== undefined && record.fulfillmentIdentityPosture !== null) {
     assertSurfaceAppFulfillmentIdentityPosture(record.fulfillmentIdentityPosture);
   }
+  if (record.authorityAccessPosture !== undefined && record.authorityAccessPosture !== null) {
+    assertSurfaceAppAuthorityAccessPosture(record.authorityAccessPosture);
+  }
   assertSurfaceAppManifestSelection(record.manifestSelection);
   assertSurfaceAppManifestRunnerPlan(record.manifestRunnerPlan);
   if (record.runnerPlan !== undefined && record.runnerPlan !== null) assertSurfaceAppRunnerPlan(record.runnerPlan);
@@ -5362,6 +5430,9 @@ export function assertSurfaceAppInstancePosture(record) {
   }
   if (record.fulfillmentIdentityPosture !== undefined && record.fulfillmentIdentityPosture !== null) {
     assertSurfaceAppFulfillmentIdentityPosture(record.fulfillmentIdentityPosture);
+  }
+  if (record.authorityAccessPosture !== undefined && record.authorityAccessPosture !== null) {
+    assertSurfaceAppAuthorityAccessPosture(record.authorityAccessPosture);
   }
   if (record.bootstrapPosture !== undefined && record.bootstrapPosture !== null) assertSurfaceAppBootstrapPosture(record.bootstrapPosture);
   if (String(record.serviceManagerOperationRef || "").trim()) requireString(record.serviceManagerOperationRef, "surface app instance posture serviceManagerOperationRef");

@@ -97,6 +97,7 @@ import {
   assertSurfaceAppRuntimeSelectionPosture,
   assertSurfaceAppInstancePosture,
   assertSurfaceAppFulfillmentIdentityPosture,
+  assertSurfaceAppAuthorityAccessPosture,
   assertSurfaceAppRunnerPlan,
   assertSurfaceAppDistributionPosture,
   assertSurfaceAppBootstrapContract,
@@ -713,6 +714,55 @@ test("surface app fulfillment identity posture separates contract, service, host
     identityId: "identity:surface-app:nvr-ui:bad-runner",
     runnerRefs: ["member:unresolved"],
   }), /must be a resolved public key/);
+});
+
+test("surface app authority access posture separates action grants from content access", () => {
+  const issuedAt = 1700000000;
+  const posture = assertSurfaceAppAuthorityAccessPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_AUTHORITY_ACCESS_POSTURE,
+    postureId: "authority-access:surface-app:nvr-ui",
+    state: "ready",
+    appContractRef: "app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    actionRequired: true,
+    accessRequired: true,
+    rootRefs: ["root:aux"],
+    deviceRefs: ["device:aux-browser"],
+    grantRefs: ["grant:app:nvr-ui:run"],
+    authorityRefs: ["authority:aux-browser"],
+    accessGroupRefs: ["access-group:nvr-ui:media-preview"],
+    requiredContentClasses: [AGREEMENT.CONTENT_CLASS.UI_PROJECTION, AGREEMENT.CONTENT_CLASS.MEDIA_REFERENCE],
+    exerciseRefs: ["exercise:app:nvr-ui:run"],
+    evidenceRefs: ["proof:nvr-ui:authority"],
+    actionPosture: { state: "ready", grantRefCount: 1 },
+    accessPosture: { state: "ready", accessGroupRefCount: 1 },
+    revocationPosture: { state: "clear" },
+    expiryPosture: { state: "fresh" },
+    safeFacts: { actionRequired: true, accessRequired: true },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(posture.state, "ready");
+  assert.deepEqual(posture.accessGroupRefs, ["access-group:nvr-ui:media-preview"]);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:missing-grant",
+    grantRefs: [],
+  }), /action requires grantRefs/);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:missing-access",
+    accessGroupRefs: [],
+  }), /access requires accessGroupRefs/);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:revoked",
+    state: "ready",
+    revocationState: "revoked",
+  }), /revoked state must be blocked/);
 });
 
 test("surface bootstrap contracts gate service manager release and secret posture", () => {
