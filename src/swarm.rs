@@ -121,6 +121,7 @@ pub const RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE: &str =
     "surface.app.authority.access.posture";
 pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
 pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
+pub const RECORD_APP_RUNNER_FULFILLMENT_LIFECYCLE: &str = "app.runner.fulfillment.lifecycle";
 
 pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
 pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";

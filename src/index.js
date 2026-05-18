@@ -184,6 +184,7 @@ export const RUNNER = Object.freeze({
     SUCCEEDED: "succeeded",
     RELEASED: "released",
     ROLLED_BACK: "rolledBack",
+    EXPIRED: "expired",
     BLOCKED: "blocked",
     FAILED: "failed",
     REJECTED: "rejected",
@@ -1332,6 +1333,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     RUNNER_OPERATION: "runner.operation",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
+    APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1408,6 +1410,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     RUNNER_OPERATION: "runner.operation",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
+    APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -5594,6 +5597,9 @@ export function assertSurfaceAppInstancePosture(record) {
   if (record.runnerReadiness !== undefined && record.runnerReadiness !== null) {
     assertSurfaceAppReadiness(record.runnerReadiness, "surface app instance runner readiness");
   }
+  if (record.runnerFulfillmentLifecycle !== undefined && record.runnerFulfillmentLifecycle !== null) {
+    assertAppRunnerFulfillmentLifecycle(record.runnerFulfillmentLifecycle);
+  }
   if (record.serviceManagerReadiness !== undefined && record.serviceManagerReadiness !== null) {
     assertSurfaceAppReadiness(record.serviceManagerReadiness, "surface app instance service manager readiness");
   }
@@ -5752,6 +5758,93 @@ export function assertAppRunnerFulfillmentReport(record) {
     capabilityRefs,
     sourceRefs,
     inputRefs,
+    outputRefs,
+    evidenceRefs,
+    proofRefs,
+    releaseRefs,
+    blockedReasons,
+  };
+}
+
+export function assertAppRunnerFulfillmentLifecycle(record) {
+  if (!isObject(record)) throw new Error("app runner fulfillment lifecycle must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_LIFECYCLE, "app runner fulfillment lifecycle");
+  requireString(record.lifecycleId, "app runner fulfillment lifecycle lifecycleId");
+  const reportId = requireString(record.reportId, "app runner fulfillment lifecycle reportId");
+  requireString(record.runnerId, "app runner fulfillment lifecycle runnerId");
+  assertResolvedMemberRef(record.runnerRef, "app runner fulfillment lifecycle runnerRef");
+  requireString(record.hostRef, "app runner fulfillment lifecycle hostRef");
+  requireString(record.runnerOperationId, "app runner fulfillment lifecycle runnerOperationId");
+  const operation = requireString(record.operation, "app runner fulfillment lifecycle operation");
+  if (!Object.values(RUNNER.OPERATION).includes(operation)) throw new Error("invalid app runner fulfillment lifecycle operation");
+  const state = assertRunnerFulfillmentState(record.state, "app runner fulfillment lifecycle state");
+  requireString(record.requesterRef, "app runner fulfillment lifecycle requesterRef");
+  requireString(record.subjectRef, "app runner fulfillment lifecycle subjectRef");
+  requireString(record.contractRef, "app runner fulfillment lifecycle contractRef");
+  if (record.appContractRef !== undefined) requireString(record.appContractRef, "app runner fulfillment lifecycle appContractRef");
+  if (record.appId !== undefined) requireString(record.appId, "app runner fulfillment lifecycle appId");
+  if (record.version !== undefined) requireString(record.version, "app runner fulfillment lifecycle version");
+  if (record.manifestRef !== undefined) requireString(record.manifestRef, "app runner fulfillment lifecycle manifestRef");
+  if (record.sourceMode !== undefined) {
+    const sourceMode = requireString(record.sourceMode, "app runner fulfillment lifecycle sourceMode");
+    if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid app runner fulfillment lifecycle sourceMode");
+  }
+  const sourceRefs = assertOptionalReferenceList(record.sourceRefs, "app runner fulfillment lifecycle sourceRefs");
+  assertOptionalReferenceList(record.grantRefs, "app runner fulfillment lifecycle grantRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "app runner fulfillment lifecycle capabilityRefs");
+  assertOptionalReferenceList(record.inputRefs, "app runner fulfillment lifecycle inputRefs");
+  const outputRefs = assertOptionalReferenceList(record.outputRefs, "app runner fulfillment lifecycle outputRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "app runner fulfillment lifecycle evidenceRefs");
+  const proofRefs = assertOptionalReferenceList(record.proofRefs, "app runner fulfillment lifecycle proofRefs");
+  const releaseRefs = assertOptionalReferenceList(record.releaseRefs, "app runner fulfillment lifecycle releaseRefs");
+  assertOptionalReferenceList(record.witnessRefs, "app runner fulfillment lifecycle witnessRefs");
+  assertOptionalReferenceList(record.releaseWitnessRefs, "app runner fulfillment lifecycle releaseWitnessRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app runner fulfillment lifecycle blockedReasons");
+  if (record.resourceBudget !== undefined && record.resourceBudget !== null) assertSafeObject(record.resourceBudget, "app runner fulfillment lifecycle resourceBudget");
+  if (record.resourcePosture !== undefined && record.resourcePosture !== null) assertResourcePosture(record.resourcePosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment lifecycle secretBoundary");
+  if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment lifecycle releasePosture");
+  if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment lifecycle rollbackPosture");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment lifecycle releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment lifecycle rollbackRef");
+  if (record.operationPosture !== undefined && record.operationPosture !== null) assertSafeObject(assertOptionalObject(record.operationPosture, "app runner fulfillment lifecycle operationPosture"), "app runner fulfillment lifecycle operationPosture");
+  if (record.fulfillmentPosture !== undefined && record.fulfillmentPosture !== null) assertSafeObject(assertOptionalObject(record.fulfillmentPosture, "app runner fulfillment lifecycle fulfillmentPosture"), "app runner fulfillment lifecycle fulfillmentPosture");
+  for (const field of ["requestedAt", "acceptedAt", "startedAt", "completedAt", "releasedAt", "rolledBackAt", "rejectedAt", "expiredAt", "observedAt", "expiresAt"]) {
+    assertOptionalTimeField(record[field], `app runner fulfillment lifecycle ${field}`);
+  }
+  const observedAt = Number(record.observedAt || 0);
+  if (!observedAt) throw new Error("app runner fulfillment lifecycle missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= observedAt) {
+    throw new Error("app runner fulfillment lifecycle expiresAt must be after observedAt");
+  }
+  const terminalBlocked = [
+    RUNNER.FULFILLMENT_STATE.BLOCKED,
+    RUNNER.FULFILLMENT_STATE.FAILED,
+    RUNNER.FULFILLMENT_STATE.REJECTED,
+    RUNNER.FULFILLMENT_STATE.CANCELLED,
+    RUNNER.FULFILLMENT_STATE.EXPIRED,
+  ];
+  if (terminalBlocked.includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked app runner fulfillment lifecycle requires blockedReasons");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.SUCCEEDED && outputRefs.length === 0 && proofRefs.length === 0) {
+    throw new Error("succeeded app runner fulfillment lifecycle requires outputRefs or proofRefs");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.SUCCEEDED && sourceRefs.length === 0) {
+    throw new Error("succeeded app runner fulfillment lifecycle requires sourceRefs");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.RELEASED && releaseRefs.length === 0 && !String(record.releaseRef || "").trim()) {
+    throw new Error("released app runner fulfillment lifecycle requires releaseRefs or releaseRef");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.ROLLED_BACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("rolledBack app runner fulfillment lifecycle requires rollbackRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "app runner fulfillment lifecycle safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "app runner fulfillment lifecycle");
+  return {
+    ...record,
+    reportId,
+    sourceRefs,
     outputRefs,
     evidenceRefs,
     proofRefs,

@@ -1813,6 +1813,7 @@ export type AppRunnerFulfillmentState =
   | "succeeded"
   | "released"
   | "rolledBack"
+  | "expired"
   | "blocked"
   | "failed"
   | "rejected"
@@ -2466,6 +2467,7 @@ export type SurfaceAppInstancePosture = {
   materializationBudgetRefs?: string[];
   runtimeSelectionPosture?: SurfaceAppRuntimeSelectionPosture | null;
   runnerReadiness?: Record<string, unknown> | null;
+  runnerFulfillmentLifecycle?: AppRunnerFulfillmentLifecycle | null;
   serviceManagerReadiness?: Record<string, unknown> | null;
   serviceManagerActionability?: SurfaceAppServiceManagerActionability | null;
   fulfillmentIdentityPosture?: SurfaceAppFulfillmentIdentityPosture | null;
@@ -2567,6 +2569,57 @@ export type AppRunnerFulfillmentReport = {
   fulfillmentPosture: Record<string, unknown>;
   safeFacts?: Record<string, unknown>;
   blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type AppRunnerFulfillmentLifecycle = {
+  kind?: "app.runner.fulfillment.lifecycle";
+  lifecycleId: string;
+  reportId: string;
+  runnerId: string;
+  runnerRef: string;
+  hostRef: string;
+  runnerOperationId: string;
+  operation: RunnerOperation;
+  state: AppRunnerFulfillmentState;
+  requesterRef: string;
+  subjectRef: string;
+  contractRef: string;
+  appContractRef?: string;
+  appId?: string;
+  version?: string;
+  manifestRef?: string;
+  sourceMode?: SurfaceModuleFulfillmentMode;
+  sourceRefs?: string[];
+  grantRefs?: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  releaseRefs?: string[];
+  witnessRefs?: string[];
+  releaseWitnessRefs?: string[];
+  resourceBudget?: Record<string, unknown> | null;
+  resourcePosture?: ResourcePosture | null;
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture | null;
+  rollbackPosture?: SurfaceReleasePosture | null;
+  releaseRef?: string;
+  rollbackRef?: string;
+  operationPosture?: Record<string, unknown> | null;
+  fulfillmentPosture?: Record<string, unknown> | null;
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  requestedAt?: number;
+  acceptedAt?: number;
+  startedAt?: number;
+  completedAt?: number;
+  releasedAt?: number;
+  rolledBackAt?: number;
+  rejectedAt?: number;
+  expiredAt?: number;
   observedAt: number;
   expiresAt?: number;
 };
@@ -2781,3 +2834,4 @@ export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
 export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
 export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;
+export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerFulfillmentLifecycle;

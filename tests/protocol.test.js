@@ -19,6 +19,7 @@ import {
   assertAppRecipe,
   assertAppRunnerAdvertisement,
   assertAppRunnerFulfillmentReport,
+  assertAppRunnerFulfillmentLifecycle,
   assertRunnerOperation,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
@@ -1628,6 +1629,32 @@ test("app runner fulfillment reports reduce operation lifecycle, release, resour
   assert.equal(report.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
   assert.equal(report.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
 
+  const lifecycle = assertAppRunnerFulfillmentLifecycle({
+    ...report,
+    kind: SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_LIFECYCLE,
+    lifecycleId: "app-runner-lifecycle:runner-proof:execute:1",
+    witnessRefs: ["witness:runner:operator"],
+    releaseWitnessRefs: [],
+    requestedAt: observedAt - 20,
+    acceptedAt: observedAt - 18,
+    startedAt: observedAt - 15,
+    completedAt: observedAt - 1,
+  });
+  assert.equal(lifecycle.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
+  assert.equal(lifecycle.reportId, report.reportId);
+  assert.deepEqual(lifecycle.witnessRefs, ["witness:runner:operator"]);
+
+  const released = assertAppRunnerFulfillmentLifecycle({
+    ...lifecycle,
+    lifecycleId: "app-runner-lifecycle:runner-proof:release:1",
+    state: RUNNER.FULFILLMENT_STATE.RELEASED,
+    releaseRefs: ["release:runner-proof"],
+    releasedAt: observedAt + 10,
+    observedAt: observedAt + 10,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(released.state, RUNNER.FULFILLMENT_STATE.RELEASED);
+
   assert.throws(() => assertAppRunnerFulfillmentReport({
     ...report,
     reportId: "app-runner:bad:missing-proof",
@@ -1655,6 +1682,14 @@ test("app runner fulfillment reports reduce operation lifecycle, release, resour
     reportId: "app-runner:bad:secret",
     safeFacts: { token: "inline-secret" },
   }), /unsafe safe fact key|forbidden protocol field/);
+
+  assert.throws(() => assertAppRunnerFulfillmentLifecycle({
+    ...lifecycle,
+    lifecycleId: "app-runner-lifecycle:bad:expired",
+    state: RUNNER.FULFILLMENT_STATE.EXPIRED,
+    blockedReasons: [],
+    expiredAt: observedAt + 3600,
+  }), /blocked app runner fulfillment lifecycle requires blockedReasons/);
 });
 
 test("service manager protected contracts gate bootstrap, secrets, train, and lab proof", () => {
