@@ -103,6 +103,7 @@ import {
   assertConsumerFloor,
   assertContributionLifecycle,
   assertEventFabricAccessClass,
+  assertEventFabricProcessorContract,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -2186,6 +2187,69 @@ test("agreement grammar separates action authority, access epochs, private reada
     safeFactPolicy: AGREEMENT.SAFE_FACT_POLICY.NONE,
     issuedAt: 1700000071,
   }), /publicSafe/);
+
+  const floor = assertConsumerFloor({
+    kind: SWARM.RECORD_KIND.CONSUMER_FLOOR,
+    floorId: "consumer-floor:logging.processor",
+    materializationId: "event-fabric:logging-security",
+    consumerRef: "role:logging.processor",
+    subjectRef: "event-fabric:logging.default",
+    ackFloor: "event:9",
+    witnessFloor: "event:8",
+    compactionFloor: "snapshot:1",
+    lagState: "caughtUp",
+    observedAt: 1700000072,
+    sampledAt: 1700000072,
+  });
+  const processor = assertEventFabricProcessorContract({
+    kind: SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_CONTRACT,
+    processorContractId: "processor-contract:logging.security-replay",
+    fabricRef: "event-fabric:logging.default",
+    processorRef: "service:logging",
+    processorRoleRef: "role:logging.processor",
+    state: "ready",
+    inputAccessClassRefs: ["event-class:security-runtime"],
+    inputEventClasses: ["securityAudit", "runtimeDiagnostic"],
+    inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
+    outputRefs: ["projection:logging.dashboard", "storage:logging.archive"],
+    storageRefs: ["storage:logging.archive"],
+    accessGroupRefs: [group.groupId],
+    consumerFloor: floor,
+    bitemporalPolicy: {
+      eventTimeField: "occurredAt",
+      observedTimeField: "observedAt",
+    },
+    schemaPolicy: {
+      currentVersion: "logging.event.v1",
+      unknownVersionPosture: "ignore",
+    },
+    compactionPolicy: {
+      snapshotCadence: "bounded",
+      compactionFloor: "snapshot:1",
+    },
+    cardinalityPolicy: {
+      maxLabelValues: 1000,
+      highCardinalityOverflow: "encryptedDetailRef",
+    },
+    encryptedDetailCustody: {
+      state: "referenceOnly",
+      accessGroupRefs: [group.groupId],
+    },
+    samplingPolicy: {
+      state: "adaptive",
+      degradeBefore: ["authority", "route", "activation"],
+    },
+    evidenceRefs: ["evidence:processor-contract"],
+    issuedAt: 1700000073,
+  });
+  assert.equal(processor.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.equal(processor.consumerFloor.ackFloor, "event:9");
+  assert.throws(() => assertEventFabricProcessorContract({
+    ...processor,
+    processorContractId: "processor-contract:blocked",
+    state: "blocked",
+    blockedReasons: [],
+  }), /blocked state requires blockedReasons/);
 
   assert.equal(assertAuthorityGrantRevocationPosture({
     kind: "authority.grant.revocationPosture",

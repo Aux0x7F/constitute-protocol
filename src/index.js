@@ -1238,6 +1238,7 @@ export const SWARM = Object.freeze({
     ACCESS_EPOCH: "access.epoch",
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
+    EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1298,6 +1299,7 @@ export const SWARM = Object.freeze({
     ACCESS_EPOCH: "access.epoch",
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
+    EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -4241,6 +4243,63 @@ export function assertEventFabricAccessClass(record) {
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "event fabric access class safeFacts");
   if (!Number(record.issuedAt || 0)) throw new Error("event fabric access class missing issuedAt");
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION, contentClass, privacyTier };
+}
+
+export function assertEventFabricProcessorContract(record) {
+  if (!isObject(record)) throw new Error("event fabric processor contract must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_CONTRACT, "event fabric processor contract");
+  requireString(record.processorContractId, "event fabric processor contract processorContractId");
+  requireString(record.fabricRef, "event fabric processor contract fabricRef");
+  requireString(record.processorRef, "event fabric processor contract processorRef");
+  requireString(record.processorRoleRef, "event fabric processor contract processorRoleRef");
+  const state = requireString(record.state, "event fabric processor contract state");
+  if (!["ready", "degraded", "blocked", "pending", "expired"].includes(state)) throw new Error("invalid event fabric processor contract state");
+  assertReferenceList(record.inputAccessClassRefs, "event fabric processor contract inputAccessClassRefs");
+  requireNonEmptyArray(record.inputEventClasses, "event fabric processor contract inputEventClasses").forEach((entry) => requireString(entry, "event fabric processor contract inputEventClass"));
+  requireNonEmptyArray(record.inputContentClasses, "event fabric processor contract inputContentClasses").forEach((entry) => assertContentClassName(entry, "event fabric processor contract inputContentClass"));
+  assertOptionalReferenceList(record.outputRefs, "event fabric processor contract outputRefs");
+  assertOptionalReferenceList(record.storageRefs, "event fabric processor contract storageRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "event fabric processor contract accessGroupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "event fabric processor contract evidenceRefs");
+  if (record.consumerFloor !== undefined) assertConsumerFloor(record.consumerFloor, "event fabric processor contract consumerFloor");
+  if (record.materializationBudget !== undefined) assertMaterializationBudget(record.materializationBudget, "event fabric processor contract materializationBudget");
+  const bitemporal = assertOptionalObject(record.bitemporalPolicy, "event fabric processor contract bitemporalPolicy");
+  if (Object.keys(bitemporal).length) {
+    requireString(bitemporal.eventTimeField, "event fabric processor contract bitemporalPolicy eventTimeField");
+    requireString(bitemporal.observedTimeField, "event fabric processor contract bitemporalPolicy observedTimeField");
+  }
+  const schema = assertOptionalObject(record.schemaPolicy, "event fabric processor contract schemaPolicy");
+  if (Object.keys(schema).length) {
+    requireString(schema.currentVersion, "event fabric processor contract schemaPolicy currentVersion");
+    if (schema.unknownVersionPosture !== undefined) requireString(schema.unknownVersionPosture, "event fabric processor contract schemaPolicy unknownVersionPosture");
+  }
+  const compaction = assertOptionalObject(record.compactionPolicy, "event fabric processor contract compactionPolicy");
+  if (Object.keys(compaction).length && compaction.compactionFloor !== undefined) {
+    requireString(compaction.compactionFloor, "event fabric processor contract compactionPolicy compactionFloor");
+  }
+  const cardinality = assertOptionalObject(record.cardinalityPolicy, "event fabric processor contract cardinalityPolicy");
+  if (Object.keys(cardinality).length && cardinality.highCardinalityOverflow !== undefined) {
+    requireString(cardinality.highCardinalityOverflow, "event fabric processor contract cardinalityPolicy highCardinalityOverflow");
+  }
+  const custody = assertOptionalObject(record.encryptedDetailCustody, "event fabric processor contract encryptedDetailCustody");
+  if (Object.keys(custody).length) {
+    requireString(custody.state, "event fabric processor contract encryptedDetailCustody state");
+    assertOptionalReferenceList(custody.accessGroupRefs, "event fabric processor contract encryptedDetailCustody accessGroupRefs");
+    assertOptionalReferenceList(custody.detailRefs, "event fabric processor contract encryptedDetailCustody detailRefs");
+  }
+  const sampling = assertOptionalObject(record.samplingPolicy, "event fabric processor contract samplingPolicy");
+  if (Object.keys(sampling).length) requireString(sampling.state, "event fabric processor contract samplingPolicy state");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "event fabric processor contract blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("event fabric processor contract blocked state requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "event fabric processor contract safeFacts");
+  rejectRouteControlByteFields(record, "event fabric processor contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("event fabric processor contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("event fabric processor contract expires before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }
 
 export function assertSwarmIdentityGraph(records) {

@@ -92,6 +92,7 @@ pub const RECORD_ACCESS_GROUP: &str = "access.group";
 pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
 pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
 pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
+pub const RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT: &str = "event.fabric.processor.contract";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -1697,6 +1698,55 @@ pub struct EventFabricAccessClassRecord {
     #[serde(default)]
     pub safe_facts: Value,
     pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EventFabricProcessorContractRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub processor_contract_id: String,
+    pub fabric_ref: String,
+    pub processor_ref: String,
+    pub processor_role_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub input_access_class_refs: Vec<String>,
+    #[serde(default)]
+    pub input_event_classes: Vec<String>,
+    #[serde(default)]
+    pub input_content_classes: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub consumer_floor: Option<ConsumerFloor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub materialization_budget: Option<MaterializationBudget>,
+    #[serde(default)]
+    pub bitemporal_policy: Value,
+    #[serde(default)]
+    pub schema_policy: Value,
+    #[serde(default)]
+    pub compaction_policy: Value,
+    #[serde(default)]
+    pub cardinality_policy: Value,
+    #[serde(default)]
+    pub encrypted_detail_custody: Value,
+    #[serde(default)]
+    pub sampling_policy: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -3402,7 +3452,10 @@ fn validate_authority_proof_check_record(record: &AuthorityProofCheck) -> Result
     validate_authority_proof_check(&record.check)?;
     validate_agreement_plane(&record.plane)?;
     validate_authority_proof_state(&record.state)?;
-    require_non_empty(&record.target_ref, "authority proof check missing targetRef")?;
+    require_non_empty(
+        &record.target_ref,
+        "authority proof check missing targetRef",
+    )?;
     for reference in &record.grant_refs {
         require_non_empty(reference, "authority proof check missing grantRef")?;
     }
@@ -3563,15 +3616,16 @@ pub fn validate_authority_multi_identity_proof(
             "blocked or degraded authority multi-identity proof requires blockedReasons"
         ));
     }
-    validate_safe_facts(&record.safe_facts, "authority multi-identity proof safeFacts")?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "authority multi-identity proof safeFacts",
+    )?;
     reject_private_content_fields(
         &record.safe_facts,
         "authority multi-identity proof safeFacts",
     )?;
     if record.issued_at == 0 {
-        return Err(anyhow!(
-            "authority multi-identity proof missing issuedAt"
-        ));
+        return Err(anyhow!("authority multi-identity proof missing issuedAt"));
     }
     if record
         .expires_at
@@ -3776,6 +3830,190 @@ pub fn validate_event_fabric_access_class(record: &EventFabricAccessClassRecord)
     validate_safe_facts(&record.safe_facts, "event fabric access class safeFacts")?;
     if record.issued_at == 0 {
         return Err(anyhow!("event fabric access class missing issuedAt"));
+    }
+    Ok(())
+}
+
+fn validate_policy_object<'a>(
+    value: &'a Value,
+    context: &str,
+) -> Result<Option<&'a serde_json::Map<String, Value>>> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    validate_safe_facts(value, context)?;
+    value
+        .as_object()
+        .map(Some)
+        .ok_or_else(|| anyhow!("{context} must be an object"))
+}
+
+fn require_policy_string(
+    policy: &serde_json::Map<String, Value>,
+    key: &str,
+    context: &str,
+) -> Result<()> {
+    let Some(value) = policy.get(key).and_then(Value::as_str) else {
+        return Err(anyhow!("{context} missing {key}"));
+    };
+    require_non_empty(value, &format!("{context} missing {key}"))
+}
+
+pub fn validate_event_fabric_processor_contract(
+    record: &EventFabricProcessorContractRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT,
+        "event fabric processor contract",
+    )?;
+    require_non_empty(
+        &record.processor_contract_id,
+        "event fabric processor contract missing processorContractId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "event fabric processor contract missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.processor_ref,
+        "event fabric processor contract missing processorRef",
+    )?;
+    require_non_empty(
+        &record.processor_role_ref,
+        "event fabric processor contract missing processorRoleRef",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "ready" | "degraded" | "blocked" | "pending" | "expired"
+    ) {
+        return Err(anyhow!("invalid event fabric processor contract state"));
+    }
+    require_non_empty_vec(
+        &record.input_access_class_refs,
+        "event fabric processor contract requires inputAccessClassRefs",
+    )?;
+    validate_reference_list(
+        &record.input_access_class_refs,
+        "event fabric processor contract missing inputAccessClassRefs",
+    )?;
+    require_non_empty_vec(
+        &record.input_event_classes,
+        "event fabric processor contract requires inputEventClasses",
+    )?;
+    validate_reference_list(
+        &record.input_event_classes,
+        "event fabric processor contract missing inputEventClasses",
+    )?;
+    require_non_empty_vec(
+        &record.input_content_classes,
+        "event fabric processor contract requires inputContentClasses",
+    )?;
+    for content_class in &record.input_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.output_refs,
+        "event fabric processor contract missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "event fabric processor contract missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "event fabric processor contract missing accessGroupRefs",
+    )?;
+    if let Some(floor) = &record.consumer_floor {
+        validate_consumer_floor(floor)?;
+    }
+    if let Some(budget) = &record.materialization_budget {
+        validate_materialization_budget(budget)?;
+    }
+    if let Some(policy) = validate_policy_object(
+        &record.bitemporal_policy,
+        "event fabric processor contract bitemporalPolicy",
+    )? {
+        require_policy_string(
+            policy,
+            "eventTimeField",
+            "event fabric processor contract bitemporalPolicy",
+        )?;
+        require_policy_string(
+            policy,
+            "observedTimeField",
+            "event fabric processor contract bitemporalPolicy",
+        )?;
+    }
+    if let Some(policy) = validate_policy_object(
+        &record.schema_policy,
+        "event fabric processor contract schemaPolicy",
+    )? {
+        require_policy_string(
+            policy,
+            "currentVersion",
+            "event fabric processor contract schemaPolicy",
+        )?;
+    }
+    validate_policy_object(
+        &record.compaction_policy,
+        "event fabric processor contract compactionPolicy",
+    )?;
+    validate_policy_object(
+        &record.cardinality_policy,
+        "event fabric processor contract cardinalityPolicy",
+    )?;
+    if let Some(policy) = validate_policy_object(
+        &record.encrypted_detail_custody,
+        "event fabric processor contract encryptedDetailCustody",
+    )? {
+        require_policy_string(
+            policy,
+            "state",
+            "event fabric processor contract encryptedDetailCustody",
+        )?;
+    }
+    if let Some(policy) = validate_policy_object(
+        &record.sampling_policy,
+        "event fabric processor contract samplingPolicy",
+    )? {
+        require_policy_string(
+            policy,
+            "state",
+            "event fabric processor contract samplingPolicy",
+        )?;
+    }
+    validate_reference_list(
+        &record.evidence_refs,
+        "event fabric processor contract missing evidenceRefs",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "event fabric processor contract blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "event fabric processor contract missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "event fabric processor contract safeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "event fabric processor contract safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("event fabric processor contract missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "event fabric processor contract expiresAt must be after issuedAt"
+        ));
     }
     Ok(())
 }
@@ -4310,7 +4548,10 @@ fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecor
         &record.app_contract_ref,
         "surface app manifest version missing appContractRef",
     )?;
-    require_non_empty(&record.version, "surface app manifest version missing version")?;
+    require_non_empty(
+        &record.version,
+        "surface app manifest version missing version",
+    )?;
     validate_surface_app_manifest_version_state(&record.state)?;
     if let Some(source_mode) = record.source_mode.as_deref() {
         validate_surface_fulfillment_mode(source_mode)?;
@@ -4379,7 +4620,10 @@ pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Resul
         "surface app manifest",
     )?;
     reject_private_content_fields(&serde_json::to_value(record)?, "surface app manifest")?;
-    require_non_empty(&record.manifest_id, "surface app manifest missing manifestId")?;
+    require_non_empty(
+        &record.manifest_id,
+        "surface app manifest missing manifestId",
+    )?;
     require_non_empty(&record.app_id, "surface app manifest missing appId")?;
     require_non_empty(
         &record.current_app_contract_ref,
@@ -4405,7 +4649,9 @@ pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Resul
         version.app_contract_ref == record.current_app_contract_ref
             && version.version == record.current_version
     }) {
-        return Err(anyhow!("surface app manifest missing current version claim"));
+        return Err(anyhow!(
+            "surface app manifest missing current version claim"
+        ));
     }
     validate_reference_list(
         &record.app_contract_refs,
@@ -6611,13 +6857,19 @@ pub fn validate_retention_release_posture(record: &RetentionReleasePosture) -> R
     validate_reference_list(&record.overlay_refs, "retention release overlayRefs")?;
     require_non_empty_vec(&record.owner_refs, "retention release missing ownerRefs")?;
     validate_reference_list(&record.holder_refs, "retention release holderRefs")?;
-    validate_reference_list(&record.fulfillment_refs, "retention release fulfillmentRefs")?;
+    validate_reference_list(
+        &record.fulfillment_refs,
+        "retention release fulfillmentRefs",
+    )?;
     require_non_empty_vec(
         &record.residency_layers,
         "retention release missing residencyLayers",
     )?;
     validate_reference_list(&record.witness_refs, "retention release witnessRefs")?;
-    validate_reference_list(&record.supersession_refs, "retention release supersessionRefs")?;
+    validate_reference_list(
+        &record.supersession_refs,
+        "retention release supersessionRefs",
+    )?;
     validate_reference_list(&record.retraction_refs, "retention release retractionRefs")?;
     validate_reference_list(&record.revocation_refs, "retention release revocationRefs")?;
     if record.state == "releaseBlocked" && record.blockers.is_empty() {
@@ -8553,6 +8805,82 @@ mod tests {
         let mut bad_event_class = event_class.clone();
         bad_event_class.privacy_tier = "publicSafe".to_string();
         assert!(validate_event_fabric_access_class(&bad_event_class).is_err());
+
+        let processor_floor = ConsumerFloor {
+            kind: Some(RECORD_CONSUMER_FLOOR.to_string()),
+            floor_id: "consumer-floor:logging.processor".to_string(),
+            consumer_ref: "role:logging.processor".to_string(),
+            subscription_id: None,
+            materialization_id: Some("event-fabric:logging-security".to_string()),
+            subject_ref: Some("event-fabric:logging.default".to_string()),
+            cursor: None,
+            ack_floor: Some("event:9".to_string()),
+            witness_floor: Some("event:8".to_string()),
+            compaction_floor: Some("snapshot:1".to_string()),
+            event_time_floor: None,
+            observed_time_floor: Some(1_700_000_072),
+            lag_state: "caughtUp".to_string(),
+            reason: None,
+            redelivery: json!({ "mode": "processorReplay" }),
+            replay: json!({ "mode": "bitemporal" }),
+            evidence_refs: vec!["evidence:consumer-floor".to_string()],
+            sampled_at: 1_700_000_072,
+            expires_at: Some(1_700_000_132),
+        };
+        let processor = EventFabricProcessorContractRecord {
+            kind: Some(RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT.to_string()),
+            processor_contract_id: "processor-contract:logging.security-replay".to_string(),
+            fabric_ref: "event-fabric:logging.default".to_string(),
+            processor_ref: "service:logging".to_string(),
+            processor_role_ref: "role:logging.processor".to_string(),
+            state: "ready".to_string(),
+            input_access_class_refs: vec![event_class.class_id.clone()],
+            input_event_classes: event_class.event_classes.clone(),
+            input_content_classes: vec!["encryptedDetail".to_string()],
+            output_refs: vec![
+                "projection:logging.dashboard".to_string(),
+                "storage:logging.archive".to_string(),
+            ],
+            storage_refs: vec!["storage:logging.archive".to_string()],
+            access_group_refs: vec![group.group_id.clone()],
+            consumer_floor: Some(processor_floor),
+            materialization_budget: None,
+            bitemporal_policy: json!({
+                "eventTimeField": "occurredAt",
+                "observedTimeField": "observedAt"
+            }),
+            schema_policy: json!({
+                "currentVersion": "logging.event.v1",
+                "unknownVersionPosture": "ignore"
+            }),
+            compaction_policy: json!({
+                "snapshotCadence": "bounded",
+                "compactionFloor": "snapshot:1"
+            }),
+            cardinality_policy: json!({
+                "maxLabelValues": 1000,
+                "highCardinalityOverflow": "encryptedDetailRef"
+            }),
+            encrypted_detail_custody: json!({
+                "state": "referenceOnly",
+                "accessGroupRefs": [group.group_id.clone()]
+            }),
+            sampling_policy: json!({
+                "state": "adaptive",
+                "degradeBefore": ["authority", "route", "activation"]
+            }),
+            safe_facts: Value::Null,
+            evidence_refs: vec!["evidence:processor-contract".to_string()],
+            blocked_reasons: Vec::new(),
+            issued_at: 1_700_000_073,
+            expires_at: Some(1_700_000_433),
+        };
+        validate_event_fabric_processor_contract(&processor)
+            .expect("valid event fabric processor contract");
+        let mut bad_processor = processor.clone();
+        bad_processor.processor_contract_id = "processor-contract:blocked".to_string();
+        bad_processor.state = "blocked".to_string();
+        assert!(validate_event_fabric_processor_contract(&bad_processor).is_err());
 
         let revocation = AuthorityGrantRevocationPostureRecord {
             kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),

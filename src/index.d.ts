@@ -1357,6 +1357,34 @@ export type EventFabricAccessClassRecord = {
   issuedAt: number;
 };
 
+export type EventFabricProcessorContractRecord = {
+  kind?: "event.fabric.processor.contract";
+  processorContractId: string;
+  fabricRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  state: "ready" | "degraded" | "blocked" | "pending" | "expired";
+  inputAccessClassRefs: string[];
+  inputEventClasses: string[];
+  inputContentClasses: AgreementContentClass[];
+  outputRefs?: string[];
+  storageRefs?: string[];
+  accessGroupRefs?: string[];
+  consumerFloor?: ConsumerFloor;
+  materializationBudget?: MaterializationBudget;
+  bitemporalPolicy?: Record<string, unknown>;
+  schemaPolicy?: Record<string, unknown>;
+  compactionPolicy?: Record<string, unknown>;
+  cardinalityPolicy?: Record<string, unknown>;
+  encryptedDetailCustody?: Record<string, unknown>;
+  samplingPolicy?: Record<string, unknown>;
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type ProjectionSnapshot = {
   projectionId: string;
   policyId: string;
@@ -2171,6 +2199,7 @@ export function assertAccessGroup(record: unknown): AccessGroupRecord;
 export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
 export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
+export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {
