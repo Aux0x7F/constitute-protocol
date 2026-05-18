@@ -1744,13 +1744,18 @@ export type SurfaceModuleRole =
   | "operatorHelper"
   | "releaseHelper";
 
-export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "operator" | "native" | "storage";
+export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "gateway" | "operator" | "native" | "storage";
 export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
 export type SurfaceAppManifestVersionState = "current" | "compatible" | "updateAvailable" | "blocked" | "superseded";
 export type SurfaceAppDistributionPostureState = "pending" | "retained" | "degraded" | "blocked" | "superseded" | "ignored";
 export type SurfaceAppSchemaPostureState = "compatible" | "migrationRequired" | "ignore" | "blocked";
 export type SurfaceAppBootstrapPostureState = "static" | "ready" | "degraded" | "blocked" | "unavailable";
+export type ServiceEdgeAdapterPostureState = "ready" | "degraded" | "blocked" | "released";
+export type ServiceEdgeAdmissionState = "available" | "admitting" | "saturated" | "blocked" | "released";
+export type ServiceEdgeBackpressureState = "clear" | "degraded" | "saturated" | "blocked" | "released";
+export type ServiceEdgeOutputState = "available" | "degraded" | "blocked" | "released";
+export type ServiceEdgeReleaseState = "held" | "releasable" | "released" | "blocked";
 export type ServiceManagerPostureState = "manual" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerOperation =
   | "install"
@@ -2259,6 +2264,37 @@ export type SurfaceAppModuleBindingPosture = {
   blockedReasons?: string[];
 };
 
+export type ServiceEdgeAdapterPosture = {
+  kind?: "service.edge.adapter.posture";
+  postureId: string;
+  moduleRef: string;
+  serviceRef: string;
+  serviceMemberRef: string;
+  gatewayRef?: string;
+  edgeSessionRef: string;
+  participantSide: Extract<SurfaceModuleParticipantSide, "service" | "native" | "gateway">;
+  state: ServiceEdgeAdapterPostureState;
+  admissionState: ServiceEdgeAdmissionState;
+  backpressureState: ServiceEdgeBackpressureState;
+  responseState: ServiceEdgeOutputState;
+  projectionState: ServiceEdgeOutputState;
+  releaseState: ServiceEdgeReleaseState;
+  capabilityRefs?: string[];
+  inputRecordKinds?: string[];
+  outputRecordKinds?: string[];
+  evidenceChannels?: string[];
+  queue?: Record<string, unknown>;
+  routePromiseRef?: string;
+  resourcePostureRef?: string;
+  resourcePosture?: Record<string, unknown>;
+  releaseRef?: string;
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type SurfaceAppManifestSelection = {
   kind?: "surface.app.manifest.selection";
   manifestId: string;
@@ -2666,6 +2702,7 @@ export function assertSurfaceAppAuthorityAccessPosture(record: unknown): Surface
 export function assertSurfaceAppRunnerPlan(record: unknown): SurfaceAppRunnerPlan;
 export function assertSurfaceModuleRolePosture(record: unknown): SurfaceModuleRolePosture;
 export function assertSurfaceAppModuleBindingPosture(record: unknown): SurfaceAppModuleBindingPosture;
+export function assertServiceEdgeAdapterPosture(record: unknown): ServiceEdgeAdapterPosture;
 export function assertServiceManagerPosture(record: unknown): ServiceManagerPosture;
 export function assertServiceManagerSecretBoundary(record: unknown): ServiceManagerSecretBoundary;
 export function assertServiceManagerReleaseContract(record: unknown): ServiceManagerReleaseContract;

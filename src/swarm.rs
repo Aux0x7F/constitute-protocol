@@ -19,6 +19,7 @@ pub const CAPABILITY_PROJECTION_OBSERVE: &str = "projection.observe";
 pub const CAPABILITY_PROJECTION_DELTA_APPLY: &str = "projection.delta.apply";
 pub const CAPABILITY_SERVICE_SURFACE_OBSERVE: &str = "service.surface.observe";
 pub const CAPABILITY_SERVICE_INTENT_INVOKE: &str = "service.intent.invoke";
+pub const CAPABILITY_SERVICE_EDGE_POSTURE_PUBLISH: &str = "service.edge.posture.publish";
 pub const CAPABILITY_STORAGE_OBJECT_PUT: &str = "storage.object.put";
 pub const CAPABILITY_STORAGE_OBJECT_GET: &str = "storage.object.get";
 pub const CAPABILITY_STORAGE_PIN: &str = "storage.pin";
@@ -107,6 +108,7 @@ pub const RECORD_CONTRIBUTION_LIFECYCLE: &str = "contribution.lifecycle";
 pub const RECORD_MEDIA_FULFILLMENT_EVIDENCE: &str = "media.fulfillment.evidence";
 pub const RECORD_MEDIA_TRANSPORT_PATH: &str = "media.transport.path";
 pub const RECORD_MEDIA_TRANSPORT_OBSERVATION: &str = "media.transport.observation";
+pub const RECORD_SERVICE_EDGE_ADAPTER_POSTURE: &str = "service.edge.adapter.posture";
 pub const RECORD_SERVICE_MANAGER_RELEASE_CONTRACT: &str = "service.manager.release.contract";
 pub const RECORD_SERVICE_MANAGER_SECRET_BOUNDARY: &str = "service.manager.secretBoundary";
 pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.digest";
@@ -203,6 +205,41 @@ pub const SURFACE_MODULE_ROLE_SERVICE_EDGE_ADAPTER: &str = "serviceEdgeAdapter";
 pub const SURFACE_MODULE_ROLE_PRODUCT_VIEW: &str = "productView";
 pub const SURFACE_MODULE_ROLE_OPERATOR_HELPER: &str = "operatorHelper";
 pub const SURFACE_MODULE_ROLE_RELEASE_HELPER: &str = "releaseHelper";
+
+pub const SURFACE_PARTICIPANT_SIDE_WINDOW: &str = "window";
+pub const SURFACE_PARTICIPANT_SIDE_RUNTIME: &str = "runtime";
+pub const SURFACE_PARTICIPANT_SIDE_SERVICE: &str = "service";
+pub const SURFACE_PARTICIPANT_SIDE_GATEWAY: &str = "gateway";
+pub const SURFACE_PARTICIPANT_SIDE_OPERATOR: &str = "operator";
+pub const SURFACE_PARTICIPANT_SIDE_NATIVE: &str = "native";
+pub const SURFACE_PARTICIPANT_SIDE_STORAGE: &str = "storage";
+
+pub const SERVICE_EDGE_ADAPTER_READY: &str = "ready";
+pub const SERVICE_EDGE_ADAPTER_DEGRADED: &str = "degraded";
+pub const SERVICE_EDGE_ADAPTER_BLOCKED: &str = "blocked";
+pub const SERVICE_EDGE_ADAPTER_RELEASED: &str = "released";
+
+pub const SERVICE_EDGE_ADMISSION_AVAILABLE: &str = "available";
+pub const SERVICE_EDGE_ADMISSION_ADMITTING: &str = "admitting";
+pub const SERVICE_EDGE_ADMISSION_SATURATED: &str = "saturated";
+pub const SERVICE_EDGE_ADMISSION_BLOCKED: &str = "blocked";
+pub const SERVICE_EDGE_ADMISSION_RELEASED: &str = "released";
+
+pub const SERVICE_EDGE_BACKPRESSURE_CLEAR: &str = "clear";
+pub const SERVICE_EDGE_BACKPRESSURE_DEGRADED: &str = "degraded";
+pub const SERVICE_EDGE_BACKPRESSURE_SATURATED: &str = "saturated";
+pub const SERVICE_EDGE_BACKPRESSURE_BLOCKED: &str = "blocked";
+pub const SERVICE_EDGE_BACKPRESSURE_RELEASED: &str = "released";
+
+pub const SERVICE_EDGE_OUTPUT_AVAILABLE: &str = "available";
+pub const SERVICE_EDGE_OUTPUT_DEGRADED: &str = "degraded";
+pub const SERVICE_EDGE_OUTPUT_BLOCKED: &str = "blocked";
+pub const SERVICE_EDGE_OUTPUT_RELEASED: &str = "released";
+
+pub const SERVICE_EDGE_RELEASE_HELD: &str = "held";
+pub const SERVICE_EDGE_RELEASE_RELEASABLE: &str = "releasable";
+pub const SERVICE_EDGE_RELEASE_RELEASED: &str = "released";
+pub const SERVICE_EDGE_RELEASE_BLOCKED: &str = "blocked";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -2300,6 +2337,54 @@ pub struct SurfaceAppAuthorityAccessPostureRecord {
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceEdgeAdapterPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub module_ref: String,
+    pub service_ref: String,
+    pub service_member_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gateway_ref: Option<String>,
+    pub edge_session_ref: String,
+    pub participant_side: String,
+    pub state: String,
+    pub admission_state: String,
+    pub backpressure_state: String,
+    pub response_state: String,
+    pub projection_state: String,
+    pub release_state: String,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_record_kinds: Vec<String>,
+    #[serde(default)]
+    pub output_record_kinds: Vec<String>,
+    #[serde(default)]
+    pub evidence_channels: Vec<String>,
+    #[serde(default)]
+    pub queue: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_promise_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture_ref: Option<String>,
+    #[serde(default)]
+    pub resource_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -5456,6 +5541,228 @@ pub fn validate_surface_app_authority_access_posture(
     Ok(())
 }
 
+fn validate_service_edge_adapter_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_EDGE_ADAPTER_READY
+            | SERVICE_EDGE_ADAPTER_DEGRADED
+            | SERVICE_EDGE_ADAPTER_BLOCKED
+            | SERVICE_EDGE_ADAPTER_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service edge adapter posture state"))
+    }
+}
+
+fn validate_service_edge_participant_side(side: &str) -> Result<()> {
+    if matches!(
+        side,
+        SURFACE_PARTICIPANT_SIDE_SERVICE
+            | SURFACE_PARTICIPANT_SIDE_NATIVE
+            | SURFACE_PARTICIPANT_SIDE_GATEWAY
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service edge adapter participant side"))
+    }
+}
+
+fn validate_service_edge_admission_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_EDGE_ADMISSION_AVAILABLE
+            | SERVICE_EDGE_ADMISSION_ADMITTING
+            | SERVICE_EDGE_ADMISSION_SATURATED
+            | SERVICE_EDGE_ADMISSION_BLOCKED
+            | SERVICE_EDGE_ADMISSION_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service edge admission state"))
+    }
+}
+
+fn validate_service_edge_backpressure_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_EDGE_BACKPRESSURE_CLEAR
+            | SERVICE_EDGE_BACKPRESSURE_DEGRADED
+            | SERVICE_EDGE_BACKPRESSURE_SATURATED
+            | SERVICE_EDGE_BACKPRESSURE_BLOCKED
+            | SERVICE_EDGE_BACKPRESSURE_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service edge backpressure state"))
+    }
+}
+
+fn validate_service_edge_output_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_EDGE_OUTPUT_AVAILABLE
+            | SERVICE_EDGE_OUTPUT_DEGRADED
+            | SERVICE_EDGE_OUTPUT_BLOCKED
+            | SERVICE_EDGE_OUTPUT_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service edge output state"))
+    }
+}
+
+fn validate_service_edge_release_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_EDGE_RELEASE_HELD
+            | SERVICE_EDGE_RELEASE_RELEASABLE
+            | SERVICE_EDGE_RELEASE_RELEASED
+            | SERVICE_EDGE_RELEASE_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service edge release state"))
+    }
+}
+
+fn validate_service_edge_queue(value: &Value) -> Result<()> {
+    if value.is_null() {
+        return Ok(());
+    }
+    let Some(map) = value.as_object() else {
+        return Err(anyhow!(
+            "service edge adapter posture queue must be an object"
+        ));
+    };
+    for field in ["pending", "capacity", "accepted", "rejected", "dropped"] {
+        if let Some(raw) = map.get(field) {
+            let Some(number) = raw.as_u64() else {
+                return Err(anyhow!(
+                    "service edge adapter posture queue {field} must be non-negative"
+                ));
+            };
+            if number > i64::MAX as u64 {
+                return Err(anyhow!(
+                    "service edge adapter posture queue {field} is too large"
+                ));
+            }
+        }
+    }
+    validate_safe_facts(value, "service edge adapter posture queue")
+}
+
+pub fn validate_service_edge_adapter_posture(
+    record: &ServiceEdgeAdapterPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_EDGE_ADAPTER_POSTURE,
+        "service edge adapter posture",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service edge adapter posture",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "service edge adapter posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "service edge adapter posture missing postureId",
+    )?;
+    require_non_empty(
+        &record.module_ref,
+        "service edge adapter posture missing moduleRef",
+    )?;
+    require_non_empty(
+        &record.service_ref,
+        "service edge adapter posture missing serviceRef",
+    )?;
+    validate_resolved_member_ref(
+        &record.service_member_ref,
+        "service edge adapter posture missing serviceMemberRef",
+    )?;
+    validate_optional_ref(
+        record.gateway_ref.as_deref(),
+        "service edge adapter posture missing gatewayRef",
+    )?;
+    require_non_empty(
+        &record.edge_session_ref,
+        "service edge adapter posture missing edgeSessionRef",
+    )?;
+    validate_service_edge_participant_side(&record.participant_side)?;
+    validate_service_edge_adapter_state(&record.state)?;
+    validate_service_edge_admission_state(&record.admission_state)?;
+    validate_service_edge_backpressure_state(&record.backpressure_state)?;
+    validate_service_edge_output_state(&record.response_state)?;
+    validate_service_edge_output_state(&record.projection_state)?;
+    validate_service_edge_release_state(&record.release_state)?;
+    validate_capability_names(&record.capability_refs)?;
+    validate_reference_list(
+        &record.input_record_kinds,
+        "service edge adapter posture missing inputRecordKinds",
+    )?;
+    validate_reference_list(
+        &record.output_record_kinds,
+        "service edge adapter posture missing outputRecordKinds",
+    )?;
+    validate_reference_list(
+        &record.evidence_channels,
+        "service edge adapter posture missing evidenceChannels",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service edge adapter posture missing evidenceRefs",
+    )?;
+    validate_optional_ref(
+        record.route_promise_ref.as_deref(),
+        "service edge adapter posture missing routePromiseRef",
+    )?;
+    validate_optional_ref(
+        record.resource_posture_ref.as_deref(),
+        "service edge adapter posture missing resourcePostureRef",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "service edge adapter posture missing releaseRef",
+    )?;
+    validate_service_edge_queue(&record.queue)?;
+    validate_safe_facts(
+        &record.resource_posture,
+        "service edge adapter posture resourcePosture",
+    )?;
+    validate_safe_facts(&record.safe_facts, "service edge adapter posture safeFacts")?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service edge adapter posture missing blockedReasons",
+    )?;
+    let has_blocked_state = record.state == SERVICE_EDGE_ADAPTER_BLOCKED
+        || record.admission_state == SERVICE_EDGE_ADMISSION_BLOCKED
+        || record.backpressure_state == SERVICE_EDGE_BACKPRESSURE_BLOCKED
+        || record.response_state == SERVICE_EDGE_OUTPUT_BLOCKED
+        || record.projection_state == SERVICE_EDGE_OUTPUT_BLOCKED
+        || record.release_state == SERVICE_EDGE_RELEASE_BLOCKED;
+    if has_blocked_state && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "service edge adapter blocked posture requires blockedReasons"
+        ));
+    }
+    if record.observed_at == 0 {
+        return Err(anyhow!("service edge adapter posture missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "service edge adapter posture expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
 fn validate_surface_app_compatibility_window(
     record: &SurfaceAppCompatibilityWindowRecord,
     context: &str,
@@ -5862,6 +6169,7 @@ pub fn validate_swarm_identity_graph(records: &[Value]) -> Result<()> {
                 | RECORD_CONTRIBUTION_LIFECYCLE
                 | RECORD_MEDIA_TRANSPORT_PATH
                 | RECORD_MEDIA_TRANSPORT_OBSERVATION
+                | RECORD_SERVICE_EDGE_ADAPTER_POSTURE
                 | "stream.session.offer"
                 | "stream.session.answer"
                 | "stream.session.candidate"
@@ -11293,6 +11601,74 @@ mod tests {
         revoked_ready.posture_id = "authority-access:surface-app:nvr-ui:revoked".to_string();
         revoked_ready.revocation_state = Some("revoked".to_string());
         assert!(validate_surface_app_authority_access_posture(&revoked_ready).is_err());
+    }
+
+    #[test]
+    fn validates_service_edge_adapter_posture() {
+        let service_member = pubkey_from_sk_hex(ISSUER_SK).expect("service pk");
+        let gateway_member = pubkey_from_sk_hex(GATEWAY_SK).expect("gateway pk");
+        let posture = ServiceEdgeAdapterPostureRecord {
+            kind: Some(RECORD_SERVICE_EDGE_ADAPTER_POSTURE.to_string()),
+            posture_id: "service-edge:nvr:edge-session-1".to_string(),
+            module_ref: "constitute-nvr/service-edge-adapter@0.1.0".to_string(),
+            service_ref: format!("service:{service_member}"),
+            service_member_ref: service_member,
+            gateway_ref: Some(format!("gateway:{gateway_member}")),
+            edge_session_ref: "edge-session-1".to_string(),
+            participant_side: SURFACE_PARTICIPANT_SIDE_SERVICE.to_string(),
+            state: SERVICE_EDGE_ADAPTER_READY.to_string(),
+            admission_state: SERVICE_EDGE_ADMISSION_AVAILABLE.to_string(),
+            backpressure_state: SERVICE_EDGE_BACKPRESSURE_CLEAR.to_string(),
+            response_state: SERVICE_EDGE_OUTPUT_AVAILABLE.to_string(),
+            projection_state: SERVICE_EDGE_OUTPUT_AVAILABLE.to_string(),
+            release_state: SERVICE_EDGE_RELEASE_HELD.to_string(),
+            capability_refs: vec![CAPABILITY_SERVICE_EDGE_POSTURE_PUBLISH.to_string()],
+            input_record_kinds: vec![
+                "stream.session.offer".to_string(),
+                "stream.session.control".to_string(),
+            ],
+            output_record_kinds: vec![
+                "stream.session.admission".to_string(),
+                "stream.session.answer".to_string(),
+                RECORD_MEDIA_TRANSPORT_PATH.to_string(),
+            ],
+            evidence_channels: vec![
+                "service.admission".to_string(),
+                "service.response".to_string(),
+                "projection.delta".to_string(),
+            ],
+            queue: json!({
+                "pending": 0,
+                "capacity": 32,
+                "accepted": 1,
+                "rejected": 0,
+                "dropped": 0
+            }),
+            route_promise_ref: Some("route-promise:nvr:preview:1".to_string()),
+            resource_posture_ref: Some("resource:nvr-edge".to_string()),
+            resource_posture: json!({
+                "state": "withinBudget",
+                "lane": "stream"
+            }),
+            release_ref: Some("release:nvr-edge:1".to_string()),
+            safe_facts: json!({
+                "service": "nvr",
+                "queuePending": 0
+            }),
+            evidence_refs: vec!["service.accepted:frame-1".to_string()],
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_000,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_service_edge_adapter_posture(&posture).expect("valid service edge posture");
+
+        let mut blocked_without_reason = posture.clone();
+        blocked_without_reason.backpressure_state = SERVICE_EDGE_BACKPRESSURE_BLOCKED.to_string();
+        assert!(validate_service_edge_adapter_posture(&blocked_without_reason).is_err());
+
+        let mut bad_queue = posture;
+        bad_queue.queue = json!({ "pending": -1 });
+        assert!(validate_service_edge_adapter_posture(&bad_queue).is_err());
     }
 
     #[test]
