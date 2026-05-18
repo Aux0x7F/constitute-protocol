@@ -91,6 +91,7 @@ import {
   assertServiceManagerOperationPosture,
   assertServiceManagerProofDigest,
   assertSurfaceAppManifest,
+  assertSurfaceAppDistributionPosture,
   assertSurfaceAppBootstrapContract,
   assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
@@ -809,6 +810,54 @@ test("surface app manifests pin versioned app contracts and block unproven remot
   assert.deepEqual(manifest.requiredModuleRoles, [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT]);
   assert.equal(manifest.compatibilityWindow.protocolRef, "protocol:surface-app:v1");
 
+  const distributionPosture = assertSurfaceAppDistributionPosture({
+    state: SURFACE_APP.DISTRIBUTION_POSTURE.RETAINED,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+    sourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
+    storageRefs: ["storage:object:surface-app:nvr-ui@0.2.0"],
+    pinIntentRefs: ["storage.pin.intent:surface-app:nvr-ui@0.2.0"],
+    pinProjectionRefs: ["storage.pin.projection:surface-app:nvr-ui@0.2.0"],
+    releaseContractRefs: ["service.manager.release:nvr-ui@0.2.0"],
+    retentionRefs: ["retention:surface-app:nvr-ui@0.2.0"],
+    retentionClass: "app-release",
+    schemaPosture: {
+      state: SURFACE_APP.SCHEMA_POSTURE.COMPATIBLE,
+      schemaRefs: ["schema:surface-app-contract:v1"],
+    },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.RELEASE_READY,
+      buildRef: "build:nvr-ui@0.2.0",
+      releaseRef: "release:nvr-ui@0.2.0",
+    },
+    safeFacts: {
+      retained: true,
+      version: "0.2.0",
+    },
+  });
+  assert.equal(distributionPosture.retentionClass, "app-release");
+
+  const retainedManifest = assertSurfaceAppManifest({
+    ...manifest,
+    currentAppContractRef: "surface-app:nvr-ui@0.2.0",
+    currentVersion: "0.2.0",
+    defaultSourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+    distributionPosture,
+    versions: [
+      {
+        appContractRef: "surface-app:nvr-ui@0.2.0",
+        version: "0.2.0",
+        state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+        sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+        remoteSourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
+        releaseContractRef: "service.manager.release:nvr-ui@0.2.0",
+        distributionPosture,
+      },
+    ],
+    remoteSourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
+    releaseContractRefs: ["service.manager.release:nvr-ui@0.2.0"],
+  });
+  assert.equal(retainedManifest.distributionPosture.state, SURFACE_APP.DISTRIBUTION_POSTURE.RETAINED);
+
   assert.throws(() => assertSurfaceAppManifest({
     ...manifest,
     currentVersion: "0.2.0",
@@ -828,6 +877,19 @@ test("surface app manifests pin versioned app contracts and block unproven remot
     currentAppContractRef: "surface-app:nvr-ui@0.2.0",
     currentVersion: "0.2.0",
   }), /non-bundled source requires releaseContractRef/);
+
+  assert.throws(() => assertSurfaceAppDistributionPosture({
+    ...distributionPosture,
+    pinIntentRefs: [],
+    pinProjectionRefs: [],
+  }), /retained state requires pinIntentRefs or pinProjectionRefs/);
+
+  assert.throws(() => assertSurfaceAppDistributionPosture({
+    state: SURFACE_APP.DISTRIBUTION_POSTURE.DEGRADED,
+    schemaPosture: {
+      state: SURFACE_APP.SCHEMA_POSTURE.MIGRATION_REQUIRED,
+    },
+  }), /migrationRequired state requires migrationRefs or blockedReasons/);
 });
 
 test("service manager operations and proof digests validate release train evidence", () => {

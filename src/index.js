@@ -68,6 +68,20 @@ export const SURFACE_APP = Object.freeze({
     BLOCKED: "blocked",
     SUPERSEDED: "superseded",
   }),
+  DISTRIBUTION_POSTURE: Object.freeze({
+    PENDING: "pending",
+    RETAINED: "retained",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+    IGNORED: "ignored",
+  }),
+  SCHEMA_POSTURE: Object.freeze({
+    COMPATIBLE: "compatible",
+    MIGRATION_REQUIRED: "migrationRequired",
+    IGNORE: "ignore",
+    BLOCKED: "blocked",
+  }),
   BOOTSTRAP_POSTURE: Object.freeze({
     STATIC: "static",
     READY: "ready",
@@ -4525,6 +4539,62 @@ function assertSurfaceReleasePosture(record, name = "surface release posture") {
   return posture;
 }
 
+export function assertSurfaceAppSchemaPosture(record, name = "surface app schema posture") {
+  const posture = assertOptionalObject(record, name);
+  if (!Object.keys(posture).length) return posture;
+  const state = requireString(posture.state, `${name} state`);
+  if (!Object.values(SURFACE_APP.SCHEMA_POSTURE).includes(state)) throw new Error(`invalid ${name} state`);
+  assertOptionalReferenceList(posture.schemaRefs, `${name} schemaRefs`);
+  const migrationRefs = assertOptionalReferenceList(posture.migrationRefs, `${name} migrationRefs`);
+  assertOptionalReferenceList(posture.compatibilityRefs, `${name} compatibilityRefs`);
+  assertOptionalReferenceList(posture.ignoredRefs, `${name} ignoredRefs`);
+  const blockedReasons = assertOptionalReferenceList(posture.blockedReasons, `${name} blockedReasons`);
+  if ([SURFACE_APP.SCHEMA_POSTURE.IGNORE, SURFACE_APP.SCHEMA_POSTURE.BLOCKED].includes(state) && blockedReasons.length === 0) {
+    throw new Error(`${name} ignored or blocked state requires blockedReasons`);
+  }
+  if (state === SURFACE_APP.SCHEMA_POSTURE.MIGRATION_REQUIRED && migrationRefs.length === 0 && blockedReasons.length === 0) {
+    throw new Error(`${name} migrationRequired state requires migrationRefs or blockedReasons`);
+  }
+  if (posture.safeFacts !== undefined) assertSafeObject(posture.safeFacts, `${name} safeFacts`);
+  assertSurfaceManagerSensitiveBoundary(posture, name);
+  return posture;
+}
+
+export function assertSurfaceAppDistributionPosture(record, name = "surface app distribution posture") {
+  const posture = assertOptionalObject(record, name);
+  if (!Object.keys(posture).length) return posture;
+  const state = requireString(posture.state, `${name} state`);
+  if (!Object.values(SURFACE_APP.DISTRIBUTION_POSTURE).includes(state)) throw new Error(`invalid ${name} state`);
+  if (posture.sourceMode !== undefined && !Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(posture.sourceMode)) {
+    throw new Error(`invalid ${name} sourceMode`);
+  }
+  const sourceRefs = assertOptionalReferenceList(posture.sourceRefs, `${name} sourceRefs`);
+  const storageRefs = assertOptionalReferenceList(posture.storageRefs, `${name} storageRefs`);
+  const pinIntentRefs = assertOptionalReferenceList(posture.pinIntentRefs, `${name} pinIntentRefs`);
+  const pinProjectionRefs = assertOptionalReferenceList(posture.pinProjectionRefs, `${name} pinProjectionRefs`);
+  assertOptionalReferenceList(posture.releaseContractRefs, `${name} releaseContractRefs`);
+  assertOptionalReferenceList(posture.retentionRefs, `${name} retentionRefs`);
+  assertOptionalReferenceList(posture.evidenceRefs, `${name} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(posture.blockedReasons, `${name} blockedReasons`);
+  if (posture.retentionClass !== undefined) requireString(posture.retentionClass, `${name} retentionClass`);
+  if (posture.schemaPosture !== undefined) assertSurfaceAppSchemaPosture(posture.schemaPosture, `${name} schemaPosture`);
+  if (posture.releasePosture !== undefined) assertSurfaceReleasePosture(posture.releasePosture, `${name} releasePosture`);
+  if (state === SURFACE_APP.DISTRIBUTION_POSTURE.RETAINED) {
+    if (sourceRefs.length === 0 && storageRefs.length === 0) {
+      throw new Error(`${name} retained state requires sourceRefs or storageRefs`);
+    }
+    if (pinIntentRefs.length === 0 && pinProjectionRefs.length === 0) {
+      throw new Error(`${name} retained state requires pinIntentRefs or pinProjectionRefs`);
+    }
+  }
+  if ([SURFACE_APP.DISTRIBUTION_POSTURE.BLOCKED, SURFACE_APP.DISTRIBUTION_POSTURE.IGNORED].includes(state) && blockedReasons.length === 0) {
+    throw new Error(`${name} blocked or ignored state requires blockedReasons`);
+  }
+  if (posture.safeFacts !== undefined) assertSafeObject(posture.safeFacts, `${name} safeFacts`);
+  assertSurfaceManagerSensitiveBoundary(posture, name);
+  return posture;
+}
+
 export function assertServiceManagerPosture(record) {
   if (!isObject(record)) throw new Error("service manager posture must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE, "service manager posture");
@@ -4797,6 +4867,7 @@ function assertSurfaceAppManifestVersion(record, context = "surface app manifest
   assertOptionalReferenceList(record.authorityRefs, `${context} authorityRefs`);
   assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  if (record.distributionPosture !== undefined) assertSurfaceAppDistributionPosture(record.distributionPosture, `${context} distributionPosture`);
   if (state === SURFACE_APP.MANIFEST_VERSION_STATE.BLOCKED && blockedReasons.length === 0) {
     throw new Error(`${context} blocked state requires blockedReasons`);
   }
@@ -4862,6 +4933,7 @@ export function assertSurfaceAppManifest(record) {
   }
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "surface app manifest secretBoundary");
   if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "surface app manifest releasePosture");
+  if (record.distributionPosture !== undefined) assertSurfaceAppDistributionPosture(record.distributionPosture, "surface app manifest distributionPosture");
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface app manifest safeFacts");
   assertSurfaceManagerSensitiveBoundary(record, "surface app manifest");
   if (!Number(record.issuedAt || 0)) throw new Error("surface app manifest missing issuedAt");

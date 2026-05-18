@@ -1747,6 +1747,8 @@ export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "o
 export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
 export type SurfaceAppManifestVersionState = "current" | "compatible" | "updateAvailable" | "blocked" | "superseded";
+export type SurfaceAppDistributionPostureState = "pending" | "retained" | "degraded" | "blocked" | "superseded" | "ignored";
+export type SurfaceAppSchemaPostureState = "compatible" | "migrationRequired" | "ignore" | "blocked";
 export type SurfaceAppBootstrapPostureState = "static" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerPostureState = "manual" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerOperation =
@@ -1854,6 +1856,35 @@ export type SurfaceReleasePosture = {
   rollbackRef?: string;
   evidenceRefs?: string[];
   blockedReasons?: string[];
+  [key: string]: unknown;
+};
+
+export type SurfaceAppSchemaPosture = {
+  state: SurfaceAppSchemaPostureState;
+  schemaRefs?: string[];
+  migrationRefs?: string[];
+  compatibilityRefs?: string[];
+  ignoredRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+export type SurfaceAppDistributionPosture = {
+  state: SurfaceAppDistributionPostureState;
+  sourceMode?: SurfaceModuleFulfillmentMode;
+  sourceRefs?: string[];
+  storageRefs?: string[];
+  pinIntentRefs?: string[];
+  pinProjectionRefs?: string[];
+  releaseContractRefs?: string[];
+  retentionRefs?: string[];
+  retentionClass?: string;
+  schemaPosture?: SurfaceAppSchemaPosture;
+  releasePosture?: SurfaceReleasePosture;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
   [key: string]: unknown;
 };
 
@@ -1990,6 +2021,7 @@ export type SurfaceAppManifestVersion = {
   authorityRefs?: string[];
   evidenceRefs?: string[];
   blockedReasons?: string[];
+  distributionPosture?: SurfaceAppDistributionPosture;
 };
 
 export type SurfaceAppCompatibilityWindow = {
@@ -2025,6 +2057,7 @@ export type SurfaceAppManifest = {
   blockedReasons?: string[];
   secretBoundary?: SurfaceSecretBoundary;
   releasePosture?: SurfaceReleasePosture;
+  distributionPosture?: SurfaceAppDistributionPosture;
   safeFacts?: Record<string, unknown>;
   issuedAt: number;
   expiresAt?: number;
@@ -2360,6 +2393,8 @@ export function assertMediaTransportObservation(record: unknown): MediaTransport
 export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
 export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
 export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;
+export function assertSurfaceAppDistributionPosture(record: unknown): SurfaceAppDistributionPosture;
+export function assertSurfaceAppSchemaPosture(record: unknown): SurfaceAppSchemaPosture;
 export function assertServiceManagerPosture(record: unknown): ServiceManagerPosture;
 export function assertServiceManagerSecretBoundary(record: unknown): ServiceManagerSecretBoundary;
 export function assertServiceManagerReleaseContract(record: unknown): ServiceManagerReleaseContract;

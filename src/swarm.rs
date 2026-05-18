@@ -127,6 +127,18 @@ pub const SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE: &str = "updateAvailable
 pub const SURFACE_APP_MANIFEST_VERSION_BLOCKED: &str = "blocked";
 pub const SURFACE_APP_MANIFEST_VERSION_SUPERSEDED: &str = "superseded";
 
+pub const SURFACE_APP_DISTRIBUTION_PENDING: &str = "pending";
+pub const SURFACE_APP_DISTRIBUTION_RETAINED: &str = "retained";
+pub const SURFACE_APP_DISTRIBUTION_DEGRADED: &str = "degraded";
+pub const SURFACE_APP_DISTRIBUTION_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_DISTRIBUTION_SUPERSEDED: &str = "superseded";
+pub const SURFACE_APP_DISTRIBUTION_IGNORED: &str = "ignored";
+
+pub const SURFACE_APP_SCHEMA_COMPATIBLE: &str = "compatible";
+pub const SURFACE_APP_SCHEMA_MIGRATION_REQUIRED: &str = "migrationRequired";
+pub const SURFACE_APP_SCHEMA_IGNORE: &str = "ignore";
+pub const SURFACE_APP_SCHEMA_BLOCKED: &str = "blocked";
+
 pub const SURFACE_SECRET_BOUNDARY_NOT_REQUIRED: &str = "notRequired";
 pub const SURFACE_SECRET_BOUNDARY_RESOLVED: &str = "resolved";
 pub const SURFACE_SECRET_BOUNDARY_BLOCKED: &str = "blocked";
@@ -2031,6 +2043,56 @@ pub struct SurfaceAppCompatibilityWindowRecord {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct SurfaceAppSchemaPostureRecord {
+    pub state: String,
+    #[serde(default)]
+    pub schema_refs: Vec<String>,
+    #[serde(default)]
+    pub migration_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub ignored_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppDistributionPostureRecord {
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_mode: Option<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_intent_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_projection_refs: Vec<String>,
+    #[serde(default)]
+    pub release_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retention_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub schema_posture: Option<SurfaceAppSchemaPostureRecord>,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct SurfaceAppManifestVersionRecord {
     pub app_contract_ref: String,
     pub version: String,
@@ -2065,6 +2127,8 @@ pub struct SurfaceAppManifestVersionRecord {
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub distribution_posture: Option<SurfaceAppDistributionPostureRecord>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -2109,6 +2173,8 @@ pub struct SurfaceAppManifestRecord {
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub distribution_posture: Option<SurfaceAppDistributionPostureRecord>,
     #[serde(default)]
     pub safe_facts: Value,
     pub issued_at: u64,
@@ -4906,12 +4972,18 @@ fn validate_surface_app_compatibility_window(
     record: &SurfaceAppCompatibilityWindowRecord,
     context: &str,
 ) -> Result<()> {
-    validate_optional_ref(record.protocol_ref.as_deref(), &format!("{context} missing protocolRef"))?;
+    validate_optional_ref(
+        record.protocol_ref.as_deref(),
+        &format!("{context} missing protocolRef"),
+    )?;
     validate_reference_list(
         &record.compatibility_refs,
         &format!("{context} missing compatibilityRefs"),
     )?;
-    validate_reference_list(&record.schema_refs, &format!("{context} missing schemaRefs"))?;
+    validate_reference_list(
+        &record.schema_refs,
+        &format!("{context} missing schemaRefs"),
+    )?;
     if record
         .min_version
         .as_deref()
@@ -4926,6 +4998,132 @@ fn validate_surface_app_compatibility_window(
     {
         return Err(anyhow!("{context} missing maxVersion"));
     }
+    Ok(())
+}
+
+fn validate_surface_app_schema_posture(
+    record: &SurfaceAppSchemaPostureRecord,
+    context: &str,
+) -> Result<()> {
+    validate_surface_app_schema_posture_state(&record.state)?;
+    validate_reference_list(
+        &record.schema_refs,
+        &format!("{context} missing schemaRefs"),
+    )?;
+    validate_reference_list(
+        &record.migration_refs,
+        &format!("{context} missing migrationRefs"),
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        &format!("{context} missing compatibilityRefs"),
+    )?;
+    validate_reference_list(
+        &record.ignored_refs,
+        &format!("{context} missing ignoredRefs"),
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        &format!("{context} missing blockedReasons"),
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SURFACE_APP_SCHEMA_IGNORE | SURFACE_APP_SCHEMA_BLOCKED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "{context} ignored or blocked state requires blockedReasons"
+        ));
+    }
+    if record.state == SURFACE_APP_SCHEMA_MIGRATION_REQUIRED
+        && record.migration_refs.is_empty()
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "{context} migrationRequired state requires migrationRefs or blockedReasons"
+        ));
+    }
+    reject_private_content_fields(&serde_json::to_value(record)?, context)?;
+    validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))?;
+    Ok(())
+}
+
+fn validate_surface_app_distribution_posture(
+    record: &SurfaceAppDistributionPostureRecord,
+    context: &str,
+) -> Result<()> {
+    validate_surface_app_distribution_posture_state(&record.state)?;
+    if let Some(source_mode) = record.source_mode.as_deref() {
+        validate_surface_fulfillment_mode(source_mode)?;
+    }
+    validate_reference_list(
+        &record.source_refs,
+        &format!("{context} missing sourceRefs"),
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        &format!("{context} missing storageRefs"),
+    )?;
+    validate_reference_list(
+        &record.pin_intent_refs,
+        &format!("{context} missing pinIntentRefs"),
+    )?;
+    validate_reference_list(
+        &record.pin_projection_refs,
+        &format!("{context} missing pinProjectionRefs"),
+    )?;
+    validate_reference_list(
+        &record.release_contract_refs,
+        &format!("{context} missing releaseContractRefs"),
+    )?;
+    validate_reference_list(
+        &record.retention_refs,
+        &format!("{context} missing retentionRefs"),
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        &format!("{context} missing evidenceRefs"),
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        &format!("{context} missing blockedReasons"),
+    )?;
+    validate_optional_ref(
+        record.retention_class.as_deref(),
+        &format!("{context} missing retentionClass"),
+    )?;
+    if let Some(schema_posture) = record.schema_posture.as_ref() {
+        validate_surface_app_schema_posture(schema_posture, &format!("{context} schemaPosture"))?;
+    }
+    if !record.release_posture.is_null() {
+        validate_surface_release_posture_value(
+            &record.release_posture,
+            &format!("{context} releasePosture"),
+        )?;
+    }
+    if record.state == SURFACE_APP_DISTRIBUTION_RETAINED {
+        if record.source_refs.is_empty() && record.storage_refs.is_empty() {
+            return Err(anyhow!(
+                "{context} retained state requires sourceRefs or storageRefs"
+            ));
+        }
+        if record.pin_intent_refs.is_empty() && record.pin_projection_refs.is_empty() {
+            return Err(anyhow!(
+                "{context} retained state requires pinIntentRefs or pinProjectionRefs"
+            ));
+        }
+    }
+    if matches!(
+        record.state.as_str(),
+        SURFACE_APP_DISTRIBUTION_BLOCKED | SURFACE_APP_DISTRIBUTION_IGNORED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "{context} blocked or ignored state requires blockedReasons"
+        ));
+    }
+    reject_private_content_fields(&serde_json::to_value(record)?, context)?;
+    validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))?;
     Ok(())
 }
 
@@ -5026,6 +5224,12 @@ fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecor
         &record.blocked_reasons,
         "surface app manifest version missing blockedReasons",
     )?;
+    if let Some(distribution_posture) = record.distribution_posture.as_ref() {
+        validate_surface_app_distribution_posture(
+            distribution_posture,
+            "surface app manifest version distributionPosture",
+        )?;
+    }
     Ok(())
 }
 
@@ -5131,6 +5335,12 @@ pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Resul
         &record.blocked_reasons,
         "surface app manifest missing blockedReasons",
     )?;
+    if let Some(distribution_posture) = record.distribution_posture.as_ref() {
+        validate_surface_app_distribution_posture(
+            distribution_posture,
+            "surface app manifest distributionPosture",
+        )?;
+    }
     validate_safe_facts(&record.safe_facts, "surface app manifest safeFacts")?;
     if record.issued_at == 0 {
         return Err(anyhow!("surface app manifest missing issuedAt"));
@@ -6200,6 +6410,38 @@ fn validate_surface_app_manifest_version_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported surface app manifest version state"))
+    }
+}
+
+fn validate_surface_app_distribution_posture_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_DISTRIBUTION_PENDING
+            | SURFACE_APP_DISTRIBUTION_RETAINED
+            | SURFACE_APP_DISTRIBUTION_DEGRADED
+            | SURFACE_APP_DISTRIBUTION_BLOCKED
+            | SURFACE_APP_DISTRIBUTION_SUPERSEDED
+            | SURFACE_APP_DISTRIBUTION_IGNORED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported surface app distribution posture state"
+        ))
+    }
+}
+
+fn validate_surface_app_schema_posture_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_SCHEMA_COMPATIBLE
+            | SURFACE_APP_SCHEMA_MIGRATION_REQUIRED
+            | SURFACE_APP_SCHEMA_IGNORE
+            | SURFACE_APP_SCHEMA_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface app schema posture state"))
     }
 }
 
@@ -9948,6 +10190,7 @@ mod tests {
                 authority_refs: vec![],
                 evidence_refs: vec![],
                 blocked_reasons: vec![],
+                distribution_posture: None,
             }],
             app_contract_refs: vec!["surface-app:nvr-ui@0.1.0".to_string()],
             required_module_roles: vec![SURFACE_MODULE_ROLE_RUNTIME_CLIENT.to_string()],
@@ -9969,6 +10212,7 @@ mod tests {
             authority_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
+            distribution_posture: None,
             safe_facts: Value::Null,
             issued_at: 1_700_000_000,
             expires_at: Some(1_700_003_600),
@@ -9978,6 +10222,79 @@ mod tests {
         let mut missing_current = manifest.clone();
         missing_current.current_version = "0.2.0".to_string();
         assert!(validate_surface_app_manifest(&missing_current).is_err());
+
+        let distribution_posture = SurfaceAppDistributionPostureRecord {
+            state: SURFACE_APP_DISTRIBUTION_RETAINED.to_string(),
+            source_mode: Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string()),
+            source_refs: vec!["surface-app-source:nvr-ui@0.2.0".to_string()],
+            storage_refs: vec!["storage:object:surface-app:nvr-ui@0.2.0".to_string()],
+            pin_intent_refs: vec!["storage.pin.intent:surface-app:nvr-ui@0.2.0".to_string()],
+            pin_projection_refs: vec![
+                "storage.pin.projection:surface-app:nvr-ui@0.2.0".to_string(),
+            ],
+            release_contract_refs: vec!["service.manager.release:nvr-ui@0.2.0".to_string()],
+            retention_refs: vec!["retention:surface-app:nvr-ui@0.2.0".to_string()],
+            retention_class: Some("app-release".to_string()),
+            schema_posture: Some(SurfaceAppSchemaPostureRecord {
+                state: SURFACE_APP_SCHEMA_COMPATIBLE.to_string(),
+                schema_refs: vec!["schema:surface-app-contract:v1".to_string()],
+                migration_refs: vec![],
+                compatibility_refs: vec![],
+                ignored_refs: vec![],
+                blocked_reasons: vec![],
+                safe_facts: Value::Null,
+            }),
+            release_posture: json!({
+                "state": "releaseReady",
+                "buildRef": "build:nvr-ui@0.2.0",
+                "releaseRef": "release:nvr-ui@0.2.0"
+            }),
+            evidence_refs: vec!["proof:nvr-ui@0.2.0".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "retained": true }),
+        };
+        let mut retained_manifest = manifest.clone();
+        retained_manifest.current_app_contract_ref = "surface-app:nvr-ui@0.2.0".to_string();
+        retained_manifest.current_version = "0.2.0".to_string();
+        retained_manifest.default_source_mode =
+            Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string());
+        retained_manifest.distribution_posture = Some(distribution_posture.clone());
+        retained_manifest.remote_source_refs = vec!["surface-app-source:nvr-ui@0.2.0".to_string()];
+        retained_manifest.release_contract_refs =
+            vec!["service.manager.release:nvr-ui@0.2.0".to_string()];
+        retained_manifest.versions = vec![SurfaceAppManifestVersionRecord {
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            version: "0.2.0".to_string(),
+            state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
+            source_mode: Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string()),
+            required_module_roles: vec![],
+            compatibility_window: None,
+            bundled_source_refs: vec![],
+            remote_source_refs: vec!["surface-app-source:nvr-ui@0.2.0".to_string()],
+            grant_refs: vec![],
+            runner_requirement_refs: vec![],
+            service_manager_requirement_refs: vec![],
+            module_refs: vec![],
+            compatibility_refs: vec![],
+            bootstrap_contract_ref: None,
+            release_contract_ref: Some("service.manager.release:nvr-ui@0.2.0".to_string()),
+            authority_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            distribution_posture: Some(distribution_posture.clone()),
+        }];
+        validate_surface_app_manifest(&retained_manifest).expect("retained manifest");
+
+        let mut bad_distribution = distribution_posture;
+        bad_distribution.pin_intent_refs = vec![];
+        bad_distribution.pin_projection_refs = vec![];
+        assert!(
+            validate_surface_app_distribution_posture(
+                &bad_distribution,
+                "surface app manifest distributionPosture"
+            )
+            .is_err()
+        );
 
         let mut remote_without_release = manifest;
         remote_without_release.current_app_contract_ref = "surface-app:nvr-ui@0.2.0".to_string();
@@ -10001,6 +10318,7 @@ mod tests {
             authority_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
+            distribution_posture: None,
         }];
         assert!(validate_surface_app_manifest(&remote_without_release).is_err());
     }
