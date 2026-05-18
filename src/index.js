@@ -154,6 +154,16 @@ export const SURFACE_APP = Object.freeze({
     DIRECT_EDGE: "directEdge",
     NATIVE_CHECKS: "nativeChecks",
   }),
+  ADAPTER_LIFECYCLE_STATE: Object.freeze({
+    IDLE: "idle",
+    OPENING: "opening",
+    EVIDENCE_PENDING: "evidencePending",
+    USABLE: "usable",
+    RECONNECTING: "reconnecting",
+    RELEASED: "released",
+    EXPIRED: "expired",
+    BLOCKED: "blocked",
+  }),
 });
 
 export const RUNNER = Object.freeze({
@@ -1331,6 +1341,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
+    SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
@@ -1408,6 +1419,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
+    SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
@@ -5567,6 +5579,65 @@ export function assertSurfaceAppServiceManagerActionability(record) {
     throw new Error("surface app service manager actionability expires before issuedAt");
   }
   assertNoEnumerableImplementationFields(record, "surface app service manager actionability");
+  return record;
+}
+
+export function assertSurfaceAdapterLifecyclePosture(record) {
+  if (!isObject(record)) throw new Error("surface adapter lifecycle posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE, "surface adapter lifecycle posture");
+  requireString(record.lifecycleId, "surface adapter lifecycle posture lifecycleId");
+  requireString(record.adapterRef, "surface adapter lifecycle posture adapterRef");
+  requireString(record.subjectRef, "surface adapter lifecycle posture subjectRef");
+  if (String(record.moduleRef || "").trim()) requireString(record.moduleRef, "surface adapter lifecycle posture moduleRef");
+  if (String(record.surfaceRef || "").trim()) requireString(record.surfaceRef, "surface adapter lifecycle posture surfaceRef");
+  if (String(record.role || "").trim() && !Object.values(SURFACE_APP.MODULE_ROLE).includes(record.role)) {
+    throw new Error("invalid surface adapter lifecycle role");
+  }
+  if (String(record.participantSide || "").trim() && !Object.values(SURFACE_APP.PARTICIPANT_SIDE).includes(record.participantSide)) {
+    throw new Error("invalid surface adapter lifecycle participantSide");
+  }
+  const state = requireString(record.state, "surface adapter lifecycle posture state");
+  if (!Object.values(SURFACE_APP.ADAPTER_LIFECYCLE_STATE).includes(state)) {
+    throw new Error("invalid surface adapter lifecycle state");
+  }
+  assertOptionalReferenceList(record.intentRefs, "surface adapter lifecycle posture intentRefs");
+  assertOptionalReferenceList(record.sessionRefs, "surface adapter lifecycle posture sessionRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface adapter lifecycle posture evidenceRefs");
+  assertOptionalReferenceList(record.releaseRefs, "surface adapter lifecycle posture releaseRefs");
+  assertOptionalReferenceList(record.resourceRefs, "surface adapter lifecycle posture resourceRefs");
+  assertOptionalReferenceList(record.blockedReasons, "surface adapter lifecycle posture blockedReasons");
+  if (record.reconnect !== undefined) {
+    if (!isObject(record.reconnect)) throw new Error("surface adapter lifecycle reconnect must be an object");
+    const attempt = Number(record.reconnect.attempt || 0);
+    const delayMs = Number(record.reconnect.delayMs || 0);
+    if (!Number.isFinite(attempt) || attempt < 0) throw new Error("surface adapter lifecycle reconnect attempt invalid");
+    if (!Number.isFinite(delayMs) || delayMs < 0) throw new Error("surface adapter lifecycle reconnect delay invalid");
+    if (String(record.reconnect.reason || "").trim()) requireString(record.reconnect.reason, "surface adapter lifecycle reconnect reason");
+    if (record.reconnect.nextRetryAt !== undefined && Number(record.reconnect.nextRetryAt || 0) <= Number(record.observedAt || record.issuedAt || 0)) {
+      throw new Error("surface adapter lifecycle reconnect nextRetryAt must be after observation");
+    }
+  }
+  if (record.cleanup !== undefined) {
+    if (!isObject(record.cleanup)) throw new Error("surface adapter lifecycle cleanup must be an object");
+    if (Number(record.cleanup.openResourceCount || 0) < 0) throw new Error("surface adapter lifecycle cleanup openResourceCount invalid");
+  }
+  const blockedReasons = Array.isArray(record.blockedReasons) ? record.blockedReasons : [];
+  if ([SURFACE_APP.ADAPTER_LIFECYCLE_STATE.BLOCKED, SURFACE_APP.ADAPTER_LIFECYCLE_STATE.EXPIRED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked or expired surface adapter lifecycle requires blockedReasons");
+  }
+  if (state === SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING && !isObject(record.reconnect)) {
+    throw new Error("reconnecting surface adapter lifecycle requires reconnect posture");
+  }
+  if (state === SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RELEASED && (record.releaseRefs || []).length === 0 && !String(record.releaseRef || "").trim()) {
+    throw new Error("released surface adapter lifecycle requires release ref");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface adapter lifecycle safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("surface adapter lifecycle posture missing issuedAt");
+  if (!Number(record.observedAt || 0)) throw new Error("surface adapter lifecycle posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface adapter lifecycle posture expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface adapter lifecycle posture");
   return record;
 }
 

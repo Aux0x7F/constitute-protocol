@@ -99,6 +99,7 @@ import {
   assertSurfaceAppRuntimeSelectionPosture,
   assertSurfaceAppServiceManagerActionability,
   assertSurfaceAppInstancePosture,
+  assertSurfaceAdapterLifecyclePosture,
   assertSurfaceAppFulfillmentIdentityPosture,
   assertSurfaceAppAuthorityAccessPosture,
   assertSurfaceAppRunnerPlan,
@@ -3742,6 +3743,79 @@ test("stream sessions and recipe records validate without carrying media bytes",
     capacity: { slots: 1 },
     health: { status: "ok" },
   });
+});
+
+test("surface adapter lifecycle posture separates reconnect release and cleanup", () => {
+  assert.equal(SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING, "reconnecting");
+  assert.equal(SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE, "surface.adapter.lifecycle.posture");
+  assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:nvr-preview:1",
+    adapterRef: "adapter:media-webrtc:browser",
+    moduleRef: "constitute-ui/media-webrtc-adapter@0.1.0",
+    subjectRef: "session:nvr-preview-1",
+    surfaceRef: "surface:nvr-ui",
+    role: SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING,
+    intentRefs: ["intent:nvr-preview"],
+    sessionRefs: ["session:nvr-preview-1"],
+    evidenceRefs: ["media-proof:transport-state"],
+    releaseRefs: ["release:nvr-ui:local"],
+    reconnect: {
+      attempt: 2,
+      delayMs: 4000,
+      nextRetryAt: 1700000010,
+      reason: "inboundRtpStalled",
+    },
+    cleanup: {
+      openResourceCount: 1,
+      releaseRequired: true,
+    },
+    safeFacts: {
+      sourceCount: 2,
+      selectedIceServerCount: 1,
+    },
+    issuedAt: 1700000000,
+    observedAt: 1700000001,
+    expiresAt: 1700000060,
+  });
+  assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:nvr-preview:release",
+    adapterRef: "adapter:media-webrtc:browser",
+    subjectRef: "session:nvr-preview-1",
+    role: SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RELEASED,
+    sessionRefs: ["session:nvr-preview-1"],
+    releaseRefs: ["release:nvr-ui:local"],
+    cleanup: {
+      openResourceCount: 0,
+      releaseRequired: false,
+      releasedAt: 1700000012,
+    },
+    issuedAt: 1700000010,
+    observedAt: 1700000012,
+  });
+  assert.throws(() => assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:bad",
+    adapterRef: "adapter:media-webrtc:browser",
+    subjectRef: "session:nvr-preview-1",
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING,
+    issuedAt: 1700000000,
+    observedAt: 1700000001,
+  }), /requires reconnect posture/);
+  assert.throws(() => assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:bad-release",
+    adapterRef: "adapter:media-webrtc:browser",
+    subjectRef: "session:nvr-preview-1",
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RELEASED,
+    issuedAt: 1700000000,
+    observedAt: 1700000001,
+  }), /release ref/);
 });
 
 test("stream session lifecycle classifier separates carrier record kind from reducer phase", () => {

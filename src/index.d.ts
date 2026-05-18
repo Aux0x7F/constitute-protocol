@@ -1794,6 +1794,15 @@ export type ServiceManagerProofProfile =
   | "loggingPressure"
   | "directEdge"
   | "nativeChecks";
+export type SurfaceAdapterLifecycleState =
+  | "idle"
+  | "opening"
+  | "evidencePending"
+  | "usable"
+  | "reconnecting"
+  | "released"
+  | "expired"
+  | "blocked";
 export type RunnerOperation = "prepare" | "execute" | "healthCheck" | "release" | "rollback" | "cancel";
 export type RunnerOperationState =
   | "requested"
@@ -2482,6 +2491,42 @@ export type SurfaceAppInstancePosture = {
   expiresAt?: number;
 };
 
+export type SurfaceAdapterLifecyclePosture = {
+  kind?: "surface.adapter.lifecycle.posture";
+  lifecycleId: string;
+  adapterRef: string;
+  subjectRef: string;
+  moduleRef?: string;
+  surfaceRef?: string;
+  role?: SurfaceModuleRole;
+  participantSide?: SurfaceModuleParticipantSide;
+  state: SurfaceAdapterLifecycleState;
+  intentRefs?: string[];
+  sessionRefs?: string[];
+  evidenceRefs?: string[];
+  releaseRefs?: string[];
+  resourceRefs?: string[];
+  releaseRef?: string;
+  reconnect?: {
+    attempt?: number;
+    delayMs?: number;
+    nextRetryAt?: number;
+    reason?: string;
+    [key: string]: unknown;
+  };
+  cleanup?: {
+    openResourceCount?: number;
+    releaseRequired?: boolean;
+    releasedAt?: number;
+    [key: string]: unknown;
+  };
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  issuedAt: number;
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type AppRecipe = {
   recipeId: string;
   name: string;
@@ -2815,6 +2860,7 @@ export function assertSurfaceAppManifestRunnerPlan(record: unknown): SurfaceAppM
 export function assertSurfaceAppRuntimeSelectionPosture(record: unknown): SurfaceAppRuntimeSelectionPosture;
 export function assertSurfaceAppServiceManagerActionability(record: unknown): SurfaceAppServiceManagerActionability;
 export function assertSurfaceAppInstancePosture(record: unknown): SurfaceAppInstancePosture;
+export function assertSurfaceAdapterLifecyclePosture(record: unknown): SurfaceAdapterLifecyclePosture;
 export function assertSurfaceAppFulfillmentIdentityPosture(record: unknown): SurfaceAppFulfillmentIdentityPosture;
 export function assertSurfaceAppAuthorityAccessPosture(record: unknown): SurfaceAppAuthorityAccessPosture;
 export function assertSurfaceAppRunnerPlan(record: unknown): SurfaceAppRunnerPlan;
