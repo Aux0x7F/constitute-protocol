@@ -91,9 +91,16 @@ import {
   assertServiceManagerOperationPosture,
   assertServiceManagerProofDigest,
   assertSurfaceAppManifest,
+  assertSurfaceAppManifestSelection,
+  assertSurfaceAppManifestRunnerPlan,
+  assertSurfaceAppRuntimeSelectionPosture,
+  assertSurfaceAppInstancePosture,
+  assertSurfaceAppRunnerPlan,
   assertSurfaceAppDistributionPosture,
   assertSurfaceAppBootstrapContract,
   assertSurfaceAppBootstrapPosture,
+  assertSurfaceModuleRolePosture,
+  assertSurfaceAppModuleBindingPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
   assertAccessEpoch,
@@ -890,6 +897,178 @@ test("surface app manifests pin versioned app contracts and block unproven remot
       state: SURFACE_APP.SCHEMA_POSTURE.MIGRATION_REQUIRED,
     },
   }), /migrationRequired state requires migrationRefs or blockedReasons/);
+});
+
+test("surface app instance grammar validates clean selection and runner posture records", () => {
+  const issuedAt = 1700000000;
+  const moduleClaim = {
+    moduleRef: "constitute-ui/runtime-surface-client@0.1.0",
+    role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    version: "0.1.0",
+    primitiveRefs: ["runtime.attach"],
+    requiredCapabilities: ["runtime.snapshot.subscribe"],
+    inputs: ["runtime.snapshot"],
+    outputs: ["runtime.intent"],
+    issuedAt,
+  };
+  const modulePosture = assertSurfaceModuleRolePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_MODULE_ROLE_POSTURE,
+    state: "ready",
+    blockedReason: "",
+    role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    moduleRef: "",
+    primitiveRef: "",
+    moduleCount: 1,
+    modules: [moduleClaim],
+  });
+  const bootstrapContract = assertSurfaceAppBootstrapContract({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_CONTRACT,
+    bootstrapContractId: "bootstrap:logging-ui@0.1.0",
+    appContractRef: "surface-app:logging-ui@0.1.0",
+    appId: "constitute-logging-ui",
+    state: SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    moduleRefs: [moduleClaim.moduleRef],
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    issuedAt,
+  });
+  const runnerPlan = assertSurfaceAppRunnerPlan({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_RUNNER_PLAN,
+    planId: "surface-runner:logging-ui",
+    contractId: "surface-app:logging-ui@0.1.0",
+    appId: "constitute-logging-ui",
+    state: "ready",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    attachContext: {
+      kind: "surface.app.attachContext",
+      contractId: "surface-app:logging-ui@0.1.0",
+      appId: "constitute-logging-ui",
+    },
+    modulePostures: [modulePosture],
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    bootstrapContract,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const manifestSelection = assertSurfaceAppManifestSelection({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_SELECTION,
+    manifestId: "surface-app-manifest:logging-ui",
+    appId: "constitute-logging-ui",
+    state: "ready",
+    appContractRef: "surface-app:logging-ui@0.1.0",
+    version: "0.1.0",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    claimState: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    bundledSourceRefs: ["bundle:logging-ui@0.1.0"],
+    runnerRequirementRefs: ["runner:req:logging-ui"],
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    bundledContractAvailable: true,
+    claim: {
+      appContractRef: "surface-app:logging-ui@0.1.0",
+      version: "0.1.0",
+      state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+      bundledSourceRefs: ["bundle:logging-ui@0.1.0"],
+    },
+    issuedAt,
+  });
+  const manifestRunnerPlan = assertSurfaceAppManifestRunnerPlan({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_RUNNER_PLAN,
+    planId: "surface-runner:logging-ui",
+    state: "ready",
+    manifestSelection,
+    runnerPlan,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const runtimeSelection = assertSurfaceAppRuntimeSelectionPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_RUNTIME_SELECTION_POSTURE,
+    selectionId: "runtime-selection:logging-ui",
+    state: "ready",
+    requestedAppRef: "surface-app:logging-ui@0.1.0",
+    requestedVersion: "0.1.0",
+    manifestId: "surface-app-manifest:logging-ui",
+    appId: "constitute-logging-ui",
+    pinnedAppContractRef: "surface-app:logging-ui@0.1.0",
+    pinnedVersion: "0.1.0",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    compatibilityResult: {
+      kind: "surface.app.runtime.compatibility.result",
+      state: "ready",
+      blockedReasons: [],
+    },
+    sourceTrustResult: {
+      kind: "surface.app.runtime.source.trust.result",
+      state: "ready",
+      blockedReasons: [],
+    },
+    modulePostures: [modulePosture],
+    runnerReadiness: {
+      kind: "surface.app.runtime.runner.readiness",
+      state: "ready",
+      blockedReasons: [],
+    },
+    serviceManagerReadiness: {
+      kind: "surface.app.runtime.service-manager.readiness",
+      state: "unknown",
+      blockedReasons: [],
+    },
+    manifestSelection,
+    manifestRunnerPlan,
+    runnerPlan,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const moduleBindingPosture = assertSurfaceAppModuleBindingPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MODULE_BINDING_POSTURE,
+    state: "ready",
+    roles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    keys: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    moduleRefs: [moduleClaim.moduleRef],
+    implementationRefs: [moduleClaim.moduleRef],
+    blockedReasons: [],
+  });
+  const instance = assertSurfaceAppInstancePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_INSTANCE_POSTURE,
+    instanceId: "surface-instance:logging-ui",
+    state: "ready",
+    contractId: "surface-app:logging-ui@0.1.0",
+    appId: "constitute-logging-ui",
+    appRef: "surface-app:logging-ui@0.1.0",
+    surfaceRef: "surface:logging-ui",
+    displayName: "Logging",
+    version: "0.1.0",
+    manifestId: "surface-app-manifest:logging-ui",
+    pinnedAppContractRef: "surface-app:logging-ui@0.1.0",
+    pinnedVersion: "0.1.0",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    moduleRefs: [moduleClaim.moduleRef],
+    modulePostures: [modulePosture],
+    moduleBindingPosture,
+    materializationBudgetRefs: ["logging-ui.event-table"],
+    runtimeSelectionPosture: runtimeSelection,
+    runnerReadiness: runtimeSelection.runnerReadiness,
+    serviceManagerReadiness: runtimeSelection.serviceManagerReadiness,
+    runnerPlanRef: runnerPlan.planId,
+    bootstrapContractRef: bootstrapContract.bootstrapContractId,
+    blockedReasons: [],
+    issuedAt,
+  });
+  assert.equal(instance.state, "ready");
+
+  const leakySelection = {
+    ...manifestSelection,
+    surfaceApp: { contractId: "local-object" },
+  };
+  assert.throws(
+    () => assertSurfaceAppManifestSelection(leakySelection),
+    /must not expose enumerable surfaceApp/,
+  );
 });
 
 test("service manager operations and proof digests validate release train evidence", () => {
