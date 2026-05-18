@@ -791,24 +791,32 @@ test("surface app authority access posture separates action grants from content 
     appId: "constitute-nvr-ui",
     actionRequired: true,
     accessRequired: true,
+    syncRequired: true,
     rootRefs: ["root:aux"],
     deviceRefs: ["device:aux-browser"],
     grantRefs: ["grant:app:nvr-ui:run"],
     authorityRefs: ["authority:aux-browser"],
     accessGroupRefs: ["access-group:nvr-ui:media-preview"],
+    accessEpochRefs: ["access-epoch:nvr-ui:media-preview:7"],
+    privateEnvelopeRefs: ["private-envelope:nvr-ui:media-preview:latest"],
+    syncRefs: ["witness:nvr-ui:manifest:observed"],
     requiredContentClasses: [AGREEMENT.CONTENT_CLASS.UI_PROJECTION, AGREEMENT.CONTENT_CLASS.MEDIA_REFERENCE],
     exerciseRefs: ["exercise:app:nvr-ui:run"],
     evidenceRefs: ["proof:nvr-ui:authority"],
     actionPosture: { state: "ready", grantRefCount: 1 },
-    accessPosture: { state: "ready", accessGroupRefCount: 1 },
+    accessPosture: { state: "ready", accessGroupRefCount: 1, accessEpochRefCount: 1, privateEnvelopeRefCount: 1 },
+    syncPosture: { state: "ready", syncRefCount: 1 },
     revocationPosture: { state: "clear" },
     expiryPosture: { state: "fresh" },
-    safeFacts: { actionRequired: true, accessRequired: true },
+    safeFacts: { actionRequired: true, accessRequired: true, syncRequired: true },
     issuedAt,
     expiresAt: issuedAt + 3600,
   });
   assert.equal(posture.state, "ready");
   assert.deepEqual(posture.accessGroupRefs, ["access-group:nvr-ui:media-preview"]);
+  assert.deepEqual(posture.accessEpochRefs, ["access-epoch:nvr-ui:media-preview:7"]);
+  assert.deepEqual(posture.privateEnvelopeRefs, ["private-envelope:nvr-ui:media-preview:latest"]);
+  assert.deepEqual(posture.syncRefs, ["witness:nvr-ui:manifest:observed"]);
 
   assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
     ...posture,
@@ -821,6 +829,12 @@ test("surface app authority access posture separates action grants from content 
     postureId: "authority-access:surface-app:nvr-ui:missing-access",
     accessGroupRefs: [],
   }), /access requires accessGroupRefs/);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:missing-sync",
+    syncRefs: [],
+  }), /sync requires syncRefs/);
 
   assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
     ...posture,

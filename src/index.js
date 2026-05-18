@@ -5215,17 +5215,22 @@ export function assertSurfaceAppAuthorityAccessPosture(record) {
   requireString(record.appId, "surface app authority access posture appId");
   if (record.actionRequired !== undefined && typeof record.actionRequired !== "boolean") throw new Error("surface app authority access posture actionRequired must be boolean");
   if (record.accessRequired !== undefined && typeof record.accessRequired !== "boolean") throw new Error("surface app authority access posture accessRequired must be boolean");
+  if (record.syncRequired !== undefined && typeof record.syncRequired !== "boolean") throw new Error("surface app authority access posture syncRequired must be boolean");
   assertOptionalReferenceList(record.rootRefs, "surface app authority access posture rootRefs");
   assertOptionalReferenceList(record.deviceRefs, "surface app authority access posture deviceRefs");
   const grantRefs = assertOptionalReferenceList(record.grantRefs, "surface app authority access posture grantRefs");
   const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "surface app authority access posture authorityRefs");
   const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "surface app authority access posture accessGroupRefs");
+  const accessEpochRefs = assertOptionalReferenceList(record.accessEpochRefs, "surface app authority access posture accessEpochRefs");
+  const privateEnvelopeRefs = assertOptionalReferenceList(record.privateEnvelopeRefs, "surface app authority access posture privateEnvelopeRefs");
+  const syncRefs = assertOptionalReferenceList(record.syncRefs, "surface app authority access posture syncRefs");
   const requiredContentClasses = assertOptionalContentClassList(record.requiredContentClasses, "surface app authority access posture requiredContentClasses");
   assertOptionalReferenceList(record.revocationRefs, "surface app authority access posture revocationRefs");
   assertOptionalReferenceList(record.exerciseRefs, "surface app authority access posture exerciseRefs");
   assertOptionalReferenceList(record.evidenceRefs, "surface app authority access posture evidenceRefs");
   if (record.actionPosture !== undefined) assertSafeObject(record.actionPosture, "surface app authority access posture actionPosture");
   if (record.accessPosture !== undefined) assertSafeObject(record.accessPosture, "surface app authority access posture accessPosture");
+  if (record.syncPosture !== undefined) assertSafeObject(record.syncPosture, "surface app authority access posture syncPosture");
   if (record.revocationPosture !== undefined) assertSafeObject(record.revocationPosture, "surface app authority access posture revocationPosture");
   if (record.expiryPosture !== undefined) assertSafeObject(record.expiryPosture, "surface app authority access posture expiryPosture");
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface app authority access posture safeFacts");
@@ -5237,6 +5242,9 @@ export function assertSurfaceAppAuthorityAccessPosture(record) {
   }
   if (record.accessRequired === true && requiredContentClasses.length === 0 && state !== "blocked") {
     throw new Error("surface app authority access posture access requires requiredContentClasses");
+  }
+  if (record.syncRequired === true && syncRefs.length === 0 && state !== "blocked") {
+    throw new Error("surface app authority access posture sync requires syncRefs");
   }
   if (String(record.revocationState || "").trim()) {
     const revocationState = requireString(record.revocationState, "surface app authority access posture revocationState");
@@ -5254,6 +5262,9 @@ export function assertSurfaceAppAuthorityAccessPosture(record) {
     grantRefs,
     authorityRefs,
     accessGroupRefs,
+    accessEpochRefs,
+    privateEnvelopeRefs,
+    syncRefs,
     requiredContentClasses,
   };
 }
