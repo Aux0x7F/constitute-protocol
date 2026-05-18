@@ -104,6 +104,7 @@ import {
   assertSurfaceAppBootstrapPosture,
   assertSurfaceModuleRolePosture,
   assertSurfaceAppModuleBindingPosture,
+  assertServiceEdgeAdapterPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
   assertAccessEpoch,
@@ -574,6 +575,7 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
       SURFACE_APP.MODULE_ROLE.PROJECTION_MODEL,
       SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
       SURFACE_APP.MODULE_ROLE.SERVICE_SURFACE_ADAPTER,
+      SURFACE_APP.MODULE_ROLE.SERVICE_EDGE_ADAPTER,
       SURFACE_APP.MODULE_ROLE.PRODUCT_VIEW,
     ],
     modules: [
@@ -609,6 +611,17 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
         primitiveRefs: ["stream.session.intent"],
         inputs: ["camera.selection"],
         outputs: ["runtime.intent"],
+        issuedAt,
+      },
+      {
+        moduleRef: "constitute-nvr/service-edge-adapter@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.SERVICE_EDGE_ADAPTER,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.SERVICE,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.NATIVE_INSTALLED,
+        version: "0.1.0",
+        primitiveRefs: ["service.admission", "stream.session.answer", "projection.delta"],
+        inputs: ["runtime.intent"],
+        outputs: ["service.accepted", "service.response.materialized", "projection.delta"],
         issuedAt,
       },
       {
@@ -652,7 +665,8 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     issuedAt,
   });
 
-  assert.equal(contract.modules.length, 5);
+  assert.equal(contract.modules.length, 6);
+  assert.equal(contract.modules[4].role, SURFACE_APP.MODULE_ROLE.SERVICE_EDGE_ADAPTER);
   assert.throws(() => assertSurfaceAppContract({
     ...contract,
     modules: contract.modules.filter((module) => module.role !== SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER),
@@ -661,6 +675,53 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     ...runtimeClient,
     role: "runtimePolicy",
   }), /invalid surface module role/);
+});
+
+test("service edge adapter posture validates service-owned admission and backpressure evidence", () => {
+  const observedAt = 1700000000;
+  const posture = assertServiceEdgeAdapterPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_EDGE_ADAPTER_POSTURE,
+    postureId: "service-edge:nvr:edge-session-1",
+    moduleRef: "constitute-nvr/service-edge-adapter@0.1.0",
+    serviceRef: `service:${SERVICE_PK}`,
+    serviceMemberRef: SERVICE_PK,
+    gatewayRef: `gateway:${GATEWAY_PK}`,
+    edgeSessionRef: "edge-session-1",
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.SERVICE,
+    state: "ready",
+    admissionState: "available",
+    backpressureState: "clear",
+    responseState: "available",
+    projectionState: "available",
+    releaseState: "held",
+    capabilityRefs: [SWARM.CORE_CAPABILITY.SERVICE_EDGE_POSTURE_PUBLISH],
+    inputRecordKinds: [SWARM.STREAM_RECORD_KIND.OFFER, SWARM.STREAM_RECORD_KIND.CONTROL],
+    outputRecordKinds: [
+      SWARM.STREAM_RECORD_KIND.ADMISSION,
+      SWARM.STREAM_RECORD_KIND.ANSWER,
+      SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
+    ],
+    evidenceChannels: ["service.admission", "service.response", "projection.delta"],
+    queue: { pending: 0, capacity: 32, accepted: 1, rejected: 0, dropped: 0 },
+    resourcePostureRef: "resource:nvr-edge",
+    releaseRef: "release:nvr-edge",
+    safeFacts: { edge: "nvr" },
+    evidenceRefs: ["service.accepted:frame-1"],
+    observedAt,
+    expiresAt: observedAt + 90_000,
+  });
+  assert.equal(posture.state, "ready");
+  assert.equal(posture.participantSide, SURFACE_APP.PARTICIPANT_SIDE.SERVICE);
+
+  assert.throws(() => assertServiceEdgeAdapterPosture({
+    ...posture,
+    backpressureState: "blocked",
+    blockedReasons: [],
+  }), /blocked posture requires blockedReasons/);
+  assert.throws(() => assertServiceEdgeAdapterPosture({
+    ...posture,
+    queue: { pending: -1 },
+  }), /queue pending must be non-negative/);
 });
 
 test("surface app fulfillment identity posture separates contract, service, host, route, and runner identity", () => {

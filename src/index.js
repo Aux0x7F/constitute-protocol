@@ -36,6 +36,7 @@ export const SURFACE_APP = Object.freeze({
     PROJECTION_MODEL: "projectionModel",
     PLATFORM_ADAPTER: "platformAdapter",
     SERVICE_SURFACE_ADAPTER: "serviceSurfaceAdapter",
+    SERVICE_EDGE_ADAPTER: "serviceEdgeAdapter",
     PRODUCT_VIEW: "productView",
     OPERATOR_HELPER: "operatorHelper",
     RELEASE_HELPER: "releaseHelper",
@@ -44,6 +45,7 @@ export const SURFACE_APP = Object.freeze({
     WINDOW: "window",
     RUNTIME: "runtime",
     SERVICE: "service",
+    GATEWAY: "gateway",
     OPERATOR: "operator",
     NATIVE: "native",
     STORAGE: "storage",
@@ -1306,6 +1308,7 @@ export const SWARM = Object.freeze({
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
+    SERVICE_EDGE_ADAPTER_POSTURE: "service.edge.adapter.posture",
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
     SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
     SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
@@ -1379,6 +1382,7 @@ export const SWARM = Object.freeze({
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
+    SERVICE_EDGE_ADAPTER_POSTURE: "service.edge.adapter.posture",
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
     SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
     SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
@@ -1724,6 +1728,7 @@ export const SWARM = Object.freeze({
     NODE_CAPABILITY_ACTIVATE: "node.capability.activate",
     ROUTE_PROMISE_RESOLVE: "route.promise.resolve",
     ROUTE_OBSERVATION_PUBLISH: "route.observation.publish",
+    SERVICE_EDGE_POSTURE_PUBLISH: "service.edge.posture.publish",
     STREAM_ROUTE_PLAN_OBSERVE: "stream.routePlan.observe",
     RUNTIME_DIAGNOSTICS_OBSERVE: "runtime.diagnostics.observe",
     RUNTIME_DIAGNOSTICS_COMMAND: "runtime.diagnostics.command",
@@ -5288,6 +5293,79 @@ export function assertSurfaceAppModuleBindingPosture(record) {
   assertOptionalReferenceList(record.implementationRefs, "surface app module binding posture implementationRefs");
   assertNoEnumerableImplementationFields(record, "surface app module binding posture");
   return record;
+}
+
+export function assertServiceEdgeAdapterPosture(record) {
+  if (!isObject(record)) throw new Error("service edge adapter posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_EDGE_ADAPTER_POSTURE, "service edge adapter posture");
+  const state = assertSurfaceAppRecordState(record, "service edge adapter posture", ["ready", "degraded", "blocked", "released"]);
+  const postureId = requireString(record.postureId, "service edge adapter posture postureId");
+  const moduleRef = requireString(record.moduleRef, "service edge adapter posture moduleRef");
+  const serviceRef = requireString(record.serviceRef, "service edge adapter posture serviceRef");
+  const serviceMemberRef = requireString(record.serviceMemberRef, "service edge adapter posture serviceMemberRef");
+  const edgeSessionRef = requireString(record.edgeSessionRef, "service edge adapter posture edgeSessionRef");
+  const participantSide = requireString(record.participantSide, "service edge adapter posture participantSide");
+  if (![
+    SURFACE_APP.PARTICIPANT_SIDE.SERVICE,
+    SURFACE_APP.PARTICIPANT_SIDE.NATIVE,
+    SURFACE_APP.PARTICIPANT_SIDE.GATEWAY,
+  ].includes(participantSide)) {
+    throw new Error("invalid service edge adapter posture participantSide");
+  }
+  for (const [field, values] of Object.entries({
+    admissionState: ["available", "admitting", "saturated", "blocked", "released"],
+    backpressureState: ["clear", "degraded", "saturated", "blocked", "released"],
+    responseState: ["available", "degraded", "blocked", "released"],
+    projectionState: ["available", "degraded", "blocked", "released"],
+    releaseState: ["held", "releasable", "released", "blocked"],
+  })) {
+    const value = requireString(record[field], `service edge adapter posture ${field}`);
+    if (!values.includes(value)) throw new Error(`invalid service edge adapter posture ${field}`);
+  }
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service edge adapter posture blockedReasons");
+  if ((state === "blocked" || [
+    record.admissionState,
+    record.backpressureState,
+    record.responseState,
+    record.projectionState,
+    record.releaseState,
+  ].includes("blocked")) && blockedReasons.length === 0) {
+    throw new Error("service edge adapter blocked posture requires blockedReasons");
+  }
+  assertOptionalReferenceList(record.capabilityRefs, "service edge adapter posture capabilityRefs").map(assertCapabilityName);
+  assertOptionalReferenceList(record.inputRecordKinds, "service edge adapter posture inputRecordKinds");
+  assertOptionalReferenceList(record.outputRecordKinds, "service edge adapter posture outputRecordKinds");
+  assertOptionalReferenceList(record.evidenceChannels, "service edge adapter posture evidenceChannels");
+  assertOptionalReferenceList(record.evidenceRefs, "service edge adapter posture evidenceRefs");
+  if (String(record.gatewayRef || "").trim()) requireString(record.gatewayRef, "service edge adapter posture gatewayRef");
+  if (String(record.routePromiseRef || "").trim()) requireString(record.routePromiseRef, "service edge adapter posture routePromiseRef");
+  if (String(record.resourcePostureRef || "").trim()) requireString(record.resourcePostureRef, "service edge adapter posture resourcePostureRef");
+  if (String(record.releaseRef || "").trim()) requireString(record.releaseRef, "service edge adapter posture releaseRef");
+  if (record.queue !== undefined) {
+    const queue = assertSafeObject(record.queue, "service edge adapter posture queue");
+    for (const field of ["pending", "capacity", "accepted", "rejected", "dropped"]) {
+      if (queue[field] !== undefined && (!Number.isFinite(Number(queue[field])) || Number(queue[field]) < 0)) {
+        throw new Error(`service edge adapter posture queue ${field} must be non-negative`);
+      }
+    }
+  }
+  if (record.resourcePosture !== undefined) assertSafeObject(record.resourcePosture, "service edge adapter posture resourcePosture");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service edge adapter posture safeFacts");
+  if (!Number(record.observedAt || 0)) throw new Error("service edge adapter posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("service edge adapter posture expires before observedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "service edge adapter posture");
+  return {
+    ...record,
+    postureId,
+    moduleRef,
+    serviceRef,
+    serviceMemberRef,
+    edgeSessionRef,
+    participantSide,
+    blockedReasons,
+  };
 }
 
 export function assertSurfaceAppManifestSelection(record) {
