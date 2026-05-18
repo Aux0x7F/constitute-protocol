@@ -1739,6 +1739,7 @@ export type SurfaceModuleRole =
   | "projectionModel"
   | "platformAdapter"
   | "serviceSurfaceAdapter"
+  | "serviceEdgeAdapter"
   | "productView"
   | "operatorHelper"
   | "releaseHelper";

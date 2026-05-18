@@ -199,6 +199,7 @@ pub const SURFACE_MODULE_ROLE_RUNTIME_CLIENT: &str = "runtimeClient";
 pub const SURFACE_MODULE_ROLE_PROJECTION_MODEL: &str = "projectionModel";
 pub const SURFACE_MODULE_ROLE_PLATFORM_ADAPTER: &str = "platformAdapter";
 pub const SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER: &str = "serviceSurfaceAdapter";
+pub const SURFACE_MODULE_ROLE_SERVICE_EDGE_ADAPTER: &str = "serviceEdgeAdapter";
 pub const SURFACE_MODULE_ROLE_PRODUCT_VIEW: &str = "productView";
 pub const SURFACE_MODULE_ROLE_OPERATOR_HELPER: &str = "operatorHelper";
 pub const SURFACE_MODULE_ROLE_RELEASE_HELPER: &str = "releaseHelper";
@@ -5138,6 +5139,7 @@ fn validate_surface_module_role(role: &str) -> Result<()> {
             | SURFACE_MODULE_ROLE_PROJECTION_MODEL
             | SURFACE_MODULE_ROLE_PLATFORM_ADAPTER
             | SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER
+            | SURFACE_MODULE_ROLE_SERVICE_EDGE_ADAPTER
             | SURFACE_MODULE_ROLE_PRODUCT_VIEW
             | SURFACE_MODULE_ROLE_OPERATOR_HELPER
             | SURFACE_MODULE_ROLE_RELEASE_HELPER

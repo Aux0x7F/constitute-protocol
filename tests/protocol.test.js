@@ -574,6 +574,7 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
       SURFACE_APP.MODULE_ROLE.PROJECTION_MODEL,
       SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
       SURFACE_APP.MODULE_ROLE.SERVICE_SURFACE_ADAPTER,
+      SURFACE_APP.MODULE_ROLE.SERVICE_EDGE_ADAPTER,
       SURFACE_APP.MODULE_ROLE.PRODUCT_VIEW,
     ],
     modules: [
@@ -609,6 +610,17 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
         primitiveRefs: ["stream.session.intent"],
         inputs: ["camera.selection"],
         outputs: ["runtime.intent"],
+        issuedAt,
+      },
+      {
+        moduleRef: "constitute-nvr/service-edge-adapter@0.1.0",
+        role: SURFACE_APP.MODULE_ROLE.SERVICE_EDGE_ADAPTER,
+        participantSide: SURFACE_APP.PARTICIPANT_SIDE.SERVICE,
+        fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.NATIVE_INSTALLED,
+        version: "0.1.0",
+        primitiveRefs: ["service.admission", "stream.session.answer", "projection.delta"],
+        inputs: ["runtime.intent"],
+        outputs: ["service.accepted", "service.response.materialized", "projection.delta"],
         issuedAt,
       },
       {
@@ -652,7 +664,8 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     issuedAt,
   });
 
-  assert.equal(contract.modules.length, 5);
+  assert.equal(contract.modules.length, 6);
+  assert.equal(contract.modules[4].role, SURFACE_APP.MODULE_ROLE.SERVICE_EDGE_ADAPTER);
   assert.throws(() => assertSurfaceAppContract({
     ...contract,
     modules: contract.modules.filter((module) => module.role !== SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER),

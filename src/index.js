@@ -36,6 +36,7 @@ export const SURFACE_APP = Object.freeze({
     PROJECTION_MODEL: "projectionModel",
     PLATFORM_ADAPTER: "platformAdapter",
     SERVICE_SURFACE_ADAPTER: "serviceSurfaceAdapter",
+    SERVICE_EDGE_ADAPTER: "serviceEdgeAdapter",
     PRODUCT_VIEW: "productView",
     OPERATOR_HELPER: "operatorHelper",
     RELEASE_HELPER: "releaseHelper",
