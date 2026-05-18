@@ -4779,6 +4779,17 @@ function assertSurfaceAppManifestVersion(record, context = "surface app manifest
   if (record.sourceMode !== undefined && !Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(record.sourceMode)) {
     throw new Error(`invalid ${context} sourceMode`);
   }
+  if (record.requiredModuleRoles !== undefined) {
+    requireArray(record.requiredModuleRoles, `${context} requiredModuleRoles`).forEach((role) => {
+      if (!Object.values(SURFACE_APP.MODULE_ROLE).includes(role)) throw new Error(`invalid ${context} required module role`);
+    });
+  }
+  if (record.compatibilityWindow !== undefined) assertSurfaceAppCompatibilityWindow(record.compatibilityWindow, `${context} compatibilityWindow`);
+  assertOptionalReferenceList(record.bundledSourceRefs, `${context} bundledSourceRefs`);
+  assertOptionalReferenceList(record.remoteSourceRefs, `${context} remoteSourceRefs`);
+  assertOptionalReferenceList(record.grantRefs, `${context} grantRefs`);
+  assertOptionalReferenceList(record.runnerRequirementRefs, `${context} runnerRequirementRefs`);
+  assertOptionalReferenceList(record.serviceManagerRequirementRefs, `${context} serviceManagerRequirementRefs`);
   assertOptionalReferenceList(record.compatibilityRefs, `${context} compatibilityRefs`);
   assertOptionalReferenceList(record.moduleRefs, `${context} moduleRefs`);
   if (record.bootstrapContractRef !== undefined) requireString(record.bootstrapContractRef, `${context} bootstrapContractRef`);
@@ -4796,6 +4807,16 @@ function assertSurfaceAppManifestVersion(record, context = "surface app manifest
   ) {
     throw new Error(`${context} non-bundled source requires releaseContractRef`);
   }
+  return record;
+}
+
+function assertSurfaceAppCompatibilityWindow(record, context = "surface app compatibilityWindow") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  if (record.minVersion !== undefined) requireString(record.minVersion, `${context} minVersion`);
+  if (record.maxVersion !== undefined) requireString(record.maxVersion, `${context} maxVersion`);
+  if (record.protocolRef !== undefined) requireString(record.protocolRef, `${context} protocolRef`);
+  assertOptionalReferenceList(record.compatibilityRefs, `${context} compatibilityRefs`);
+  assertOptionalReferenceList(record.schemaRefs, `${context} schemaRefs`);
   return record;
 }
 
@@ -4818,7 +4839,18 @@ export function assertSurfaceAppManifest(record) {
     && String(entry.version) === String(record.currentVersion)
   ));
   if (!current) throw new Error("surface app manifest missing current version claim");
+  if (record.requiredModuleRoles !== undefined) {
+    requireArray(record.requiredModuleRoles, "surface app manifest requiredModuleRoles").forEach((role) => {
+      if (!Object.values(SURFACE_APP.MODULE_ROLE).includes(role)) throw new Error("invalid surface app manifest required module role");
+    });
+  }
+  if (record.compatibilityWindow !== undefined) assertSurfaceAppCompatibilityWindow(record.compatibilityWindow, "surface app manifest compatibilityWindow");
   assertOptionalReferenceList(record.appContractRefs, "surface app manifest appContractRefs");
+  assertOptionalReferenceList(record.bundledSourceRefs, "surface app manifest bundledSourceRefs");
+  assertOptionalReferenceList(record.remoteSourceRefs, "surface app manifest remoteSourceRefs");
+  assertOptionalReferenceList(record.grantRefs, "surface app manifest grantRefs");
+  assertOptionalReferenceList(record.runnerRequirementRefs, "surface app manifest runnerRequirementRefs");
+  assertOptionalReferenceList(record.serviceManagerRequirementRefs, "surface app manifest serviceManagerRequirementRefs");
   assertOptionalReferenceList(record.compatibilityRefs, "surface app manifest compatibilityRefs");
   assertOptionalReferenceList(record.bootstrapContractRefs, "surface app manifest bootstrapContractRefs");
   assertOptionalReferenceList(record.releaseContractRefs, "surface app manifest releaseContractRefs");

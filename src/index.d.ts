@@ -1976,6 +1976,13 @@ export type SurfaceAppManifestVersion = {
   version: string;
   state: SurfaceAppManifestVersionState;
   sourceMode?: SurfaceModuleFulfillmentMode;
+  requiredModuleRoles?: SurfaceModuleRole[];
+  compatibilityWindow?: SurfaceAppCompatibilityWindow;
+  bundledSourceRefs?: string[];
+  remoteSourceRefs?: string[];
+  grantRefs?: string[];
+  runnerRequirementRefs?: string[];
+  serviceManagerRequirementRefs?: string[];
   moduleRefs?: string[];
   compatibilityRefs?: string[];
   bootstrapContractRef?: string;
@@ -1983,6 +1990,14 @@ export type SurfaceAppManifestVersion = {
   authorityRefs?: string[];
   evidenceRefs?: string[];
   blockedReasons?: string[];
+};
+
+export type SurfaceAppCompatibilityWindow = {
+  minVersion?: string;
+  maxVersion?: string;
+  protocolRef?: string;
+  compatibilityRefs?: string[];
+  schemaRefs?: string[];
 };
 
 export type SurfaceAppManifest = {
@@ -1995,6 +2010,13 @@ export type SurfaceAppManifest = {
   defaultSourceMode?: SurfaceModuleFulfillmentMode;
   versions: SurfaceAppManifestVersion[];
   appContractRefs?: string[];
+  requiredModuleRoles?: SurfaceModuleRole[];
+  compatibilityWindow?: SurfaceAppCompatibilityWindow;
+  bundledSourceRefs?: string[];
+  remoteSourceRefs?: string[];
+  grantRefs?: string[];
+  runnerRequirementRefs?: string[];
+  serviceManagerRequirementRefs?: string[];
   compatibilityRefs?: string[];
   bootstrapContractRefs?: string[];
   releaseContractRefs?: string[];

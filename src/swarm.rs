@@ -162,6 +162,14 @@ pub const SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT: &str = "storageObject";
 pub const SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED: &str = "nativeInstalled";
 pub const SURFACE_FULFILLMENT_MODE_DEV_OVERLAY: &str = "devOverlay";
 
+pub const SURFACE_MODULE_ROLE_RUNTIME_CLIENT: &str = "runtimeClient";
+pub const SURFACE_MODULE_ROLE_PROJECTION_MODEL: &str = "projectionModel";
+pub const SURFACE_MODULE_ROLE_PLATFORM_ADAPTER: &str = "platformAdapter";
+pub const SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER: &str = "serviceSurfaceAdapter";
+pub const SURFACE_MODULE_ROLE_PRODUCT_VIEW: &str = "productView";
+pub const SURFACE_MODULE_ROLE_OPERATOR_HELPER: &str = "operatorHelper";
+pub const SURFACE_MODULE_ROLE_RELEASE_HELPER: &str = "releaseHelper";
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ZoneScope {
@@ -2008,12 +2016,41 @@ pub struct SurfaceAppBootstrapContractRecord {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct SurfaceAppCompatibilityWindowRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protocol_ref: Option<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub schema_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct SurfaceAppManifestVersionRecord {
     pub app_contract_ref: String,
     pub version: String,
     pub state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_mode: Option<String>,
+    #[serde(default)]
+    pub required_module_roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatibility_window: Option<SurfaceAppCompatibilityWindowRecord>,
+    #[serde(default)]
+    pub bundled_source_refs: Vec<String>,
+    #[serde(default)]
+    pub remote_source_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub runner_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub service_manager_requirement_refs: Vec<String>,
     #[serde(default)]
     pub module_refs: Vec<String>,
     #[serde(default)]
@@ -2046,6 +2083,20 @@ pub struct SurfaceAppManifestRecord {
     pub versions: Vec<SurfaceAppManifestVersionRecord>,
     #[serde(default)]
     pub app_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub required_module_roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatibility_window: Option<SurfaceAppCompatibilityWindowRecord>,
+    #[serde(default)]
+    pub bundled_source_refs: Vec<String>,
+    #[serde(default)]
+    pub remote_source_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub runner_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub service_manager_requirement_refs: Vec<String>,
     #[serde(default)]
     pub compatibility_refs: Vec<String>,
     #[serde(default)]
@@ -4826,6 +4877,58 @@ pub fn validate_surface_app_bootstrap_contract(
     Ok(())
 }
 
+fn validate_surface_module_role(role: &str) -> Result<()> {
+    if matches!(
+        role,
+        SURFACE_MODULE_ROLE_RUNTIME_CLIENT
+            | SURFACE_MODULE_ROLE_PROJECTION_MODEL
+            | SURFACE_MODULE_ROLE_PLATFORM_ADAPTER
+            | SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER
+            | SURFACE_MODULE_ROLE_PRODUCT_VIEW
+            | SURFACE_MODULE_ROLE_OPERATOR_HELPER
+            | SURFACE_MODULE_ROLE_RELEASE_HELPER
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface module role"))
+    }
+}
+
+fn validate_surface_module_roles(roles: &[String], context: &str) -> Result<()> {
+    validate_reference_list(roles, context)?;
+    for role in roles {
+        validate_surface_module_role(role)?;
+    }
+    Ok(())
+}
+
+fn validate_surface_app_compatibility_window(
+    record: &SurfaceAppCompatibilityWindowRecord,
+    context: &str,
+) -> Result<()> {
+    validate_optional_ref(record.protocol_ref.as_deref(), &format!("{context} missing protocolRef"))?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        &format!("{context} missing compatibilityRefs"),
+    )?;
+    validate_reference_list(&record.schema_refs, &format!("{context} missing schemaRefs"))?;
+    if record
+        .min_version
+        .as_deref()
+        .is_some_and(|version| version.trim().is_empty())
+    {
+        return Err(anyhow!("{context} missing minVersion"));
+    }
+    if record
+        .max_version
+        .as_deref()
+        .is_some_and(|version| version.trim().is_empty())
+    {
+        return Err(anyhow!("{context} missing maxVersion"));
+    }
+    Ok(())
+}
+
 fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecord) -> Result<()> {
     require_non_empty(
         &record.app_contract_ref,
@@ -4860,6 +4963,36 @@ fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecor
             ));
         }
     }
+    validate_surface_module_roles(
+        &record.required_module_roles,
+        "surface app manifest version missing requiredModuleRoles",
+    )?;
+    if let Some(window) = record.compatibility_window.as_ref() {
+        validate_surface_app_compatibility_window(
+            window,
+            "surface app manifest version compatibilityWindow",
+        )?;
+    }
+    validate_reference_list(
+        &record.bundled_source_refs,
+        "surface app manifest version missing bundledSourceRefs",
+    )?;
+    validate_reference_list(
+        &record.remote_source_refs,
+        "surface app manifest version missing remoteSourceRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "surface app manifest version missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.runner_requirement_refs,
+        "surface app manifest version missing runnerRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.service_manager_requirement_refs,
+        "surface app manifest version missing serviceManagerRequirementRefs",
+    )?;
     validate_reference_list(
         &record.module_refs,
         "surface app manifest version missing moduleRefs",
@@ -4936,9 +5069,36 @@ pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Resul
             "surface app manifest missing current version claim"
         ));
     }
+    validate_surface_module_roles(
+        &record.required_module_roles,
+        "surface app manifest missing requiredModuleRoles",
+    )?;
+    if let Some(window) = record.compatibility_window.as_ref() {
+        validate_surface_app_compatibility_window(
+            window,
+            "surface app manifest compatibilityWindow",
+        )?;
+    }
     validate_reference_list(
         &record.app_contract_refs,
         "surface app manifest missing appContractRefs",
+    )?;
+    validate_reference_list(
+        &record.bundled_source_refs,
+        "surface app manifest missing bundledSourceRefs",
+    )?;
+    validate_reference_list(
+        &record.remote_source_refs,
+        "surface app manifest missing remoteSourceRefs",
+    )?;
+    validate_reference_list(&record.grant_refs, "surface app manifest missing grantRefs")?;
+    validate_reference_list(
+        &record.runner_requirement_refs,
+        "surface app manifest missing runnerRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.service_manager_requirement_refs,
+        "surface app manifest missing serviceManagerRequirementRefs",
     )?;
     validate_reference_list(
         &record.compatibility_refs,
@@ -9768,6 +9928,19 @@ mod tests {
                 version: "0.1.0".to_string(),
                 state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
                 source_mode: Some(SURFACE_FULFILLMENT_MODE_BUNDLED.to_string()),
+                required_module_roles: vec![SURFACE_MODULE_ROLE_RUNTIME_CLIENT.to_string()],
+                compatibility_window: Some(SurfaceAppCompatibilityWindowRecord {
+                    min_version: Some("0.1.0".to_string()),
+                    max_version: Some("0.1.x".to_string()),
+                    protocol_ref: Some("protocol:surface-app:v1".to_string()),
+                    compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+                    schema_refs: vec!["schema:surface-app-contract:v1".to_string()],
+                }),
+                bundled_source_refs: vec!["bundle:constitute-nvr-ui@0.1.0".to_string()],
+                remote_source_refs: vec![],
+                grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+                runner_requirement_refs: vec!["runner:req:nvr-ui".to_string()],
+                service_manager_requirement_refs: vec!["service-manager:req:nvr-ui".to_string()],
                 module_refs: vec!["module:runtime-client@0.1.0".to_string()],
                 compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
                 bootstrap_contract_ref: None,
@@ -9777,6 +9950,19 @@ mod tests {
                 blocked_reasons: vec![],
             }],
             app_contract_refs: vec!["surface-app:nvr-ui@0.1.0".to_string()],
+            required_module_roles: vec![SURFACE_MODULE_ROLE_RUNTIME_CLIENT.to_string()],
+            compatibility_window: Some(SurfaceAppCompatibilityWindowRecord {
+                min_version: Some("0.1.0".to_string()),
+                max_version: Some("0.1.x".to_string()),
+                protocol_ref: Some("protocol:surface-app:v1".to_string()),
+                compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+                schema_refs: vec!["schema:surface-app-contract:v1".to_string()],
+            }),
+            bundled_source_refs: vec!["bundle:constitute-nvr-ui@0.1.0".to_string()],
+            remote_source_refs: vec![],
+            grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+            runner_requirement_refs: vec!["runner:req:nvr-ui".to_string()],
+            service_manager_requirement_refs: vec!["service-manager:req:nvr-ui".to_string()],
             compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
             bootstrap_contract_refs: vec![],
             release_contract_refs: vec![],
@@ -9801,6 +9987,13 @@ mod tests {
             version: "0.2.0".to_string(),
             state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
             source_mode: Some(SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE.to_string()),
+            required_module_roles: vec![],
+            compatibility_window: None,
+            bundled_source_refs: vec![],
+            remote_source_refs: vec!["swarm-package:nvr-ui@0.2.0".to_string()],
+            grant_refs: vec![],
+            runner_requirement_refs: vec![],
+            service_manager_requirement_refs: vec![],
             module_refs: vec![],
             compatibility_refs: vec![],
             bootstrap_contract_ref: None,

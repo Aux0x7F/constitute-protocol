@@ -774,16 +774,40 @@ test("surface app manifests pin versioned app contracts and block unproven remot
         version: "0.1.0",
         state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
         sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+        compatibilityWindow: {
+          minVersion: "0.1.0",
+          maxVersion: "0.1.x",
+          protocolRef: "protocol:surface-app:v1",
+          schemaRefs: ["schema:surface-app-contract:v1"],
+        },
+        bundledSourceRefs: ["bundle:constitute-nvr-ui@0.1.0"],
+        grantRefs: ["grant:app:nvr-ui:run"],
+        runnerRequirementRefs: ["runner:req:nvr-ui"],
+        serviceManagerRequirementRefs: ["service-manager:req:nvr-ui"],
         moduleRefs: ["constitute-ui/runtime-surface-client@0.1.0"],
         compatibilityRefs: ["protocol:surface-app:v1"],
       },
     ],
     appContractRefs: ["surface-app:nvr-ui@0.1.0"],
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    compatibilityWindow: {
+      minVersion: "0.1.0",
+      maxVersion: "0.1.x",
+      protocolRef: "protocol:surface-app:v1",
+      schemaRefs: ["schema:surface-app-contract:v1"],
+    },
+    bundledSourceRefs: ["bundle:constitute-nvr-ui@0.1.0"],
+    grantRefs: ["grant:app:nvr-ui:run"],
+    runnerRequirementRefs: ["runner:req:nvr-ui"],
+    serviceManagerRequirementRefs: ["service-manager:req:nvr-ui"],
     compatibilityRefs: ["protocol:surface-app:v1"],
     issuedAt,
     expiresAt: issuedAt + 3600,
   });
   assert.equal(manifest.currentAppContractRef, "surface-app:nvr-ui@0.1.0");
+  assert.deepEqual(manifest.requiredModuleRoles, [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT]);
+  assert.equal(manifest.compatibilityWindow.protocolRef, "protocol:surface-app:v1");
 
   assert.throws(() => assertSurfaceAppManifest({
     ...manifest,
@@ -798,6 +822,7 @@ test("surface app manifests pin versioned app contracts and block unproven remot
         version: "0.2.0",
         state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
         sourceMode: SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE,
+        remoteSourceRefs: ["swarm-package:nvr-ui@0.2.0"],
       },
     ],
     currentAppContractRef: "surface-app:nvr-ui@0.2.0",
