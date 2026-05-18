@@ -1318,6 +1318,7 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
     SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_MANIFEST_SELECTION: "surface.app.manifest.selection",
+    SURFACE_APP_SOURCE_CANDIDATE_POSTURE: "surface.app.source.candidate.posture",
     SURFACE_APP_MANIFEST_RUNNER_PLAN: "surface.app.manifest.runner.plan",
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
@@ -1392,6 +1393,7 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
     SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_MANIFEST_SELECTION: "surface.app.manifest.selection",
+    SURFACE_APP_SOURCE_CANDIDATE_POSTURE: "surface.app.source.candidate.posture",
     SURFACE_APP_MANIFEST_RUNNER_PLAN: "surface.app.manifest.runner.plan",
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
@@ -5388,6 +5390,7 @@ export function assertSurfaceAppManifestSelection(record) {
   if (record.compatibilityWindow !== undefined) assertSurfaceAppCompatibilityWindow(record.compatibilityWindow, "surface app manifest selection compatibilityWindow");
   if (String(record.bootstrapContractRef || "").trim()) requireString(record.bootstrapContractRef, "surface app manifest selection bootstrapContractRef");
   if (String(record.releaseContractRef || "").trim()) requireString(record.releaseContractRef, "surface app manifest selection releaseContractRef");
+  if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.claim !== undefined && record.claim !== null) assertSurfaceAppManifestVersion(record.claim, "surface app manifest selection claim");
   if (state === "ready" && sourceMode !== SURFACE_APP.FULFILLMENT_MODE.BUNDLED) {
     if (!String(record.releaseContractRef || "").trim()) throw new Error("surface app ready remote selection requires releaseContractRef");
@@ -5401,6 +5404,53 @@ export function assertSurfaceAppManifestSelection(record) {
     throw new Error("surface app manifest selection expires before issuedAt");
   }
   assertNoEnumerableImplementationFields(record, "surface app manifest selection");
+  return record;
+}
+
+export function assertSurfaceAppSourceCandidatePosture(record) {
+  if (!isObject(record)) throw new Error("surface app source candidate posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE, "surface app source candidate posture");
+  const state = assertSurfaceAppRecordState(record, "surface app source candidate posture", ["ready", "degraded", "blocked"]);
+  const sourceMode = requireString(record.sourceMode, "surface app source candidate posture sourceMode");
+  if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app source candidate posture sourceMode");
+  requireString(record.sourceClass, "surface app source candidate posture sourceClass");
+  assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
+  assertOptionalReferenceList(record.bundledSourceRefs, "surface app source candidate posture bundledSourceRefs");
+  assertOptionalReferenceList(record.remoteSourceRefs, "surface app source candidate posture remoteSourceRefs");
+  assertOptionalReferenceList(record.storageObjectRefs, "surface app source candidate posture storageObjectRefs");
+  assertOptionalReferenceList(record.releaseSourceRefs, "surface app source candidate posture releaseSourceRefs");
+  assertOptionalReferenceList(record.swarmSourceRefs, "surface app source candidate posture swarmSourceRefs");
+  assertOptionalReferenceList(record.compatibilityRefs, "surface app source candidate posture compatibilityRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "surface app source candidate posture rollbackRefs");
+  assertOptionalReferenceList(record.secretBoundaryRefs, "surface app source candidate posture secretBoundaryRefs");
+  assertOptionalReferenceList(record.trustRefs, "surface app source candidate posture trustRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app source candidate posture evidenceRefs");
+  if (String(record.releaseContractRef || "").trim()) requireString(record.releaseContractRef, "surface app source candidate posture releaseContractRef");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app source candidate posture blockedReasons");
+  if (state === "ready" && blockedReasons.length) throw new Error("ready surface app source candidate posture cannot carry blockedReasons");
+  if (state !== "blocked" && sourceMode !== SURFACE_APP.FULFILLMENT_MODE.BUNDLED) {
+    const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
+    if (!candidateRefs.length) throw new Error("remote surface app source candidate requires candidateRefs");
+    if (!String(record.releaseContractRef || "").trim()) throw new Error("remote surface app source candidate requires releaseContractRef");
+    if (!assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs").length) {
+      throw new Error("remote surface app source candidate requires proofDigestRefs");
+    }
+    if (!assertOptionalReferenceList(record.rollbackRefs, "surface app source candidate posture rollbackRefs").length) {
+      throw new Error("remote surface app source candidate requires rollbackRefs");
+    }
+    if (!assertOptionalReferenceList(record.secretBoundaryRefs, "surface app source candidate posture secretBoundaryRefs").length) {
+      throw new Error("remote surface app source candidate requires secretBoundaryRefs");
+    }
+    if (!assertOptionalReferenceList(record.compatibilityRefs, "surface app source candidate posture compatibilityRefs").length) {
+      throw new Error("remote surface app source candidate requires compatibilityRefs");
+    }
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app source candidate posture missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app source candidate posture expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface app source candidate posture");
   return record;
 }
 
@@ -5455,6 +5505,7 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app runtime selection posture sourceMode");
   assertOptionalReferenceList(record.requiredModuleRoles, "surface app runtime selection posture requiredModuleRoles");
   if (record.compatibilityResult !== undefined) assertSurfaceAppReadiness(record.compatibilityResult, "surface app runtime compatibility result");
+  if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.sourceTrustResult !== undefined) assertSurfaceAppReadiness(record.sourceTrustResult, "surface app runtime source trust result");
   requireArray(record.modulePostures || [], "surface app runtime selection posture modulePostures").forEach(assertSurfaceModuleRolePosture);
   if (record.runnerReadiness !== undefined) assertSurfaceAppReadiness(record.runnerReadiness, "surface app runtime runner readiness");

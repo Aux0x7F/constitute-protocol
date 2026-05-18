@@ -1746,6 +1746,14 @@ export type SurfaceModuleRole =
 
 export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "gateway" | "operator" | "native" | "storage";
 export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
+export type SurfaceAppSourceClass =
+  | "bundled"
+  | "storagePinned"
+  | "releaseFetched"
+  | "swarmHosted"
+  | "nativeInstalled"
+  | "devOverlay"
+  | "unknown";
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
 export type SurfaceAppManifestVersionState = "current" | "compatible" | "updateAvailable" | "blocked" | "superseded";
 export type SurfaceAppDistributionPostureState = "pending" | "retained" | "degraded" | "blocked" | "superseded" | "ignored";
@@ -2314,10 +2322,34 @@ export type SurfaceAppManifestSelection = {
   compatibilityRefs?: string[];
   bootstrapContractRef?: string;
   releaseContractRef?: string;
+  sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   bundledContractAvailable?: boolean;
   evidenceRefs?: string[];
   blockedReasons?: string[];
   claim?: SurfaceAppManifestVersion | null;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppSourceCandidatePosture = {
+  kind?: "surface.app.source.candidate.posture";
+  state: "ready" | "degraded" | "blocked";
+  sourceMode: SurfaceModuleFulfillmentMode;
+  sourceClass: SurfaceAppSourceClass;
+  candidateRefs?: string[];
+  bundledSourceRefs?: string[];
+  remoteSourceRefs?: string[];
+  storageObjectRefs?: string[];
+  releaseSourceRefs?: string[];
+  swarmSourceRefs?: string[];
+  releaseContractRef?: string;
+  compatibilityRefs?: string[];
+  proofDigestRefs?: string[];
+  rollbackRefs?: string[];
+  secretBoundaryRefs?: string[];
+  trustRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
   issuedAt: number;
   expiresAt?: number;
 };
@@ -2366,6 +2398,7 @@ export type SurfaceAppRuntimeSelectionPosture = {
   sourceMode: SurfaceModuleFulfillmentMode;
   requiredModuleRoles?: SurfaceModuleRole[];
   compatibilityResult?: Record<string, unknown>;
+  sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   sourceTrustResult?: Record<string, unknown>;
   modulePostures?: SurfaceModuleRolePosture[];
   runnerReadiness?: Record<string, unknown>;
@@ -2694,6 +2727,7 @@ export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;
 export function assertSurfaceAppDistributionPosture(record: unknown): SurfaceAppDistributionPosture;
 export function assertSurfaceAppSchemaPosture(record: unknown): SurfaceAppSchemaPosture;
 export function assertSurfaceAppManifestSelection(record: unknown): SurfaceAppManifestSelection;
+export function assertSurfaceAppSourceCandidatePosture(record: unknown): SurfaceAppSourceCandidatePosture;
 export function assertSurfaceAppManifestRunnerPlan(record: unknown): SurfaceAppManifestRunnerPlan;
 export function assertSurfaceAppRuntimeSelectionPosture(record: unknown): SurfaceAppRuntimeSelectionPosture;
 export function assertSurfaceAppInstancePosture(record: unknown): SurfaceAppInstancePosture;

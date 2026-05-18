@@ -93,6 +93,7 @@ import {
   assertServiceManagerProofDigest,
   assertSurfaceAppManifest,
   assertSurfaceAppManifestSelection,
+  assertSurfaceAppSourceCandidatePosture,
   assertSurfaceAppManifestRunnerPlan,
   assertSurfaceAppRuntimeSelectionPosture,
   assertSurfaceAppInstancePosture,
@@ -1142,6 +1143,49 @@ test("surface app instance grammar validates clean selection and runner posture 
     },
     issuedAt,
   });
+  const sourceCandidatePosture = assertSurfaceAppSourceCandidatePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+    state: "ready",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    sourceClass: "bundled",
+    candidateRefs: ["bundle:logging-ui@0.1.0"],
+    bundledSourceRefs: ["bundle:logging-ui@0.1.0"],
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    blockedReasons: [],
+    issuedAt,
+  });
+  const blockedRemoteCandidate = assertSurfaceAppSourceCandidatePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+    state: "blocked",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+    sourceClass: "storagePinned",
+    candidateRefs: ["storage-object:logging-ui@0.2.0"],
+    storageObjectRefs: ["storage-object:logging-ui@0.2.0"],
+    releaseContractRef: "release:logging-ui@0.2.0",
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
+    rollbackRefs: ["rollback:logging-ui@0.1.0"],
+    secretBoundaryRefs: [],
+    blockedReasons: ["missingSecretBoundaryRef"],
+    issuedAt,
+  });
+  assert.equal(blockedRemoteCandidate.state, "blocked");
+  assert.throws(
+    () => assertSurfaceAppSourceCandidatePosture({
+      kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+      state: "ready",
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+      sourceClass: "storagePinned",
+      candidateRefs: ["storage-object:logging-ui@0.2.0"],
+      releaseContractRef: "release:logging-ui@0.2.0",
+      proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
+      rollbackRefs: ["rollback:logging-ui@0.1.0"],
+      compatibilityRefs: ["protocol:surface-app:v1"],
+      blockedReasons: [],
+      issuedAt,
+    }),
+    /requires secretBoundaryRefs/
+  );
   const manifestRunnerPlan = assertSurfaceAppManifestRunnerPlan({
     kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_RUNNER_PLAN,
     planId: "surface-runner:logging-ui",
@@ -1168,6 +1212,7 @@ test("surface app instance grammar validates clean selection and runner posture 
       state: "ready",
       blockedReasons: [],
     },
+    sourceCandidatePosture,
     sourceTrustResult: {
       kind: "surface.app.runtime.source.trust.result",
       state: "ready",
