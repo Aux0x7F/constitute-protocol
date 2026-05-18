@@ -6,6 +6,7 @@ export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
 export const SURFACE_APP: Readonly<Record<string, unknown>>;
+export const AGREEMENT: Readonly<Record<string, unknown>>;
 export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
 export const STORAGE_KEY_GRANULARITY: Readonly<Record<string, string>>;
@@ -1155,6 +1156,162 @@ export type SwarmRevocationRecord = {
   issuedAt: number;
 };
 
+export type AgreementPlane = "actionAuthority" | "accessAuthority" | "deliveryWitness" | "materialization";
+export type ActionGrantState = "requested" | "accepted" | "applied" | "rejected" | "blocked" | "expired" | "revoked";
+export type RootAuthorityOperation = "addRoot" | "refreshRoot" | "rotateRoot" | "revokeRoot" | "enrollDevice" | "revokeDevice";
+export type AccessEpochChangeKind = "create" | "addMember" | "removeMember" | "rotateKey" | "revokeMember" | "partitionSplit" | "partitionMerge" | "purposeKey";
+export type AgreementContentClass = "safeFacts" | "safeIndex" | "uiProjection" | "encryptedDetail" | "encryptedRaw" | "mediaReference" | "diagnosticDetail";
+export type AgreementPrivacyTier = "publicSafe" | "domainSafe" | "domainEncrypted" | "privateEncrypted";
+export type AgreementSafeFactPolicy = "none" | "minimal" | "indexOnly" | "projectionSafe";
+
+export type AuthorityRootOperationRecord = {
+  kind?: "authority.root.operation";
+  operationId: string;
+  operation: RootAuthorityOperation;
+  identityRef: string;
+  actorRef: string;
+  targetRef: string;
+  adminGrantRefs: string[];
+  rootRefs?: string[];
+  deviceRefs?: string[];
+  notificationRefs?: string[];
+  evidenceRefs?: string[];
+  state: ActionGrantState;
+  blockedReason?: string;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type ActionAuthorityGrantRecord = {
+  kind?: "authority.action.grant";
+  grantId: string;
+  plane?: AgreementPlane;
+  issuerRef: string;
+  subjectRef: string;
+  audienceRefs: string[];
+  authorityDomain: SwarmAuthorityDomain;
+  resourceRef: string;
+  action: string;
+  state?: ActionGrantState;
+  scope?: Record<string, unknown>;
+  capabilityRefs?: string[];
+  parentGrantRefs?: string[];
+  revocationRefs?: string[];
+  evidenceRefs?: string[];
+  elevated?: boolean;
+  rootRefs?: string[];
+  delegation?: Record<string, unknown>;
+  blockedReason?: string;
+  safeFacts?: Record<string, unknown>;
+  privateRefs?: Array<Record<string, unknown>>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type ActionAuthorityExerciseRecord = {
+  kind?: "authority.action.exercise";
+  exerciseId: string;
+  grantId: string;
+  actorRef: string;
+  subjectRef: string;
+  resourceRef: string;
+  action: string;
+  state: ActionGrantState;
+  evidenceRefs?: string[];
+  resultRefs?: string[];
+  blockedReason?: string;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  observedAt?: number;
+};
+
+export type AuthorityGrantRevocationPostureRecord = {
+  kind?: "authority.grant.revocationPosture";
+  revocationId: string;
+  targetGrantRef: string;
+  issuerRef: string;
+  authorityDomain: SwarmAuthorityDomain;
+  affectedGrantRefs: string[];
+  affectedAccessGroupRefs?: string[];
+  inheritedScopeRefs?: string[];
+  state: ActionGrantState;
+  reasonCode: string;
+  evidenceRefs?: string[];
+  issuedAt: number;
+  effectiveAt?: number;
+};
+
+export type AccessGroupRecord = {
+  kind?: "access.group";
+  groupId: string;
+  ownerRef: string;
+  subjectRef: string;
+  contentClasses: AgreementContentClass[];
+  memberRefs: string[];
+  adminRefs: string[];
+  currentEpochId: string;
+  partitionRefs?: string[];
+  policyRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+};
+
+export type AccessEpochRecord = {
+  kind?: "access.epoch";
+  epochId: string;
+  groupId: string;
+  sequence: number;
+  changeKind: AccessEpochChangeKind;
+  previousEpochId?: string;
+  memberRefs: string[];
+  addedMemberRefs?: string[];
+  removedMemberRefs?: string[];
+  partitionRefs?: string[];
+  keyRef: string;
+  proofRefs: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type PrivateContentEnvelopeRecord = {
+  kind?: "private.content.envelope";
+  envelopeId: string;
+  contentClass: AgreementContentClass;
+  accessGroupRef: string;
+  epochId: string;
+  subjectRef: string;
+  issuerRef: string;
+  ciphertextRef?: string;
+  storageObjectRef?: string;
+  detailRef?: string;
+  mediaObjectRef?: string;
+  caacEnvelopeRef?: string;
+  recipientRefs?: string[];
+  keyRef?: string;
+  summarySafeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type EventFabricAccessClassRecord = {
+  kind?: "event.fabric.accessClass";
+  classId: string;
+  contentClass: AgreementContentClass;
+  privacyTier: AgreementPrivacyTier;
+  eventClasses: string[];
+  accessGroupRefs: string[];
+  processorRoleRefs?: string[];
+  storageClass: string;
+  retentionClass: string;
+  safeFactPolicy: AgreementSafeFactPolicy;
+  indexPolicy?: Record<string, unknown>;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+};
+
 export type ProjectionSnapshot = {
   projectionId: string;
   policyId: string;
@@ -1800,6 +1957,14 @@ export function assertSwarmInteraction(record: unknown): SwarmInteractionRecord;
 export function assertSwarmActivation(record: unknown): SwarmActivationRecord;
 export function assertSwarmRelease(record: unknown): SwarmReleaseRecord;
 export function assertSwarmRevocation(record: unknown): SwarmRevocationRecord;
+export function assertAuthorityRootOperation(record: unknown): AuthorityRootOperationRecord;
+export function assertActionAuthorityGrant(record: unknown): ActionAuthorityGrantRecord;
+export function assertActionAuthorityExercise(record: unknown): ActionAuthorityExerciseRecord;
+export function assertAuthorityGrantRevocationPosture(record: unknown): AuthorityGrantRevocationPostureRecord;
+export function assertAccessGroup(record: unknown): AccessGroupRecord;
+export function assertAccessEpoch(record: unknown): AccessEpochRecord;
+export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
+export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {

@@ -118,6 +118,63 @@ export const SURFACE_APP = Object.freeze({
   }),
 });
 
+export const AGREEMENT = Object.freeze({
+  PLANE: Object.freeze({
+    ACTION_AUTHORITY: "actionAuthority",
+    ACCESS_AUTHORITY: "accessAuthority",
+    DELIVERY_WITNESS: "deliveryWitness",
+    MATERIALIZATION: "materialization",
+  }),
+  ACTION_GRANT_STATE: Object.freeze({
+    REQUESTED: "requested",
+    ACCEPTED: "accepted",
+    APPLIED: "applied",
+    REJECTED: "rejected",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+    REVOKED: "revoked",
+  }),
+  ROOT_OPERATION: Object.freeze({
+    ADD_ROOT: "addRoot",
+    REFRESH_ROOT: "refreshRoot",
+    ROTATE_ROOT: "rotateRoot",
+    REVOKE_ROOT: "revokeRoot",
+    ENROLL_DEVICE: "enrollDevice",
+    REVOKE_DEVICE: "revokeDevice",
+  }),
+  ACCESS_EPOCH_CHANGE: Object.freeze({
+    CREATE: "create",
+    ADD_MEMBER: "addMember",
+    REMOVE_MEMBER: "removeMember",
+    ROTATE_KEY: "rotateKey",
+    REVOKE_MEMBER: "revokeMember",
+    PARTITION_SPLIT: "partitionSplit",
+    PARTITION_MERGE: "partitionMerge",
+    PURPOSE_KEY: "purposeKey",
+  }),
+  CONTENT_CLASS: Object.freeze({
+    SAFE_FACTS: "safeFacts",
+    SAFE_INDEX: "safeIndex",
+    UI_PROJECTION: "uiProjection",
+    ENCRYPTED_DETAIL: "encryptedDetail",
+    ENCRYPTED_RAW: "encryptedRaw",
+    MEDIA_REFERENCE: "mediaReference",
+    DIAGNOSTIC_DETAIL: "diagnosticDetail",
+  }),
+  PRIVACY_TIER: Object.freeze({
+    PUBLIC_SAFE: "publicSafe",
+    DOMAIN_SAFE: "domainSafe",
+    DOMAIN_ENCRYPTED: "domainEncrypted",
+    PRIVATE_ENCRYPTED: "privateEncrypted",
+  }),
+  SAFE_FACT_POLICY: Object.freeze({
+    NONE: "none",
+    MINIMAL: "minimal",
+    INDEX_ONLY: "indexOnly",
+    PROJECTION_SAFE: "projectionSafe",
+  }),
+});
+
 export const STORAGE = Object.freeze({
   OBJECT_HASH_ALG: "sha256-ciphertext-v1",
   CHUNK_HASH_ALG: "sha256-ciphertext-v1",
@@ -1137,6 +1194,14 @@ export const SWARM = Object.freeze({
     SWARM_ACTIVATION: "swarm.activation",
     SWARM_RELEASE: "swarm.release",
     SWARM_REVOCATION: "swarm.revocation",
+    AUTHORITY_ROOT_OPERATION: "authority.root.operation",
+    AUTHORITY_ACTION_GRANT: "authority.action.grant",
+    AUTHORITY_ACTION_EXERCISE: "authority.action.exercise",
+    AUTHORITY_GRANT_REVOCATION_POSTURE: "authority.grant.revocationPosture",
+    ACCESS_GROUP: "access.group",
+    ACCESS_EPOCH: "access.epoch",
+    PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
+    EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1182,6 +1247,14 @@ export const SWARM = Object.freeze({
     SWARM_ACTIVATION: "swarm.activation",
     SWARM_RELEASE: "swarm.release",
     SWARM_REVOCATION: "swarm.revocation",
+    AUTHORITY_ROOT_OPERATION: "authority.root.operation",
+    AUTHORITY_ACTION_GRANT: "authority.action.grant",
+    AUTHORITY_ACTION_EXERCISE: "authority.action.exercise",
+    AUTHORITY_GRANT_REVOCATION_POSTURE: "authority.grant.revocationPosture",
+    ACCESS_GROUP: "access.group",
+    ACCESS_EPOCH: "access.epoch",
+    PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
+    EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -3730,6 +3803,294 @@ export function assertSwarmRevocation(record) {
   requireString(record.reasonCode, "swarm revocation reasonCode");
   if (!Number(record.issuedAt || 0)) throw new Error("swarm revocation missing issuedAt");
   return record;
+}
+
+const PRIVATE_CONTENT_FORBIDDEN_FIELDS = new Set([
+  "plaintext",
+  "cleartext",
+  "body",
+  "payload",
+  "contents",
+  "content",
+  "value",
+  "ciphertext",
+  "sealedPayload",
+  "wrappedKey",
+  "key",
+  "secret",
+  "password",
+  "token",
+  "privateKey",
+  "secretKey",
+]);
+
+function assertAgreementPlaneName(value, name = "agreement plane") {
+  const plane = requireString(value, name);
+  if (!Object.values(AGREEMENT.PLANE).includes(plane)) throw new Error(`unsupported ${name}`);
+  return plane;
+}
+
+function assertActionGrantStateName(value, name = "action grant state") {
+  const state = requireString(value, name);
+  if (!Object.values(AGREEMENT.ACTION_GRANT_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertRootOperationName(value, name = "root operation") {
+  const operation = requireString(value, name);
+  if (!Object.values(AGREEMENT.ROOT_OPERATION).includes(operation)) throw new Error(`unsupported ${name}`);
+  return operation;
+}
+
+function assertAccessEpochChangeName(value, name = "access epoch change") {
+  const change = requireString(value, name);
+  if (!Object.values(AGREEMENT.ACCESS_EPOCH_CHANGE).includes(change)) throw new Error(`unsupported ${name}`);
+  return change;
+}
+
+function assertContentClassName(value, name = "content class") {
+  const contentClass = requireString(value, name);
+  if (!Object.values(AGREEMENT.CONTENT_CLASS).includes(contentClass)) throw new Error(`unsupported ${name}`);
+  return contentClass;
+}
+
+function assertAgreementPrivacyTier(value, name = "privacy tier") {
+  const privacyTier = requireString(value, name);
+  if (!Object.values(AGREEMENT.PRIVACY_TIER).includes(privacyTier)) throw new Error(`unsupported ${name}`);
+  return privacyTier;
+}
+
+function assertSafeFactPolicyName(value, name = "safe fact policy") {
+  const policy = requireString(value, name);
+  if (!Object.values(AGREEMENT.SAFE_FACT_POLICY).includes(policy)) throw new Error(`unsupported ${name}`);
+  return policy;
+}
+
+function assertNoPrivateContentFields(record, context) {
+  rejectForbiddenKeys(record, PRIVATE_CONTENT_FORBIDDEN_FIELDS, context);
+  rejectMediaByteFields(record, context);
+}
+
+export function assertAuthorityRootOperation(record) {
+  if (!isObject(record)) throw new Error("authority root operation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.AUTHORITY_ROOT_OPERATION, "authority root operation");
+  requireString(record.operationId, "authority root operation operationId");
+  assertRootOperationName(record.operation);
+  requireString(record.identityRef, "authority root operation identityRef");
+  requireString(record.actorRef, "authority root operation actorRef");
+  requireString(record.targetRef, "authority root operation targetRef");
+  const adminGrantRefs = assertReferenceList(record.adminGrantRefs, "authority root operation adminGrantRefs");
+  const rootRefs = assertOptionalReferenceList(record.rootRefs, "authority root operation rootRefs");
+  assertOptionalReferenceList(record.deviceRefs, "authority root operation deviceRefs");
+  assertOptionalReferenceList(record.notificationRefs, "authority root operation notificationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "authority root operation evidenceRefs");
+  const state = assertActionGrantStateName(record.state, "authority root operation state");
+  const blockedReason = String(record.blockedReason || "").trim();
+  if ([AGREEMENT.ACTION_GRANT_STATE.BLOCKED, AGREEMENT.ACTION_GRANT_STATE.REJECTED].includes(state) && !blockedReason) {
+    throw new Error("blocked or rejected authority root operation requires blockedReason");
+  }
+  if (adminGrantRefs.length === 0) throw new Error("authority root operation requires adminGrantRefs");
+  if ([AGREEMENT.ROOT_OPERATION.ROTATE_ROOT, AGREEMENT.ROOT_OPERATION.REVOKE_ROOT, AGREEMENT.ROOT_OPERATION.ADD_ROOT].includes(record.operation) && rootRefs.length === 0) {
+    throw new Error("root-changing authority operation requires rootRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "authority root operation safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("authority root operation missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("authority root operation expiresAt must be after issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.ACTION_AUTHORITY, state };
+}
+
+export function assertActionAuthorityGrant(record) {
+  if (!isObject(record)) throw new Error("action authority grant must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.AUTHORITY_ACTION_GRANT, "action authority grant");
+  requireString(record.grantId, "action authority grant grantId");
+  const plane = assertAgreementPlaneName(record.plane || AGREEMENT.PLANE.ACTION_AUTHORITY, "action authority grant plane");
+  if (plane !== AGREEMENT.PLANE.ACTION_AUTHORITY) throw new Error("action authority grant plane must be actionAuthority");
+  requireString(record.issuerRef, "action authority grant issuerRef");
+  requireString(record.subjectRef, "action authority grant subjectRef");
+  assertReferenceList(record.audienceRefs, "action authority grant audienceRefs");
+  assertAuthorityDomain(record.authorityDomain, "action authority grant authorityDomain");
+  requireString(record.resourceRef, "action authority grant resourceRef");
+  requireString(record.action, "action authority grant action");
+  const state = assertActionGrantStateName(record.state || AGREEMENT.ACTION_GRANT_STATE.ACCEPTED, "action authority grant state");
+  if (record.scope !== undefined) assertSafeObject(record.scope, "action authority grant scope");
+  assertOptionalCapabilityList(record.capabilityRefs, "action authority grant capabilityRefs");
+  assertOptionalReferenceList(record.parentGrantRefs, "action authority grant parentGrantRefs");
+  assertOptionalReferenceList(record.revocationRefs, "action authority grant revocationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "action authority grant evidenceRefs");
+  const rootRefs = assertOptionalReferenceList(record.rootRefs, "action authority grant rootRefs");
+  if (record.elevated === true && rootRefs.length === 0) throw new Error("elevated action authority grant requires rootRefs");
+  if (record.delegation !== undefined) {
+    const delegation = assertOptionalObject(record.delegation, "action authority grant delegation");
+    if (delegation.allowed !== undefined && typeof delegation.allowed !== "boolean") throw new Error("action authority grant delegation.allowed must be boolean");
+    if (delegation.maxDepth !== undefined && (!Number.isInteger(Number(delegation.maxDepth)) || Number(delegation.maxDepth) < 0)) {
+      throw new Error("action authority grant delegation.maxDepth must be non-negative integer");
+    }
+    assertOptionalReferenceList(delegation.inheritedFrom, "action authority grant delegation inheritedFrom");
+  }
+  const blockedReason = String(record.blockedReason || "").trim();
+  if ([AGREEMENT.ACTION_GRANT_STATE.BLOCKED, AGREEMENT.ACTION_GRANT_STATE.REJECTED].includes(state) && !blockedReason) {
+    throw new Error("blocked or rejected action authority grant requires blockedReason");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "action authority grant safeFacts");
+  assertPrivateRefList(record.privateRefs, "action authority grant privateRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("action authority grant missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("action authority grant expiresAt must be after issuedAt");
+  }
+  return { ...record, plane, state };
+}
+
+export function assertActionAuthorityExercise(record) {
+  if (!isObject(record)) throw new Error("action authority exercise must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.AUTHORITY_ACTION_EXERCISE, "action authority exercise");
+  requireString(record.exerciseId, "action authority exercise exerciseId");
+  requireString(record.grantId, "action authority exercise grantId");
+  requireString(record.actorRef, "action authority exercise actorRef");
+  requireString(record.subjectRef, "action authority exercise subjectRef");
+  requireString(record.resourceRef, "action authority exercise resourceRef");
+  requireString(record.action, "action authority exercise action");
+  const state = assertActionGrantStateName(record.state, "action authority exercise state");
+  assertOptionalReferenceList(record.evidenceRefs, "action authority exercise evidenceRefs");
+  assertOptionalReferenceList(record.resultRefs, "action authority exercise resultRefs");
+  const blockedReason = String(record.blockedReason || "").trim();
+  if ([AGREEMENT.ACTION_GRANT_STATE.BLOCKED, AGREEMENT.ACTION_GRANT_STATE.REJECTED, AGREEMENT.ACTION_GRANT_STATE.EXPIRED, AGREEMENT.ACTION_GRANT_STATE.REVOKED].includes(state) && !blockedReason) {
+    throw new Error("blocked/rejected/expired/revoked action authority exercise requires blockedReason");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "action authority exercise safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("action authority exercise missing issuedAt");
+  if (record.observedAt !== undefined && Number(record.observedAt) < Number(record.issuedAt)) {
+    throw new Error("action authority exercise observedAt must not be before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.ACTION_AUTHORITY, state };
+}
+
+export function assertAuthorityGrantRevocationPosture(record) {
+  if (!isObject(record)) throw new Error("authority grant revocation posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.AUTHORITY_GRANT_REVOCATION_POSTURE, "authority grant revocation posture");
+  requireString(record.revocationId, "authority grant revocation posture revocationId");
+  requireString(record.targetGrantRef, "authority grant revocation posture targetGrantRef");
+  requireString(record.issuerRef, "authority grant revocation posture issuerRef");
+  assertAuthorityDomain(record.authorityDomain, "authority grant revocation posture authorityDomain");
+  assertReferenceList(record.affectedGrantRefs, "authority grant revocation posture affectedGrantRefs");
+  assertOptionalReferenceList(record.affectedAccessGroupRefs, "authority grant revocation posture affectedAccessGroupRefs");
+  assertOptionalReferenceList(record.inheritedScopeRefs, "authority grant revocation posture inheritedScopeRefs");
+  const state = assertActionGrantStateName(record.state, "authority grant revocation posture state");
+  requireString(record.reasonCode, "authority grant revocation posture reasonCode");
+  assertOptionalReferenceList(record.evidenceRefs, "authority grant revocation posture evidenceRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("authority grant revocation posture missing issuedAt");
+  if (record.effectiveAt !== undefined && Number(record.effectiveAt) < Number(record.issuedAt)) {
+    throw new Error("authority grant revocation posture effectiveAt must not be before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.ACTION_AUTHORITY, state };
+}
+
+export function assertAccessGroup(record) {
+  if (!isObject(record)) throw new Error("access group must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ACCESS_GROUP, "access group");
+  requireString(record.groupId, "access group groupId");
+  requireString(record.ownerRef, "access group ownerRef");
+  requireString(record.subjectRef, "access group subjectRef");
+  const contentClasses = requireNonEmptyArray(record.contentClasses, "access group contentClasses").map((entry) => assertContentClassName(entry, "access group contentClass"));
+  assertReferenceList(record.memberRefs, "access group memberRefs");
+  assertReferenceList(record.adminRefs, "access group adminRefs");
+  requireString(record.currentEpochId, "access group currentEpochId");
+  assertOptionalReferenceList(record.partitionRefs, "access group partitionRefs");
+  assertOptionalReferenceList(record.policyRefs, "access group policyRefs");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "access group safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("access group missing issuedAt");
+  return { ...record, plane: AGREEMENT.PLANE.ACCESS_AUTHORITY, contentClasses };
+}
+
+export function assertAccessEpoch(record) {
+  if (!isObject(record)) throw new Error("access epoch must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ACCESS_EPOCH, "access epoch");
+  requireString(record.epochId, "access epoch epochId");
+  requireString(record.groupId, "access epoch groupId");
+  const sequence = Number(record.sequence);
+  if (!Number.isInteger(sequence) || sequence < 1) throw new Error("access epoch sequence must be positive integer");
+  const changeKind = assertAccessEpochChangeName(record.changeKind, "access epoch changeKind");
+  if (record.previousEpochId !== undefined) requireString(record.previousEpochId, "access epoch previousEpochId");
+  assertReferenceList(record.memberRefs, "access epoch memberRefs");
+  const addedMemberRefs = assertOptionalReferenceList(record.addedMemberRefs, "access epoch addedMemberRefs");
+  const removedMemberRefs = assertOptionalReferenceList(record.removedMemberRefs, "access epoch removedMemberRefs");
+  assertOptionalReferenceList(record.partitionRefs, "access epoch partitionRefs");
+  requireString(record.keyRef, "access epoch keyRef");
+  const proofRefs = assertReferenceList(record.proofRefs, "access epoch proofRefs");
+  if ([AGREEMENT.ACCESS_EPOCH_CHANGE.REMOVE_MEMBER, AGREEMENT.ACCESS_EPOCH_CHANGE.REVOKE_MEMBER, AGREEMENT.ACCESS_EPOCH_CHANGE.ROTATE_KEY].includes(changeKind) && !String(record.previousEpochId || "").trim()) {
+    throw new Error("revoking or rotating access epoch requires previousEpochId");
+  }
+  if ([AGREEMENT.ACCESS_EPOCH_CHANGE.REMOVE_MEMBER, AGREEMENT.ACCESS_EPOCH_CHANGE.REVOKE_MEMBER].includes(changeKind) && removedMemberRefs.length === 0) {
+    throw new Error("member removal access epoch requires removedMemberRefs");
+  }
+  if (changeKind === AGREEMENT.ACCESS_EPOCH_CHANGE.ADD_MEMBER && addedMemberRefs.length === 0) {
+    throw new Error("member addition access epoch requires addedMemberRefs");
+  }
+  if (proofRefs.length === 0) throw new Error("access epoch requires proofRefs");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "access epoch safeFacts");
+  assertNoPrivateContentFields(record.safeFacts || {}, "access epoch safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("access epoch missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("access epoch expiresAt must be after issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.ACCESS_AUTHORITY, sequence, changeKind, addedMemberRefs, removedMemberRefs };
+}
+
+export function assertPrivateContentEnvelope(record) {
+  if (!isObject(record)) throw new Error("private content envelope must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.PRIVATE_CONTENT_ENVELOPE, "private content envelope");
+  assertNoPrivateContentFields(record, "private content envelope");
+  requireString(record.envelopeId, "private content envelope envelopeId");
+  const contentClass = assertContentClassName(record.contentClass, "private content envelope contentClass");
+  if (![AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL, AGREEMENT.CONTENT_CLASS.ENCRYPTED_RAW, AGREEMENT.CONTENT_CLASS.MEDIA_REFERENCE, AGREEMENT.CONTENT_CLASS.DIAGNOSTIC_DETAIL].includes(contentClass)) {
+    throw new Error("private content envelope requires encrypted/detail/media content class");
+  }
+  requireString(record.accessGroupRef, "private content envelope accessGroupRef");
+  requireString(record.epochId, "private content envelope epochId");
+  requireString(record.subjectRef, "private content envelope subjectRef");
+  requireString(record.issuerRef, "private content envelope issuerRef");
+  const bodyRefs = [
+    record.ciphertextRef,
+    record.storageObjectRef,
+    record.detailRef,
+    record.mediaObjectRef,
+    record.caacEnvelopeRef,
+  ].map((value) => String(value || "").trim()).filter(Boolean);
+  if (bodyRefs.length === 0) throw new Error("private content envelope requires a content reference");
+  assertOptionalReferenceList(record.recipientRefs, "private content envelope recipientRefs");
+  if (record.keyRef !== undefined) requireString(record.keyRef, "private content envelope keyRef");
+  if (record.summarySafeFacts !== undefined) {
+    assertSafeObject(record.summarySafeFacts, "private content envelope summarySafeFacts");
+    assertNoPrivateContentFields(record.summarySafeFacts, "private content envelope summarySafeFacts");
+  }
+  assertOptionalReferenceList(record.evidenceRefs, "private content envelope evidenceRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("private content envelope missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("private content envelope expiresAt must be after issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.ACCESS_AUTHORITY, contentClass };
+}
+
+export function assertEventFabricAccessClass(record) {
+  if (!isObject(record)) throw new Error("event fabric access class must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.EVENT_FABRIC_ACCESS_CLASS, "event fabric access class");
+  requireString(record.classId, "event fabric access class classId");
+  const contentClass = assertContentClassName(record.contentClass, "event fabric access class contentClass");
+  const privacyTier = assertAgreementPrivacyTier(record.privacyTier, "event fabric access class privacyTier");
+  requireNonEmptyArray(record.eventClasses, "event fabric access class eventClasses").forEach((entry) => requireString(entry, "event fabric access class eventClass"));
+  assertReferenceList(record.accessGroupRefs, "event fabric access class accessGroupRefs");
+  assertOptionalReferenceList(record.processorRoleRefs, "event fabric access class processorRoleRefs");
+  requireString(record.storageClass, "event fabric access class storageClass");
+  requireString(record.retentionClass, "event fabric access class retentionClass");
+  assertSafeFactPolicyName(record.safeFactPolicy, "event fabric access class safeFactPolicy");
+  if (record.indexPolicy !== undefined) assertSafeObject(record.indexPolicy, "event fabric access class indexPolicy");
+  if ([AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL, AGREEMENT.CONTENT_CLASS.ENCRYPTED_RAW, AGREEMENT.CONTENT_CLASS.DIAGNOSTIC_DETAIL].includes(contentClass) && privacyTier === AGREEMENT.PRIVACY_TIER.PUBLIC_SAFE) {
+    throw new Error("encrypted event fabric access class must not use publicSafe privacy tier");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "event fabric access class safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("event fabric access class missing issuedAt");
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION, contentClass, privacyTier };
 }
 
 export function assertSwarmIdentityGraph(records) {

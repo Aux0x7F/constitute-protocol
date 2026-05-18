@@ -40,6 +40,18 @@ pub const STREAM_CANDIDATE_ROLE_SERVICE: &str = "service";
 pub const STREAM_CANDIDATE_ACTIONABILITY_USABLE: &str = "usable";
 pub const STREAM_CANDIDATE_ACTIONABILITY_BLOCKED: &str = "blocked";
 
+pub const AGREEMENT_PLANE_ACTION_AUTHORITY: &str = "actionAuthority";
+pub const AGREEMENT_PLANE_ACCESS_AUTHORITY: &str = "accessAuthority";
+pub const AGREEMENT_PLANE_DELIVERY_WITNESS: &str = "deliveryWitness";
+pub const AGREEMENT_PLANE_MATERIALIZATION: &str = "materialization";
+pub const AGREEMENT_STATE_REQUESTED: &str = "requested";
+pub const AGREEMENT_STATE_ACCEPTED: &str = "accepted";
+pub const AGREEMENT_STATE_APPLIED: &str = "applied";
+pub const AGREEMENT_STATE_REJECTED: &str = "rejected";
+pub const AGREEMENT_STATE_BLOCKED: &str = "blocked";
+pub const AGREEMENT_STATE_EXPIRED: &str = "expired";
+pub const AGREEMENT_STATE_REVOKED: &str = "revoked";
+
 pub const RECORD_NODE_CAPABILITY: &str = "node.capability";
 pub const RECORD_RUNTIME_ACTIVATION_REQUEST: &str = "runtime.activation.request";
 pub const RECORD_ROUTE_PROMISE: &str = "route.promise";
@@ -62,6 +74,14 @@ pub const RECORD_SWARM_INTERACTION: &str = "swarm.interaction";
 pub const RECORD_SWARM_ACTIVATION: &str = "swarm.activation";
 pub const RECORD_SWARM_RELEASE: &str = "swarm.release";
 pub const RECORD_SWARM_REVOCATION: &str = "swarm.revocation";
+pub const RECORD_AUTHORITY_ROOT_OPERATION: &str = "authority.root.operation";
+pub const RECORD_AUTHORITY_ACTION_GRANT: &str = "authority.action.grant";
+pub const RECORD_AUTHORITY_ACTION_EXERCISE: &str = "authority.action.exercise";
+pub const RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE: &str = "authority.grant.revocationPosture";
+pub const RECORD_ACCESS_GROUP: &str = "access.group";
+pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
+pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
+pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -1321,6 +1341,240 @@ pub struct SwarmRevocationRecord {
     pub issued_at: u64,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityRootOperationRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub operation_id: String,
+    pub operation: String,
+    pub identity_ref: String,
+    pub actor_ref: String,
+    pub target_ref: String,
+    #[serde(default)]
+    pub admin_grant_refs: Vec<String>,
+    #[serde(default)]
+    pub root_refs: Vec<String>,
+    #[serde(default)]
+    pub device_refs: Vec<String>,
+    #[serde(default)]
+    pub notification_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionAuthorityGrantRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub grant_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plane: Option<String>,
+    pub issuer_ref: String,
+    pub subject_ref: String,
+    #[serde(default)]
+    pub audience_refs: Vec<String>,
+    pub authority_domain: String,
+    pub resource_ref: String,
+    pub action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    #[serde(default)]
+    pub scope: Value,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub parent_grant_refs: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub elevated: bool,
+    #[serde(default)]
+    pub root_refs: Vec<String>,
+    #[serde(default)]
+    pub delegation: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub private_refs: Vec<Value>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionAuthorityExerciseRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub exercise_id: String,
+    pub grant_id: String,
+    pub actor_ref: String,
+    pub subject_ref: String,
+    pub resource_ref: String,
+    pub action: String,
+    pub state: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub result_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityGrantRevocationPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub revocation_id: String,
+    pub target_grant_ref: String,
+    pub issuer_ref: String,
+    pub authority_domain: String,
+    #[serde(default)]
+    pub affected_grant_refs: Vec<String>,
+    #[serde(default)]
+    pub affected_access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub inherited_scope_refs: Vec<String>,
+    pub state: String,
+    pub reason_code: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessGroupRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub group_id: String,
+    pub owner_ref: String,
+    pub subject_ref: String,
+    #[serde(default)]
+    pub content_classes: Vec<String>,
+    #[serde(default)]
+    pub member_refs: Vec<String>,
+    #[serde(default)]
+    pub admin_refs: Vec<String>,
+    pub current_epoch_id: String,
+    #[serde(default)]
+    pub partition_refs: Vec<String>,
+    #[serde(default)]
+    pub policy_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AccessEpochRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub epoch_id: String,
+    pub group_id: String,
+    pub sequence: u64,
+    pub change_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub previous_epoch_id: Option<String>,
+    #[serde(default)]
+    pub member_refs: Vec<String>,
+    #[serde(default)]
+    pub added_member_refs: Vec<String>,
+    #[serde(default)]
+    pub removed_member_refs: Vec<String>,
+    #[serde(default)]
+    pub partition_refs: Vec<String>,
+    pub key_ref: String,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PrivateContentEnvelopeRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub envelope_id: String,
+    pub content_class: String,
+    pub access_group_ref: String,
+    pub epoch_id: String,
+    pub subject_ref: String,
+    pub issuer_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ciphertext_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_object_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub media_object_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub caac_envelope_ref: Option<String>,
+    #[serde(default)]
+    pub recipient_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key_ref: Option<String>,
+    #[serde(default)]
+    pub summary_safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EventFabricAccessClassRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub class_id: String,
+    pub content_class: String,
+    pub privacy_tier: String,
+    #[serde(default)]
+    pub event_classes: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub processor_role_refs: Vec<String>,
+    pub storage_class: String,
+    pub retention_class: String,
+    pub safe_fact_policy: String,
+    #[serde(default)]
+    pub index_policy: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CaacValidationMode {
     Structural,
@@ -2518,6 +2772,460 @@ pub fn validate_swarm_revocation(record: &SwarmRevocationRecord) -> Result<()> {
     Ok(())
 }
 
+pub fn validate_authority_root_operation(record: &AuthorityRootOperationRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_AUTHORITY_ROOT_OPERATION,
+        "authority root operation",
+    )?;
+    require_non_empty(
+        &record.operation_id,
+        "authority root operation missing operationId",
+    )?;
+    validate_root_operation(&record.operation)?;
+    require_non_empty(
+        &record.identity_ref,
+        "authority root operation missing identityRef",
+    )?;
+    require_non_empty(
+        &record.actor_ref,
+        "authority root operation missing actorRef",
+    )?;
+    require_non_empty(
+        &record.target_ref,
+        "authority root operation missing targetRef",
+    )?;
+    require_non_empty_vec(
+        &record.admin_grant_refs,
+        "authority root operation requires adminGrantRefs",
+    )?;
+    for reference in &record.root_refs {
+        require_non_empty(reference, "authority root operation missing rootRef")?;
+    }
+    for reference in &record.device_refs {
+        require_non_empty(reference, "authority root operation missing deviceRef")?;
+    }
+    validate_action_grant_state(&record.state)?;
+    if matches!(
+        record.state.as_str(),
+        AGREEMENT_STATE_BLOCKED | AGREEMENT_STATE_REJECTED
+    ) && record
+        .blocked_reason
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "blocked or rejected authority root operation requires blockedReason"
+        ));
+    }
+    if matches!(
+        record.operation.as_str(),
+        "rotateRoot" | "revokeRoot" | "addRoot"
+    ) && record.root_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "root-changing authority operation requires rootRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "authority root operation safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("authority root operation missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "authority root operation expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_action_authority_grant(record: &ActionAuthorityGrantRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_AUTHORITY_ACTION_GRANT,
+        "action authority grant",
+    )?;
+    require_non_empty(&record.grant_id, "action authority grant missing grantId")?;
+    let plane = record
+        .plane
+        .as_deref()
+        .unwrap_or(AGREEMENT_PLANE_ACTION_AUTHORITY);
+    validate_agreement_plane(plane)?;
+    if plane != AGREEMENT_PLANE_ACTION_AUTHORITY {
+        return Err(anyhow!(
+            "action authority grant plane must be actionAuthority"
+        ));
+    }
+    require_non_empty(
+        &record.issuer_ref,
+        "action authority grant missing issuerRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "action authority grant missing subjectRef",
+    )?;
+    require_non_empty_vec(
+        &record.audience_refs,
+        "action authority grant missing audienceRefs",
+    )?;
+    validate_authority_domain(&record.authority_domain)?;
+    require_non_empty(
+        &record.resource_ref,
+        "action authority grant missing resourceRef",
+    )?;
+    require_non_empty(&record.action, "action authority grant missing action")?;
+    let state = record.state.as_deref().unwrap_or(AGREEMENT_STATE_ACCEPTED);
+    validate_action_grant_state(state)?;
+    if matches!(state, AGREEMENT_STATE_BLOCKED | AGREEMENT_STATE_REJECTED)
+        && record
+            .blocked_reason
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "blocked or rejected action authority grant requires blockedReason"
+        ));
+    }
+    validate_capability_names(&record.capability_refs)?;
+    if record.elevated {
+        require_non_empty_vec(
+            &record.root_refs,
+            "elevated action authority grant requires rootRefs",
+        )?;
+    }
+    if !record.scope.is_null() {
+        validate_safe_facts(&record.scope, "action authority grant scope")?;
+    }
+    if !record.delegation.is_null() && !record.delegation.is_object() {
+        return Err(anyhow!(
+            "action authority grant delegation must be an object"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "action authority grant safeFacts")?;
+    validate_private_refs(&record.private_refs, "action authority grant privateRefs")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("action authority grant missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "action authority grant expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_action_authority_exercise(record: &ActionAuthorityExerciseRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_AUTHORITY_ACTION_EXERCISE,
+        "action authority exercise",
+    )?;
+    require_non_empty(
+        &record.exercise_id,
+        "action authority exercise missing exerciseId",
+    )?;
+    require_non_empty(
+        &record.grant_id,
+        "action authority exercise missing grantId",
+    )?;
+    require_non_empty(
+        &record.actor_ref,
+        "action authority exercise missing actorRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "action authority exercise missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.resource_ref,
+        "action authority exercise missing resourceRef",
+    )?;
+    require_non_empty(&record.action, "action authority exercise missing action")?;
+    validate_action_grant_state(&record.state)?;
+    if matches!(
+        record.state.as_str(),
+        AGREEMENT_STATE_BLOCKED
+            | AGREEMENT_STATE_REJECTED
+            | AGREEMENT_STATE_EXPIRED
+            | AGREEMENT_STATE_REVOKED
+    ) && record
+        .blocked_reason
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "blocked/rejected/expired/revoked action authority exercise requires blockedReason"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "action authority exercise safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("action authority exercise missing issuedAt"));
+    }
+    if record
+        .observed_at
+        .is_some_and(|observed_at| observed_at < record.issued_at)
+    {
+        return Err(anyhow!(
+            "action authority exercise observedAt must not be before issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_authority_grant_revocation_posture(
+    record: &AuthorityGrantRevocationPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE,
+        "authority grant revocation posture",
+    )?;
+    require_non_empty(
+        &record.revocation_id,
+        "authority grant revocation posture missing revocationId",
+    )?;
+    require_non_empty(
+        &record.target_grant_ref,
+        "authority grant revocation posture missing targetGrantRef",
+    )?;
+    require_non_empty(
+        &record.issuer_ref,
+        "authority grant revocation posture missing issuerRef",
+    )?;
+    validate_authority_domain(&record.authority_domain)?;
+    require_non_empty_vec(
+        &record.affected_grant_refs,
+        "authority grant revocation posture missing affectedGrantRefs",
+    )?;
+    validate_action_grant_state(&record.state)?;
+    require_non_empty(
+        &record.reason_code,
+        "authority grant revocation posture missing reasonCode",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!(
+            "authority grant revocation posture missing issuedAt"
+        ));
+    }
+    if record
+        .effective_at
+        .is_some_and(|effective_at| effective_at < record.issued_at)
+    {
+        return Err(anyhow!(
+            "authority grant revocation posture effectiveAt must not be before issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_access_group(record: &AccessGroupRecord) -> Result<()> {
+    validate_optional_kind(&record.kind, RECORD_ACCESS_GROUP, "access group")?;
+    require_non_empty(&record.group_id, "access group missing groupId")?;
+    require_non_empty(&record.owner_ref, "access group missing ownerRef")?;
+    require_non_empty(&record.subject_ref, "access group missing subjectRef")?;
+    require_non_empty_vec(
+        &record.content_classes,
+        "access group missing contentClasses",
+    )?;
+    for content_class in &record.content_classes {
+        validate_content_class(content_class)?;
+    }
+    require_non_empty_vec(&record.member_refs, "access group missing memberRefs")?;
+    require_non_empty_vec(&record.admin_refs, "access group missing adminRefs")?;
+    require_non_empty(
+        &record.current_epoch_id,
+        "access group missing currentEpochId",
+    )?;
+    validate_safe_facts(&record.safe_facts, "access group safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("access group missing issuedAt"));
+    }
+    Ok(())
+}
+
+pub fn validate_access_epoch(record: &AccessEpochRecord) -> Result<()> {
+    validate_optional_kind(&record.kind, RECORD_ACCESS_EPOCH, "access epoch")?;
+    require_non_empty(&record.epoch_id, "access epoch missing epochId")?;
+    require_non_empty(&record.group_id, "access epoch missing groupId")?;
+    if record.sequence == 0 {
+        return Err(anyhow!("access epoch sequence must be positive integer"));
+    }
+    validate_access_epoch_change(&record.change_kind)?;
+    require_non_empty_vec(&record.member_refs, "access epoch missing memberRefs")?;
+    require_non_empty(&record.key_ref, "access epoch missing keyRef")?;
+    require_non_empty_vec(&record.proof_refs, "access epoch missing proofRefs")?;
+    if matches!(
+        record.change_kind.as_str(),
+        "removeMember" | "revokeMember" | "rotateKey"
+    ) && record
+        .previous_epoch_id
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "revoking or rotating access epoch requires previousEpochId"
+        ));
+    }
+    if matches!(record.change_kind.as_str(), "removeMember" | "revokeMember")
+        && record.removed_member_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "member removal access epoch requires removedMemberRefs"
+        ));
+    }
+    if record.change_kind == "addMember" && record.added_member_refs.is_empty() {
+        return Err(anyhow!(
+            "member addition access epoch requires addedMemberRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "access epoch safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "access epoch safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("access epoch missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!("access epoch expiresAt must be after issuedAt"));
+    }
+    Ok(())
+}
+
+pub fn validate_private_content_envelope(record: &PrivateContentEnvelopeRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_PRIVATE_CONTENT_ENVELOPE,
+        "private content envelope",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "private content envelope")?;
+    require_non_empty(
+        &record.envelope_id,
+        "private content envelope missing envelopeId",
+    )?;
+    validate_content_class(&record.content_class)?;
+    if !matches!(
+        record.content_class.as_str(),
+        "encryptedDetail" | "encryptedRaw" | "mediaReference" | "diagnosticDetail"
+    ) {
+        return Err(anyhow!(
+            "private content envelope requires encrypted/detail/media content class"
+        ));
+    }
+    require_non_empty(
+        &record.access_group_ref,
+        "private content envelope missing accessGroupRef",
+    )?;
+    require_non_empty(&record.epoch_id, "private content envelope missing epochId")?;
+    require_non_empty(
+        &record.subject_ref,
+        "private content envelope missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.issuer_ref,
+        "private content envelope missing issuerRef",
+    )?;
+    let body_refs = [
+        record.ciphertext_ref.as_deref(),
+        record.storage_object_ref.as_deref(),
+        record.detail_ref.as_deref(),
+        record.media_object_ref.as_deref(),
+        record.caac_envelope_ref.as_deref(),
+    ];
+    if !body_refs
+        .iter()
+        .flatten()
+        .any(|reference| !reference.trim().is_empty())
+    {
+        return Err(anyhow!(
+            "private content envelope requires a content reference"
+        ));
+    }
+    validate_safe_facts(
+        &record.summary_safe_facts,
+        "private content envelope summarySafeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.summary_safe_facts,
+        "private content envelope summarySafeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("private content envelope missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "private content envelope expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_event_fabric_access_class(record: &EventFabricAccessClassRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_EVENT_FABRIC_ACCESS_CLASS,
+        "event fabric access class",
+    )?;
+    require_non_empty(
+        &record.class_id,
+        "event fabric access class missing classId",
+    )?;
+    validate_content_class(&record.content_class)?;
+    validate_agreement_privacy_tier(&record.privacy_tier)?;
+    require_non_empty_vec(
+        &record.event_classes,
+        "event fabric access class missing eventClasses",
+    )?;
+    require_non_empty_vec(
+        &record.access_group_refs,
+        "event fabric access class missing accessGroupRefs",
+    )?;
+    require_non_empty(
+        &record.storage_class,
+        "event fabric access class missing storageClass",
+    )?;
+    require_non_empty(
+        &record.retention_class,
+        "event fabric access class missing retentionClass",
+    )?;
+    validate_safe_fact_policy(&record.safe_fact_policy)?;
+    if matches!(
+        record.content_class.as_str(),
+        "encryptedDetail" | "encryptedRaw" | "diagnosticDetail"
+    ) && record.privacy_tier == "publicSafe"
+    {
+        return Err(anyhow!(
+            "encrypted event fabric access class must not use publicSafe privacy tier"
+        ));
+    }
+    validate_safe_facts(
+        &record.index_policy,
+        "event fabric access class indexPolicy",
+    )?;
+    validate_safe_facts(&record.safe_facts, "event fabric access class safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("event fabric access class missing issuedAt"));
+    }
+    Ok(())
+}
+
 pub fn validate_swarm_identity_graph(records: &[Value]) -> Result<()> {
     for record in records {
         let Some(object) = record.as_object() else {
@@ -3421,6 +4129,102 @@ fn validate_authority_domain(domain: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported authority domain"))
+    }
+}
+
+fn validate_agreement_plane(plane: &str) -> Result<()> {
+    if matches!(
+        plane,
+        AGREEMENT_PLANE_ACTION_AUTHORITY
+            | AGREEMENT_PLANE_ACCESS_AUTHORITY
+            | AGREEMENT_PLANE_DELIVERY_WITNESS
+            | AGREEMENT_PLANE_MATERIALIZATION
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported agreement plane"))
+    }
+}
+
+fn validate_action_grant_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        AGREEMENT_STATE_REQUESTED
+            | AGREEMENT_STATE_ACCEPTED
+            | AGREEMENT_STATE_APPLIED
+            | AGREEMENT_STATE_REJECTED
+            | AGREEMENT_STATE_BLOCKED
+            | AGREEMENT_STATE_EXPIRED
+            | AGREEMENT_STATE_REVOKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported action grant state"))
+    }
+}
+
+fn validate_root_operation(operation: &str) -> Result<()> {
+    if matches!(
+        operation,
+        "addRoot" | "refreshRoot" | "rotateRoot" | "revokeRoot" | "enrollDevice" | "revokeDevice"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported root operation"))
+    }
+}
+
+fn validate_access_epoch_change(change: &str) -> Result<()> {
+    if matches!(
+        change,
+        "create"
+            | "addMember"
+            | "removeMember"
+            | "rotateKey"
+            | "revokeMember"
+            | "partitionSplit"
+            | "partitionMerge"
+            | "purposeKey"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported access epoch change"))
+    }
+}
+
+fn validate_content_class(content_class: &str) -> Result<()> {
+    if matches!(
+        content_class,
+        "safeFacts"
+            | "safeIndex"
+            | "uiProjection"
+            | "encryptedDetail"
+            | "encryptedRaw"
+            | "mediaReference"
+            | "diagnosticDetail"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported content class"))
+    }
+}
+
+fn validate_agreement_privacy_tier(privacy_tier: &str) -> Result<()> {
+    if matches!(
+        privacy_tier,
+        "publicSafe" | "domainSafe" | "domainEncrypted" | "privateEncrypted"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported agreement privacy tier"))
+    }
+}
+
+fn validate_safe_fact_policy(policy: &str) -> Result<()> {
+    if matches!(policy, "none" | "minimal" | "indexOnly" | "projectionSafe") {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported safe fact policy"))
     }
 }
 
@@ -4844,6 +5648,51 @@ fn reject_unsafe_safe_fact_fields(value: &Value, context: &str) -> Result<()> {
     }
 }
 
+fn reject_private_content_fields(value: &Value, context: &str) -> Result<()> {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map {
+                if is_private_content_field(key) {
+                    return Err(anyhow!(
+                        "{context} contains forbidden private content field: {key}"
+                    ));
+                }
+                reject_private_content_fields(child, context)?;
+            }
+            Ok(())
+        }
+        Value::Array(items) => {
+            for item in items {
+                reject_private_content_fields(item, context)?;
+            }
+            Ok(())
+        }
+        _ => Ok(()),
+    }
+}
+
+fn is_private_content_field(key: &str) -> bool {
+    matches!(
+        key,
+        "plaintext"
+            | "cleartext"
+            | "body"
+            | "payload"
+            | "contents"
+            | "content"
+            | "value"
+            | "ciphertext"
+            | "sealedPayload"
+            | "wrappedKey"
+            | "key"
+            | "secret"
+            | "password"
+            | "token"
+            | "privateKey"
+            | "secretKey"
+    )
+}
+
 fn is_unsafe_safe_fact_key(key: &str) -> bool {
     matches!(
         key,
@@ -5135,6 +5984,7 @@ mod tests {
 
     const ISSUER_SK: &str = "0000000000000000000000000000000000000000000000000000000000000001";
     const GATEWAY_SK: &str = "0000000000000000000000000000000000000000000000000000000000000002";
+    const SERVICE_SK: &str = "0000000000000000000000000000000000000000000000000000000000000003";
     const BROWSER_SK: &str = "0000000000000000000000000000000000000000000000000000000000000004";
 
     fn zone_scope() -> ZoneScope {
@@ -6149,6 +6999,194 @@ mod tests {
         let mut live_graph = vector.identity_graph.clone();
         live_graph.push(serde_json::to_value(vector.activation).expect("activation json"));
         assert!(validate_swarm_identity_graph(&live_graph).is_err());
+    }
+
+    #[test]
+    fn validates_agreement_authority_access_and_private_content_records() {
+        let issuer_ref = format!(
+            "identity:{}",
+            pubkey_from_sk_hex(ISSUER_SK).expect("issuer pk")
+        );
+        let browser_member = format!(
+            "member:{}",
+            pubkey_from_sk_hex(BROWSER_SK).expect("browser pk")
+        );
+        let service_member = format!(
+            "member:{}",
+            pubkey_from_sk_hex(SERVICE_SK).expect("service pk")
+        );
+
+        let grant = ActionAuthorityGrantRecord {
+            kind: Some(RECORD_AUTHORITY_ACTION_GRANT.to_string()),
+            grant_id: "grant:logging:writer".to_string(),
+            plane: Some(AGREEMENT_PLANE_ACTION_AUTHORITY.to_string()),
+            issuer_ref: issuer_ref.clone(),
+            subject_ref: browser_member.clone(),
+            audience_refs: vec![service_member.clone()],
+            authority_domain: "identity".to_string(),
+            resource_ref: "contract:logging.default".to_string(),
+            action: "logging.event.write".to_string(),
+            state: Some(AGREEMENT_STATE_ACCEPTED.to_string()),
+            scope: json!({ "contractRef": "contract:logging.default", "retentionClass": "rolling" }),
+            capability_refs: vec![CAPABILITY_LOGGING_EVENTS_OBSERVE.to_string()],
+            parent_grant_refs: vec!["grant:root:logging".to_string()],
+            revocation_refs: vec![],
+            evidence_refs: vec!["sig:grant:logging:writer".to_string()],
+            elevated: false,
+            root_refs: vec![],
+            delegation: json!({ "allowed": true, "maxDepth": 1 }),
+            blocked_reason: None,
+            safe_facts: Value::Null,
+            private_refs: vec![],
+            issued_at: 1_700_000_010,
+            expires_at: Some(1_700_000_610),
+        };
+        validate_action_authority_grant(&grant).expect("valid action grant");
+
+        let mut wrong_plane = grant.clone();
+        wrong_plane.plane = Some(AGREEMENT_PLANE_ACCESS_AUTHORITY.to_string());
+        assert!(validate_action_authority_grant(&wrong_plane).is_err());
+
+        let root_operation = AuthorityRootOperationRecord {
+            kind: Some(RECORD_AUTHORITY_ROOT_OPERATION.to_string()),
+            operation_id: "root-op:enroll-aux".to_string(),
+            operation: "enrollDevice".to_string(),
+            identity_ref: issuer_ref.clone(),
+            actor_ref: format!("root:{}", pubkey_from_sk_hex(ISSUER_SK).expect("issuer pk")),
+            target_ref: format!(
+                "device:{}",
+                pubkey_from_sk_hex(BROWSER_SK).expect("browser pk")
+            ),
+            admin_grant_refs: vec!["grant:root:admin".to_string()],
+            root_refs: vec![],
+            device_refs: vec![format!(
+                "device:{}",
+                pubkey_from_sk_hex(BROWSER_SK).expect("browser pk")
+            )],
+            notification_refs: vec!["notification:root-enroll".to_string()],
+            evidence_refs: vec!["sig:root-op:enroll-aux".to_string()],
+            state: AGREEMENT_STATE_APPLIED.to_string(),
+            blocked_reason: None,
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_030,
+            expires_at: None,
+        };
+        validate_authority_root_operation(&root_operation).expect("valid root operation");
+
+        let mut bad_root_rotation = root_operation.clone();
+        bad_root_rotation.operation = "rotateRoot".to_string();
+        bad_root_rotation.root_refs.clear();
+        assert!(validate_authority_root_operation(&bad_root_rotation).is_err());
+
+        let group = AccessGroupRecord {
+            kind: Some(RECORD_ACCESS_GROUP.to_string()),
+            group_id: "access-group:logging-secure".to_string(),
+            owner_ref: issuer_ref.clone(),
+            subject_ref: "contract:logging.default".to_string(),
+            content_classes: vec![
+                "encryptedDetail".to_string(),
+                "diagnosticDetail".to_string(),
+            ],
+            member_refs: vec![service_member.clone(), browser_member.clone()],
+            admin_refs: vec![format!(
+                "root:{}",
+                pubkey_from_sk_hex(ISSUER_SK).expect("issuer pk")
+            )],
+            current_epoch_id: "access-epoch:logging-secure:2".to_string(),
+            partition_refs: vec!["partition:identity:logging".to_string()],
+            policy_refs: vec![],
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_040,
+        };
+        validate_access_group(&group).expect("valid access group");
+
+        let epoch = AccessEpochRecord {
+            kind: Some(RECORD_ACCESS_EPOCH.to_string()),
+            epoch_id: "access-epoch:logging-secure:2".to_string(),
+            group_id: group.group_id.clone(),
+            sequence: 2,
+            change_kind: "removeMember".to_string(),
+            previous_epoch_id: Some("access-epoch:logging-secure:1".to_string()),
+            member_refs: vec![service_member.clone()],
+            added_member_refs: vec![],
+            removed_member_refs: vec![browser_member.clone()],
+            partition_refs: vec![],
+            key_ref: "key-ref:logging-secure:2".to_string(),
+            proof_refs: vec!["sig:epoch:2".to_string()],
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_050,
+            expires_at: None,
+        };
+        validate_access_epoch(&epoch).expect("valid access epoch");
+        let mut bad_epoch = epoch.clone();
+        bad_epoch.previous_epoch_id = None;
+        assert!(validate_access_epoch(&bad_epoch).is_err());
+
+        let envelope = PrivateContentEnvelopeRecord {
+            kind: Some(RECORD_PRIVATE_CONTENT_ENVELOPE.to_string()),
+            envelope_id: "private-envelope:logging-event-1".to_string(),
+            content_class: "encryptedDetail".to_string(),
+            access_group_ref: group.group_id.clone(),
+            epoch_id: epoch.epoch_id.clone(),
+            subject_ref: "event:runtime:1".to_string(),
+            issuer_ref: service_member.clone(),
+            ciphertext_ref: None,
+            storage_object_ref: Some("storage-object:log-event-1".to_string()),
+            detail_ref: None,
+            media_object_ref: None,
+            caac_envelope_ref: Some("caac:log-event-1".to_string()),
+            recipient_refs: vec![service_member.clone()],
+            key_ref: Some("key-ref:logging-secure:2".to_string()),
+            summary_safe_facts: json!({ "eventClass": "runtimeDiagnostic", "severity": "warning" }),
+            evidence_refs: vec!["storage:pin:log-event-1".to_string()],
+            issued_at: 1_700_000_060,
+            expires_at: None,
+        };
+        validate_private_content_envelope(&envelope).expect("valid private envelope");
+        let mut bad_envelope = envelope.clone();
+        bad_envelope.summary_safe_facts = json!({ "ciphertext": "raw-ciphertext-body" });
+        assert!(validate_private_content_envelope(&bad_envelope).is_err());
+
+        let event_class = EventFabricAccessClassRecord {
+            kind: Some(RECORD_EVENT_FABRIC_ACCESS_CLASS.to_string()),
+            class_id: "event-class:security-runtime".to_string(),
+            content_class: "encryptedDetail".to_string(),
+            privacy_tier: "domainEncrypted".to_string(),
+            event_classes: vec!["runtimeDiagnostic".to_string(), "securityAudit".to_string()],
+            access_group_refs: vec![group.group_id.clone()],
+            processor_role_refs: vec!["role:logging".to_string(), "role:security".to_string()],
+            storage_class: "storage:rolling-secure".to_string(),
+            retention_class: "rolling".to_string(),
+            safe_fact_policy: "indexOnly".to_string(),
+            index_policy: json!({ "cardinality": "bounded", "safeKeys": ["eventClass", "severity"] }),
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_070,
+        };
+        validate_event_fabric_access_class(&event_class).expect("valid event access class");
+        let mut bad_event_class = event_class.clone();
+        bad_event_class.privacy_tier = "publicSafe".to_string();
+        assert!(validate_event_fabric_access_class(&bad_event_class).is_err());
+
+        let revocation = AuthorityGrantRevocationPostureRecord {
+            kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),
+            revocation_id: "revocation:logging:writer".to_string(),
+            target_grant_ref: grant.grant_id,
+            issuer_ref,
+            authority_domain: "identity".to_string(),
+            affected_grant_refs: vec![
+                "grant:logging:writer".to_string(),
+                "grant:logging:writer:delegated".to_string(),
+            ],
+            affected_access_group_refs: vec![group.group_id],
+            inherited_scope_refs: vec!["contract:logging.default".to_string()],
+            state: AGREEMENT_STATE_REVOKED.to_string(),
+            reason_code: "operatorRevoked".to_string(),
+            evidence_refs: vec!["sig:revocation:logging:writer".to_string()],
+            issued_at: 1_700_000_080,
+            effective_at: Some(1_700_000_081),
+        };
+        validate_authority_grant_revocation_posture(&revocation)
+            .expect("valid grant revocation posture");
     }
 
     #[test]
