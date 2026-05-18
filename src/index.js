@@ -140,6 +140,29 @@ export const SURFACE_APP = Object.freeze({
   }),
 });
 
+export const RUNNER = Object.freeze({
+  OPERATION: Object.freeze({
+    PREPARE: "prepare",
+    EXECUTE: "execute",
+    HEALTH_CHECK: "healthCheck",
+    RELEASE: "release",
+    ROLLBACK: "rollback",
+    CANCEL: "cancel",
+  }),
+  OPERATION_STATE: Object.freeze({
+    REQUESTED: "requested",
+    ACCEPTED: "accepted",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    FAILED: "failed",
+    BLOCKED: "blocked",
+    REJECTED: "rejected",
+    CANCELLED: "cancelled",
+    RELEASED: "released",
+    SUPERSEDED: "superseded",
+  }),
+});
+
 export const AGREEMENT = Object.freeze({
   PLANE: Object.freeze({
     ACTION_AUTHORITY: "actionAuthority",
@@ -1267,6 +1290,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
+    RUNNER_OPERATION: "runner.operation",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1329,6 +1353,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
+    RUNNER_OPERATION: "runner.operation",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -4955,5 +4980,49 @@ export function assertAppRunnerAdvertisement(record) {
   requireString(record.version, "app runner version");
   if (!isObject(record.capacity)) throw new Error("app runner capacity must be an object");
   if (!isObject(record.health)) throw new Error("app runner health must be an object");
+  return record;
+}
+
+export function assertRunnerOperation(record) {
+  if (!isObject(record)) throw new Error("runner operation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RUNNER_OPERATION, "runner operation");
+  requireString(record.operationId, "runner operation operationId");
+  requireString(record.runnerId, "runner operation runnerId");
+  assertResolvedMemberRef(record.runnerRef, "runner operation runnerRef");
+  requireString(record.hostRef, "runner operation hostRef");
+  requireString(record.requesterRef, "runner operation requesterRef");
+  requireString(record.subjectRef, "runner operation subjectRef");
+  requireString(record.contractRef, "runner operation contractRef");
+  const operation = requireString(record.operation, "runner operation operation");
+  if (!Object.values(RUNNER.OPERATION).includes(operation)) throw new Error("invalid runner operation");
+  const state = requireString(record.state, "runner operation state");
+  if (!Object.values(RUNNER.OPERATION_STATE).includes(state)) throw new Error("invalid runner operation state");
+  assertReferenceList(record.grantRefs, "runner operation grantRefs");
+  assertOptionalReferenceList(record.capabilityRefs, "runner operation capabilityRefs");
+  assertOptionalReferenceList(record.inputRefs, "runner operation inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "runner operation outputRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "runner operation evidenceRefs");
+  assertOptionalReferenceList(record.proofRefs, "runner operation proofRefs");
+  assertOptionalReferenceList(record.releaseRefs, "runner operation releaseRefs");
+  if (!isObject(record.resourceBudget)) throw new Error("runner operation resourceBudget must be an object");
+  if (record.resourcePosture !== undefined) assertResourcePosture(record.resourcePosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "runner operation secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "runner operation releasePosture");
+  if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "runner operation rollbackPosture");
+  if (operation === RUNNER.OPERATION.RELEASE && !String(record.releaseRef || "").trim()) {
+    throw new Error("runner release operation requires releaseRef");
+  }
+  if (operation === RUNNER.OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("runner rollback operation requires rollbackRef");
+  }
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "runner operation releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "runner operation rollbackRef");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "runner operation blockedReasons");
+  if ([RUNNER.OPERATION_STATE.BLOCKED, RUNNER.OPERATION_STATE.FAILED, RUNNER.OPERATION_STATE.REJECTED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("runner blocked, failed, or rejected operation requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "runner operation safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "runner operation");
+  assertSurfaceOperationTimeline(record, "runner operation", "requestedAt");
   return record;
 }

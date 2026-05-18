@@ -6,6 +6,7 @@ export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
 export const SURFACE_APP: Readonly<Record<string, unknown>>;
+export const RUNNER: Readonly<Record<string, unknown>>;
 export const AGREEMENT: Readonly<Record<string, unknown>>;
 export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
@@ -1777,6 +1778,18 @@ export type ServiceManagerProofProfile =
   | "loggingPressure"
   | "directEdge"
   | "nativeChecks";
+export type RunnerOperation = "prepare" | "execute" | "healthCheck" | "release" | "rollback" | "cancel";
+export type RunnerOperationState =
+  | "requested"
+  | "accepted"
+  | "running"
+  | "succeeded"
+  | "failed"
+  | "blocked"
+  | "rejected"
+  | "cancelled"
+  | "released"
+  | "superseded";
 
 export type SurfaceModuleClaim = {
   moduleRef: string;
@@ -2099,6 +2112,41 @@ export type AppRunnerAdvertisement = {
   health: Record<string, unknown>;
 };
 
+export type RunnerOperationRecord = {
+  kind?: "runner.operation";
+  operationId: string;
+  runnerId: string;
+  runnerRef: string;
+  hostRef: string;
+  requesterRef: string;
+  subjectRef: string;
+  contractRef: string;
+  operation: RunnerOperation;
+  state: RunnerOperationState;
+  grantRefs: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  releaseRefs?: string[];
+  resourceBudget: Record<string, unknown>;
+  resourcePosture?: ResourcePosture;
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture;
+  rollbackPosture?: SurfaceReleasePosture;
+  releaseRef?: string;
+  rollbackRef?: string;
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  requestedAt: number;
+  acceptedAt?: number;
+  startedAt?: number;
+  completedAt?: number;
+  observedAt?: number;
+  expiresAt?: number;
+};
+
 export function bytesToHex(bytes: Uint8Array): string;
 export function hexToBytes(hex: string): Uint8Array;
 export function utf8ToBytes(value: string): Uint8Array;
@@ -2293,3 +2341,4 @@ export function assertSurfaceAppBootstrapContract(record: unknown): SurfaceAppBo
 export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBootstrapPosture;
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
+export function assertRunnerOperation(record: unknown): RunnerOperationRecord;

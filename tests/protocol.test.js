@@ -7,6 +7,7 @@ import {
   AGREEMENT,
   LOGGING,
   PROJECTION,
+  RUNNER,
   ReplayCache,
   SERVICE_SURFACE,
   SERVICE_REGISTRY,
@@ -17,6 +18,7 @@ import {
   applyProjectionDelta,
   assertAppRecipe,
   assertAppRunnerAdvertisement,
+  assertRunnerOperation,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
   assertCapabilityName,
@@ -912,6 +914,92 @@ test("service manager operations and proof digests validate release train eviden
       token: "inline-secret",
     },
     observedAt: requestedAt + 80,
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("runner operations bind host fulfillment to grants, resources, secrets, release, and evidence", () => {
+  const requestedAt = 1700000000;
+  const operation = assertRunnerOperation({
+    kind: SWARM.RECORD_KIND.RUNNER_OPERATION,
+    operationId: "runner-operation:security-bootstrap:execute:1",
+    runnerId: "runner:lab-gateway:security-bootstrap",
+    runnerRef: BROWSER_PK,
+    hostRef: "host:lab-gateway",
+    requesterRef: "identity:aux",
+    subjectRef: "security-processor:dev",
+    contractRef: "security-processor:seed@0.1.0",
+    operation: RUNNER.OPERATION.EXECUTE,
+    state: RUNNER.OPERATION_STATE.SUCCEEDED,
+    grantRefs: ["authority-grant:runner:security-bootstrap"],
+    capabilityRefs: ["app.runner.pin"],
+    inputRefs: ["event-fabric:security-audit"],
+    outputRefs: ["alert-hold:security-bootstrap:1"],
+    evidenceRefs: ["evidence:runner:started", "evidence:runner:completed"],
+    proofRefs: ["proof:runner:security-bootstrap"],
+    releaseRefs: ["release:runner:security-bootstrap"],
+    resourceBudget: {
+      profileRef: "resource-profile:operator-dev",
+      maxMemoryMiB: 512,
+      maxCpuPct: 40,
+    },
+    resourcePosture: {
+      kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+      postureId: "resource-posture:runner:security-bootstrap",
+      profileId: "resource-profile:operator-dev",
+      state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+      counts: { memoryMiB: 120, cpuPct: 8 },
+      budgets: { memoryMiB: 512, cpuPct: 40 },
+      sampledAt: requestedAt + 15,
+    },
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED,
+    },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:runner:security-bootstrap",
+      releaseRef: "release:runner:security-bootstrap",
+      rollbackRef: "rollback:runner:security-bootstrap",
+    },
+    releaseRef: "release:runner:security-bootstrap",
+    rollbackRef: "rollback:runner:security-bootstrap",
+    safeFacts: {
+      role: "securityProcessor",
+      mode: "operatorDev",
+    },
+    requestedAt,
+    acceptedAt: requestedAt + 1,
+    startedAt: requestedAt + 2,
+    completedAt: requestedAt + 12,
+    observedAt: requestedAt + 15,
+    expiresAt: requestedAt + 3600,
+  });
+  assert.equal(operation.operation, RUNNER.OPERATION.EXECUTE);
+  assert.equal(operation.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:grantless",
+    grantRefs: [],
+  }), /runner operation grantRefs must not be empty/);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:rollback",
+    operation: RUNNER.OPERATION.ROLLBACK,
+    rollbackRef: "",
+  }), /runner rollback operation requires rollbackRef/);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:blocked",
+    state: RUNNER.OPERATION_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blocked, failed, or rejected operation requires blockedReasons/);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:secret",
+    safeFacts: { token: "inline-secret" },
   }), /unsafe safe fact key|forbidden protocol field/);
 });
 

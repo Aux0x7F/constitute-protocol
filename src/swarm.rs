@@ -113,6 +113,7 @@ pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.dig
 pub const RECORD_SERVICE_MANAGER_LAB_PROOF: &str = "service.manager.labProof";
 pub const RECORD_SURFACE_APP_MANIFEST: &str = "surface.app.manifest";
 pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
+pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
 
 pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
 pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";
@@ -136,6 +137,24 @@ pub const SERVICE_MANAGER_PROOF_STATE_PROVED: &str = "proved";
 pub const SERVICE_MANAGER_PROOF_STATE_FAILED: &str = "failed";
 pub const SERVICE_MANAGER_PROOF_STATE_BLOCKED: &str = "blocked";
 pub const SERVICE_MANAGER_PROOF_STATE_EXPIRED: &str = "expired";
+
+pub const RUNNER_OPERATION_PREPARE: &str = "prepare";
+pub const RUNNER_OPERATION_EXECUTE: &str = "execute";
+pub const RUNNER_OPERATION_HEALTH_CHECK: &str = "healthCheck";
+pub const RUNNER_OPERATION_RELEASE: &str = "release";
+pub const RUNNER_OPERATION_ROLLBACK: &str = "rollback";
+pub const RUNNER_OPERATION_CANCEL: &str = "cancel";
+
+pub const RUNNER_OPERATION_STATE_REQUESTED: &str = "requested";
+pub const RUNNER_OPERATION_STATE_ACCEPTED: &str = "accepted";
+pub const RUNNER_OPERATION_STATE_RUNNING: &str = "running";
+pub const RUNNER_OPERATION_STATE_SUCCEEDED: &str = "succeeded";
+pub const RUNNER_OPERATION_STATE_FAILED: &str = "failed";
+pub const RUNNER_OPERATION_STATE_BLOCKED: &str = "blocked";
+pub const RUNNER_OPERATION_STATE_REJECTED: &str = "rejected";
+pub const RUNNER_OPERATION_STATE_CANCELLED: &str = "cancelled";
+pub const RUNNER_OPERATION_STATE_RELEASED: &str = "released";
+pub const RUNNER_OPERATION_STATE_SUPERSEDED: &str = "superseded";
 
 pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
 pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
@@ -732,6 +751,8 @@ pub enum SwarmFrameKind {
     NodeCapability,
     #[serde(rename = "runtime.activation.request")]
     RuntimeActivationRequest,
+    #[serde(rename = "runner.operation")]
+    RunnerOperation,
     #[serde(rename = "route.promise")]
     RoutePromise,
     #[serde(rename = "route.observation")]
@@ -2418,6 +2439,65 @@ pub struct AppRunnerAttestation {
     pub recipe_id: String,
     pub status: String,
     pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RunnerOperationRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub operation_id: String,
+    pub runner_id: String,
+    pub runner_ref: String,
+    pub host_ref: String,
+    pub requester_ref: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    pub operation: String,
+    pub state: String,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_budget: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture: Option<ResourcePosture>,
+    #[serde(default)]
+    pub secret_boundary: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub rollback_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub requested_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accepted_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 pub fn validate_swarm_frame(frame: &SwarmFrame, now: u64) -> Result<()> {
@@ -5687,6 +5767,113 @@ pub fn validate_app_runner_attestation(attestation: &AppRunnerAttestation) -> Re
     Ok(())
 }
 
+pub fn validate_runner_operation(record: &RunnerOperationRecord) -> Result<()> {
+    validate_optional_kind(&record.kind, RECORD_RUNNER_OPERATION, "runner operation")?;
+    require_non_empty(&record.operation_id, "runner operation missing operationId")?;
+    require_non_empty(&record.runner_id, "runner operation missing runnerId")?;
+    validate_resolved_member_ref(&record.runner_ref, "runner operation missing runnerRef")?;
+    require_non_empty(&record.host_ref, "runner operation missing hostRef")?;
+    require_non_empty(
+        &record.requester_ref,
+        "runner operation missing requesterRef",
+    )?;
+    require_non_empty(&record.subject_ref, "runner operation missing subjectRef")?;
+    require_non_empty(&record.contract_ref, "runner operation missing contractRef")?;
+    validate_runner_operation_kind(&record.operation)?;
+    validate_runner_operation_state(&record.state)?;
+    require_non_empty_vec(&record.grant_refs, "runner operation requires grantRefs")?;
+    validate_reference_list(
+        &record.capability_refs,
+        "runner operation missing capabilityRefs",
+    )?;
+    validate_reference_list(&record.input_refs, "runner operation missing inputRefs")?;
+    validate_reference_list(&record.output_refs, "runner operation missing outputRefs")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "runner operation missing evidenceRefs",
+    )?;
+    validate_reference_list(&record.proof_refs, "runner operation missing proofRefs")?;
+    validate_reference_list(&record.release_refs, "runner operation missing releaseRefs")?;
+    if !record.resource_budget.is_object() {
+        return Err(anyhow!("runner operation resourceBudget must be an object"));
+    }
+    validate_safe_facts(&record.resource_budget, "runner operation resourceBudget")?;
+    if let Some(resource_posture) = &record.resource_posture {
+        validate_resource_posture(resource_posture)?;
+    }
+    validate_surface_secret_boundary_value(
+        &record.secret_boundary,
+        "runner operation secretBoundary",
+    )?;
+    validate_surface_release_posture_value(
+        &record.release_posture,
+        "runner operation releasePosture",
+    )?;
+    validate_surface_release_posture_value(
+        &record.rollback_posture,
+        "runner operation rollbackPosture",
+    )?;
+    if record.operation == RUNNER_OPERATION_RELEASE
+        && record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!("runner release operation requires releaseRef"));
+    }
+    if record.operation == RUNNER_OPERATION_ROLLBACK
+        && record
+            .rollback_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!("runner rollback operation requires rollbackRef"));
+    }
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "runner operation missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "runner operation missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "runner operation missing blockedReasons",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        RUNNER_OPERATION_STATE_BLOCKED
+            | RUNNER_OPERATION_STATE_FAILED
+            | RUNNER_OPERATION_STATE_REJECTED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "runner blocked, failed, or rejected operation requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "runner operation safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "runner operation safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "runner operation")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "runner operation")?;
+    validate_operation_timeline(
+        record.requested_at,
+        &[
+            record.accepted_at,
+            record.started_at,
+            record.completed_at,
+            record.observed_at,
+        ],
+        record.expires_at,
+        "runner operation",
+    )?;
+    Ok(())
+}
+
 fn validate_frame_body(frame: &SwarmFrame) -> Result<()> {
     match frame.body.encoding.as_str() {
         "caac" => {
@@ -5899,6 +6086,113 @@ fn validate_service_manager_proof_profile(profile: &str) -> Result<()> {
     } else {
         Err(anyhow!("unsupported service manager proof profile"))
     }
+}
+
+fn validate_runner_operation_kind(operation: &str) -> Result<()> {
+    if matches!(
+        operation,
+        RUNNER_OPERATION_PREPARE
+            | RUNNER_OPERATION_EXECUTE
+            | RUNNER_OPERATION_HEALTH_CHECK
+            | RUNNER_OPERATION_RELEASE
+            | RUNNER_OPERATION_ROLLBACK
+            | RUNNER_OPERATION_CANCEL
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid runner operation"))
+    }
+}
+
+fn validate_runner_operation_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        RUNNER_OPERATION_STATE_REQUESTED
+            | RUNNER_OPERATION_STATE_ACCEPTED
+            | RUNNER_OPERATION_STATE_RUNNING
+            | RUNNER_OPERATION_STATE_SUCCEEDED
+            | RUNNER_OPERATION_STATE_FAILED
+            | RUNNER_OPERATION_STATE_BLOCKED
+            | RUNNER_OPERATION_STATE_REJECTED
+            | RUNNER_OPERATION_STATE_CANCELLED
+            | RUNNER_OPERATION_STATE_RELEASED
+            | RUNNER_OPERATION_STATE_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid runner operation state"))
+    }
+}
+
+fn validate_surface_secret_boundary_value(value: &Value, context: &str) -> Result<()> {
+    if value.is_null() {
+        return Ok(());
+    }
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow!("{context} must be an object"))?;
+    validate_surface_secret_boundary_state(
+        object
+            .get("state")
+            .and_then(Value::as_str)
+            .unwrap_or_default(),
+    )?;
+    reject_private_content_fields(value, context)?;
+    validate_safe_facts(value, context)?;
+    Ok(())
+}
+
+fn validate_surface_release_posture_value(value: &Value, context: &str) -> Result<()> {
+    if value.is_null() {
+        return Ok(());
+    }
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow!("{context} must be an object"))?;
+    let state = object
+        .get("state")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if !matches!(
+        state,
+        "static" | "buildReady" | "releaseReady" | "rollbackReady" | "blocked" | "unavailable"
+    ) {
+        return Err(anyhow!("unsupported surface release posture state"));
+    }
+    if state == "blocked"
+        && object
+            .get("blockedReasons")
+            .and_then(Value::as_array)
+            .map(Vec::is_empty)
+            .unwrap_or(true)
+    {
+        return Err(anyhow!("{context} blocked state requires blockedReasons"));
+    }
+    reject_private_content_fields(value, context)?;
+    validate_safe_facts(value, context)?;
+    Ok(())
+}
+
+fn validate_operation_timeline(
+    requested_at: u64,
+    checkpoints: &[Option<u64>],
+    expires_at: Option<u64>,
+    context: &str,
+) -> Result<()> {
+    if requested_at == 0 {
+        return Err(anyhow!("{context} missing requestedAt"));
+    }
+    for checkpoint in checkpoints.iter().flatten() {
+        if *checkpoint < requested_at {
+            return Err(anyhow!(
+                "{context} lifecycle timestamp must not be before requestedAt"
+            ));
+        }
+    }
+    if expires_at.is_some_and(|expires_at| expires_at <= requested_at) {
+        return Err(anyhow!("{context} expiresAt must be after requestedAt"));
+    }
+    Ok(())
 }
 
 fn validate_surface_fulfillment_mode(mode: &str) -> Result<()> {
@@ -7732,6 +8026,7 @@ fn frame_is_propagating(kind: &SwarmFrameKind) -> bool {
             | SwarmFrameKind::StoragePinAttestation
             | SwarmFrameKind::NodeCapability
             | SwarmFrameKind::RuntimeActivationRequest
+            | SwarmFrameKind::RunnerOperation
             | SwarmFrameKind::RoutePromise
             | SwarmFrameKind::RouteObservation
             | SwarmFrameKind::StreamRoutePlan
@@ -8189,6 +8484,81 @@ mod tests {
             expires_at: Some(1_700_000_500),
         };
         validate_app_runner_advertisement(&runner).expect("valid runner");
+
+        let runner_ref = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
+        let runner_operation = RunnerOperationRecord {
+            kind: Some(RECORD_RUNNER_OPERATION.to_string()),
+            operation_id: "runner-operation:security-bootstrap:execute:1".to_string(),
+            runner_id: "runner:lab-gateway:security-bootstrap".to_string(),
+            runner_ref: runner_ref.clone(),
+            host_ref: "host:lab-gateway".to_string(),
+            requester_ref: "identity:aux".to_string(),
+            subject_ref: "security-processor:dev".to_string(),
+            contract_ref: "security-processor:seed@0.1.0".to_string(),
+            operation: RUNNER_OPERATION_EXECUTE.to_string(),
+            state: RUNNER_OPERATION_STATE_SUCCEEDED.to_string(),
+            grant_refs: vec!["authority-grant:runner:security-bootstrap".to_string()],
+            capability_refs: vec![CAPABILITY_APP_RUNNER_PIN.to_string()],
+            input_refs: vec!["event-fabric:security-audit".to_string()],
+            output_refs: vec!["alert-hold:security-bootstrap:1".to_string()],
+            evidence_refs: vec![
+                "evidence:runner:started".to_string(),
+                "evidence:runner:completed".to_string(),
+            ],
+            proof_refs: vec!["proof:runner:security-bootstrap".to_string()],
+            release_refs: vec!["release:runner:security-bootstrap".to_string()],
+            resource_budget: json!({
+                "profileRef": "resource-profile:operator-dev",
+                "maxMemoryMiB": 512,
+                "maxCpuPct": 40
+            }),
+            resource_posture: Some(ResourcePosture {
+                kind: Some(RECORD_RESOURCE_POSTURE.to_string()),
+                posture_id: "resource-posture:runner:security-bootstrap".to_string(),
+                profile_id: "resource-profile:operator-dev".to_string(),
+                state: "withinBudget".to_string(),
+                counts: json!({ "memoryMiB": 120, "cpuPct": 8 }),
+                budgets: json!({ "memoryMiB": 512, "cpuPct": 40 }),
+                blocked_reasons: vec![],
+                sampled_at: 1_700_000_015,
+            }),
+            secret_boundary: json!({ "state": SURFACE_SECRET_BOUNDARY_NOT_REQUIRED }),
+            release_posture: json!({
+                "state": "rollbackReady",
+                "buildRef": "build:runner:security-bootstrap",
+                "releaseRef": "release:runner:security-bootstrap",
+                "rollbackRef": "rollback:runner:security-bootstrap"
+            }),
+            rollback_posture: Value::Null,
+            release_ref: Some("release:runner:security-bootstrap".to_string()),
+            rollback_ref: Some("rollback:runner:security-bootstrap".to_string()),
+            blocked_reasons: vec![],
+            safe_facts: json!({ "role": "securityProcessor", "mode": "operatorDev" }),
+            requested_at: 1_700_000_000,
+            accepted_at: Some(1_700_000_001),
+            started_at: Some(1_700_000_002),
+            completed_at: Some(1_700_000_012),
+            observed_at: Some(1_700_000_015),
+            expires_at: Some(1_700_003_600),
+        };
+        validate_runner_operation(&runner_operation).expect("valid runner operation");
+
+        let mut missing_grant = runner_operation.clone();
+        missing_grant.grant_refs.clear();
+        assert!(validate_runner_operation(&missing_grant).is_err());
+
+        let mut missing_rollback = runner_operation.clone();
+        missing_rollback.operation = RUNNER_OPERATION_ROLLBACK.to_string();
+        missing_rollback.rollback_ref = Some(String::new());
+        assert!(validate_runner_operation(&missing_rollback).is_err());
+
+        let mut blocked_without_reason = runner_operation.clone();
+        blocked_without_reason.state = RUNNER_OPERATION_STATE_BLOCKED.to_string();
+        assert!(validate_runner_operation(&blocked_without_reason).is_err());
+
+        let mut unsafe_fact = runner_operation;
+        unsafe_fact.safe_facts = json!({ "token": "inline-secret" });
+        assert!(validate_runner_operation(&unsafe_fact).is_err());
     }
 
     #[test]
