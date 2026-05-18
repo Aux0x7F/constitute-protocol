@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   BROKER,
   DIAGNOSTICS,
+  AGREEMENT,
   LOGGING,
   PROJECTION,
   ReplayCache,
@@ -81,11 +82,21 @@ import {
   assertMediaTransportPath,
   assertMediaTransportObservation,
   assertServiceManagerPosture,
+  assertServiceManagerOperationPosture,
+  assertServiceManagerProofDigest,
   assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
+  assertAccessEpoch,
+  assertAccessGroup,
+  assertActionAuthorityExercise,
+  assertActionAuthorityGrant,
+  assertAuthorityGrantRevocationPosture,
+  assertAuthorityRootOperation,
   assertConsumerFloor,
   assertContributionLifecycle,
+  assertEventFabricAccessClass,
+  assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
   assertSwarmEdgeAccept,
@@ -734,6 +745,118 @@ test("surface bootstrap contracts gate service manager release and secret postur
     },
     issuedAt,
   }), /forbidden protocol field/);
+});
+
+test("service manager operations and proof digests validate release train evidence", () => {
+  const requestedAt = 1700000000;
+  const operation = assertServiceManagerOperationPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+    operationId: "operation:gateway:promote:2026-05-17",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.PROMOTE,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.SUCCEEDED,
+    serviceRefs: ["service:gateway"],
+    capabilityRefs: ["service.manage"],
+    authorityRefs: ["identity:operator"],
+    releaseRef: "release:gateway:2026-05-17",
+    evidenceRefs: ["ci:gateway:linux", "ci:gateway:windows"],
+    proofRefs: ["proof:gateway:smoke"],
+    safeFacts: {
+      ci: "passed",
+      architecture: "surface-bootstrap",
+    },
+    requestedAt,
+    acceptedAt: requestedAt + 10,
+    startedAt: requestedAt + 20,
+    completedAt: requestedAt + 60,
+    expiresAt: requestedAt + 3600,
+  });
+  assert.equal(operation.operation, SURFACE_APP.SERVICE_MANAGER_OPERATION.PROMOTE);
+
+  const digest = assertServiceManagerProofDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
+    digestId: "proof-digest:gateway:2026-05-17",
+    operationId: operation.operationId,
+    managerId: operation.managerId,
+    subjectRef: operation.subjectRef,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    trainRef: "train:runtime-product:2026-05-17",
+    releaseRef: "release:gateway:2026-05-17",
+    commitRefs: ["git:gateway:4c9a49c"],
+    artifactRefs: ["artifact:gateway:ci"],
+    proofRefs: ["proof:gateway:linux", "proof:gateway:windows"],
+    metricsRefs: ["metrics:spine:service-manager"],
+    environmentRefs: ["env:github-actions"],
+    serviceRefs: ["service:gateway"],
+    safeFacts: {
+      linux: "passed",
+      windows: "passed",
+    },
+    observedAt: requestedAt + 80,
+    expiresAt: requestedAt + 7200,
+  });
+  assert.equal(digest.state, SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED);
+
+  const serviceManager = assertServiceManagerPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+    serviceRefs: ["service:gateway"],
+    operationRefs: [operation.operationId],
+    proofDigestRefs: [digest.digestId],
+    issuedAt: requestedAt,
+  });
+  assert.deepEqual(serviceManager.operationRefs, [operation.operationId]);
+
+  assert.throws(() => assertServiceManagerOperationPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+    operationId: "operation:bad",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.ROLLBACK,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.REQUESTED,
+    requestedAt,
+  }), /rollback operation requires rollbackRef/);
+  assert.throws(() => assertServiceManagerOperationPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+    operationId: "operation:blocked",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.UPDATE,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED,
+    requestedAt,
+  }), /blocked or failed operation requires blockedReasons/);
+  assert.throws(() => assertServiceManagerProofDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
+    digestId: "proof-digest:empty",
+    operationId: operation.operationId,
+    managerId: operation.managerId,
+    subjectRef: operation.subjectRef,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    observedAt: requestedAt + 80,
+  }), /proved proof digest requires artifactRefs or proofRefs/);
+  assert.throws(() => assertServiceManagerProofDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
+    digestId: "proof-digest:leaky",
+    operationId: operation.operationId,
+    managerId: operation.managerId,
+    subjectRef: operation.subjectRef,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.BLOCKED,
+    blockedReasons: ["secret-boundary"],
+    safeFacts: {
+      token: "inline-secret",
+    },
+    observedAt: requestedAt + 80,
+  }), /unsafe safe fact key|forbidden protocol field/);
 });
 
 test("storage manifest helpers validate ciphertext-addressed objects", () => {
@@ -1685,6 +1808,177 @@ test("swarm authority records validate identity, grant, interaction, and recover
   const liveGraph = structuredClone(vector.identityGraph);
   liveGraph.push(vector.activation);
   assert.throws(() => assertSwarmIdentityGraph(liveGraph), /live lease or activation state/);
+});
+
+test("agreement grammar separates action authority, access epochs, private readability, and materialization", () => {
+  const identityRef = `identity:${pubkeyFromSecretKey(ISSUER_SK)}`;
+  const grant = {
+    kind: "authority.action.grant",
+    grantId: "grant:logging:writer",
+    issuerRef: identityRef,
+    subjectRef: `member:${BROWSER_PK}`,
+    audienceRefs: [`service:${SERVICE_PK}`],
+    authorityDomain: SWARM.AUTHORITY_DOMAIN.IDENTITY,
+    resourceRef: "contract:logging.default",
+    action: "logging.event.write",
+    state: AGREEMENT.ACTION_GRANT_STATE.ACCEPTED,
+    scope: { contractRef: "contract:logging.default", retentionClass: "rolling" },
+    capabilityRefs: ["logging.events.observe"],
+    delegation: { allowed: true, maxDepth: 1, inheritedFrom: ["grant:root:logging"] },
+    evidenceRefs: ["sig:grant:logging:writer"],
+    issuedAt: 1700000010,
+    expiresAt: 1700000610,
+  };
+
+  assert.equal(assertActionAuthorityGrant(grant).plane, AGREEMENT.PLANE.ACTION_AUTHORITY);
+  assert.throws(() => assertActionAuthorityGrant({ ...grant, plane: AGREEMENT.PLANE.ACCESS_AUTHORITY }), /plane/);
+  assert.throws(() => assertActionAuthorityGrant({ ...grant, state: AGREEMENT.ACTION_GRANT_STATE.BLOCKED, blockedReason: "" }), /blockedReason/);
+
+  assert.equal(assertActionAuthorityExercise({
+    kind: "authority.action.exercise",
+    exerciseId: "exercise:logging:writer:1",
+    grantId: grant.grantId,
+    actorRef: `member:${BROWSER_PK}`,
+    subjectRef: "event:runtime:1",
+    resourceRef: "contract:logging.default",
+    action: "logging.event.write",
+    state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
+    evidenceRefs: ["event:runtime:1"],
+    issuedAt: 1700000020,
+    observedAt: 1700000025,
+  }).state, AGREEMENT.ACTION_GRANT_STATE.APPLIED);
+
+  assert.equal(assertAuthorityRootOperation({
+    kind: "authority.root.operation",
+    operationId: "root-op:enroll-aux",
+    operation: AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE,
+    identityRef,
+    actorRef: `root:${pubkeyFromSecretKey(ISSUER_SK)}`,
+    targetRef: `device:${BROWSER_PK}`,
+    adminGrantRefs: ["grant:root:admin"],
+    deviceRefs: [`device:${BROWSER_PK}`],
+    notificationRefs: ["notification:root-enroll"],
+    evidenceRefs: ["sig:root-op:enroll-aux"],
+    state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
+    issuedAt: 1700000030,
+  }).plane, AGREEMENT.PLANE.ACTION_AUTHORITY);
+  assert.throws(() => assertAuthorityRootOperation({
+    kind: "authority.root.operation",
+    operationId: "root-op:rotate-bad",
+    operation: AGREEMENT.ROOT_OPERATION.ROTATE_ROOT,
+    identityRef,
+    actorRef: `root:${pubkeyFromSecretKey(ISSUER_SK)}`,
+    targetRef: `root:${GATEWAY_PK}`,
+    adminGrantRefs: ["grant:root:admin"],
+    state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
+    issuedAt: 1700000031,
+  }), /rootRefs/);
+
+  const group = assertAccessGroup({
+    kind: "access.group",
+    groupId: "access-group:logging-secure",
+    ownerRef: identityRef,
+    subjectRef: "contract:logging.default",
+    contentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL, AGREEMENT.CONTENT_CLASS.DIAGNOSTIC_DETAIL],
+    memberRefs: [`member:${SERVICE_PK}`, `member:${BROWSER_PK}`],
+    adminRefs: [`root:${pubkeyFromSecretKey(ISSUER_SK)}`],
+    currentEpochId: "access-epoch:logging-secure:2",
+    partitionRefs: ["partition:identity:logging"],
+    issuedAt: 1700000040,
+  });
+  assert.equal(group.plane, AGREEMENT.PLANE.ACCESS_AUTHORITY);
+
+  assert.equal(assertAccessEpoch({
+    kind: "access.epoch",
+    epochId: "access-epoch:logging-secure:2",
+    groupId: group.groupId,
+    sequence: 2,
+    previousEpochId: "access-epoch:logging-secure:1",
+    changeKind: AGREEMENT.ACCESS_EPOCH_CHANGE.REMOVE_MEMBER,
+    memberRefs: [`member:${SERVICE_PK}`],
+    removedMemberRefs: [`member:${BROWSER_PK}`],
+    keyRef: "key-ref:logging-secure:2",
+    proofRefs: ["sig:epoch:2"],
+    issuedAt: 1700000050,
+  }).changeKind, AGREEMENT.ACCESS_EPOCH_CHANGE.REMOVE_MEMBER);
+  assert.throws(() => assertAccessEpoch({
+    kind: "access.epoch",
+    epochId: "access-epoch:logging-secure:bad",
+    groupId: group.groupId,
+    sequence: 2,
+    changeKind: AGREEMENT.ACCESS_EPOCH_CHANGE.REMOVE_MEMBER,
+    memberRefs: [`member:${SERVICE_PK}`],
+    removedMemberRefs: [`member:${BROWSER_PK}`],
+    keyRef: "key-ref:logging-secure:bad",
+    proofRefs: ["sig:epoch:bad"],
+    issuedAt: 1700000051,
+  }), /previousEpochId/);
+
+  const envelope = assertPrivateContentEnvelope({
+    kind: "private.content.envelope",
+    envelopeId: "private-envelope:logging-event-1",
+    contentClass: AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL,
+    accessGroupRef: group.groupId,
+    epochId: "access-epoch:logging-secure:2",
+    subjectRef: "event:runtime:1",
+    issuerRef: `member:${SERVICE_PK}`,
+    storageObjectRef: "storage-object:log-event-1",
+    caacEnvelopeRef: "caac:log-event-1",
+    recipientRefs: [`member:${SERVICE_PK}`],
+    keyRef: "key-ref:logging-secure:2",
+    summarySafeFacts: { eventClass: "runtimeDiagnostic", severity: "warning" },
+    evidenceRefs: ["storage:pin:log-event-1"],
+    issuedAt: 1700000060,
+  });
+  assert.equal(envelope.contentClass, AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL);
+  assert.throws(() => assertPrivateContentEnvelope({
+    ...envelope,
+    envelopeId: "private-envelope:bad",
+    ciphertext: "raw-ciphertext-body",
+  }), /forbidden protocol field/);
+
+  assert.equal(assertEventFabricAccessClass({
+    kind: "event.fabric.accessClass",
+    classId: "event-class:security-runtime",
+    contentClass: AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL,
+    privacyTier: AGREEMENT.PRIVACY_TIER.DOMAIN_ENCRYPTED,
+    eventClasses: ["runtimeDiagnostic", "securityAudit"],
+    accessGroupRefs: [group.groupId],
+    processorRoleRefs: ["role:logging", "role:security"],
+    storageClass: "storage:rolling-secure",
+    retentionClass: "rolling",
+    safeFactPolicy: AGREEMENT.SAFE_FACT_POLICY.INDEX_ONLY,
+    indexPolicy: { cardinality: "bounded", safeKeys: ["eventClass", "severity"] },
+    issuedAt: 1700000070,
+  }).plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertEventFabricAccessClass({
+    kind: "event.fabric.accessClass",
+    classId: "event-class:bad-public",
+    contentClass: AGREEMENT.CONTENT_CLASS.ENCRYPTED_RAW,
+    privacyTier: AGREEMENT.PRIVACY_TIER.PUBLIC_SAFE,
+    eventClasses: ["securityAudit"],
+    accessGroupRefs: [group.groupId],
+    storageClass: "storage:raw",
+    retentionClass: "short",
+    safeFactPolicy: AGREEMENT.SAFE_FACT_POLICY.NONE,
+    issuedAt: 1700000071,
+  }), /publicSafe/);
+
+  assert.equal(assertAuthorityGrantRevocationPosture({
+    kind: "authority.grant.revocationPosture",
+    revocationId: "revocation:logging:writer",
+    targetGrantRef: grant.grantId,
+    issuerRef: identityRef,
+    authorityDomain: SWARM.AUTHORITY_DOMAIN.IDENTITY,
+    affectedGrantRefs: [grant.grantId, "grant:logging:writer:delegated"],
+    affectedAccessGroupRefs: [group.groupId],
+    inheritedScopeRefs: ["contract:logging.default"],
+    state: AGREEMENT.ACTION_GRANT_STATE.REVOKED,
+    reasonCode: "operatorRevoked",
+    evidenceRefs: ["sig:revocation:logging:writer"],
+    issuedAt: 1700000080,
+    effectiveAt: 1700000081,
+  }).plane, AGREEMENT.PLANE.ACTION_AUTHORITY);
 });
 
 test("swarm frame IDs canonicalize absent CAAC body fields like Rust validators", () => {
