@@ -1385,6 +1385,40 @@ export type EventFabricProcessorContractRecord = {
   expiresAt?: number;
 };
 
+export type SecurityProcessorSeedRecord = {
+  kind?: "security.processor.seed";
+  seedId: string;
+  fabricRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  state: "ready" | "degraded" | "blocked" | "pending" | "expired";
+  threatAnalysisRole: string;
+  inputAccessClassRefs: string[];
+  inputEventClasses: string[];
+  inputContentClasses: AgreementContentClass[];
+  accessGroupRefs?: string[];
+  processorContractRefs?: string[];
+  evidenceProfileRefs?: string[];
+  materializationBudgetRefs?: string[];
+  storageRefs?: string[];
+  detailRefs?: string[];
+  alertOutputRefs?: string[];
+  evidenceHoldRefs?: string[];
+  retentionHoldRefs?: string[];
+  encryptedDetailCustody?: Record<string, unknown>;
+  semanticBoundaries: {
+    logging: string;
+    storage: string;
+    eventDomain: string;
+    [key: string]: unknown;
+  };
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type ProjectionSnapshot = {
   projectionId: string;
   policyId: string;
@@ -2200,6 +2234,7 @@ export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
 export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
 export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
+export function assertSecurityProcessorSeed(record: unknown): SecurityProcessorSeedRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {

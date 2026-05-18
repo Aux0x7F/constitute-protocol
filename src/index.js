@@ -1239,6 +1239,7 @@ export const SWARM = Object.freeze({
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
+    SECURITY_PROCESSOR_SEED: "security.processor.seed",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1300,6 +1301,7 @@ export const SWARM = Object.freeze({
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
+    SECURITY_PROCESSOR_SEED: "security.processor.seed",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -4298,6 +4300,55 @@ export function assertEventFabricProcessorContract(record) {
   if (!Number(record.issuedAt || 0)) throw new Error("event fabric processor contract missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
     throw new Error("event fabric processor contract expires before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertSecurityProcessorSeed(record) {
+  if (!isObject(record)) throw new Error("security processor seed must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SECURITY_PROCESSOR_SEED, "security processor seed");
+  requireString(record.seedId, "security processor seed seedId");
+  requireString(record.fabricRef, "security processor seed fabricRef");
+  requireString(record.processorRef, "security processor seed processorRef");
+  requireString(record.processorRoleRef, "security processor seed processorRoleRef");
+  requireString(record.threatAnalysisRole, "security processor seed threatAnalysisRole");
+  const state = requireString(record.state, "security processor seed state");
+  if (!["ready", "degraded", "blocked", "pending", "expired"].includes(state)) throw new Error("invalid security processor seed state");
+  assertReferenceList(record.inputAccessClassRefs, "security processor seed inputAccessClassRefs");
+  requireNonEmptyArray(record.inputEventClasses, "security processor seed inputEventClasses").forEach((entry) => requireString(entry, "security processor seed inputEventClass"));
+  requireNonEmptyArray(record.inputContentClasses, "security processor seed inputContentClasses").forEach((entry) => assertContentClassName(entry, "security processor seed inputContentClass"));
+  assertOptionalReferenceList(record.accessGroupRefs, "security processor seed accessGroupRefs");
+  assertOptionalReferenceList(record.processorContractRefs, "security processor seed processorContractRefs");
+  assertOptionalReferenceList(record.evidenceProfileRefs, "security processor seed evidenceProfileRefs");
+  assertOptionalReferenceList(record.materializationBudgetRefs, "security processor seed materializationBudgetRefs");
+  assertOptionalReferenceList(record.storageRefs, "security processor seed storageRefs");
+  assertOptionalReferenceList(record.detailRefs, "security processor seed detailRefs");
+  assertOptionalReferenceList(record.alertOutputRefs, "security processor seed alertOutputRefs");
+  assertOptionalReferenceList(record.evidenceHoldRefs, "security processor seed evidenceHoldRefs");
+  assertOptionalReferenceList(record.retentionHoldRefs, "security processor seed retentionHoldRefs");
+  const custody = assertOptionalObject(record.encryptedDetailCustody, "security processor seed encryptedDetailCustody");
+  if (Object.keys(custody).length) {
+    requireString(custody.state, "security processor seed encryptedDetailCustody state");
+    assertOptionalReferenceList(custody.accessGroupRefs, "security processor seed encryptedDetailCustody accessGroupRefs");
+    assertOptionalReferenceList(custody.detailRefs, "security processor seed encryptedDetailCustody detailRefs");
+  }
+  const boundaries = assertOptionalObject(record.semanticBoundaries, "security processor seed semanticBoundaries");
+  for (const field of ["logging", "storage", "eventDomain"]) {
+    requireString(boundaries[field], `security processor seed semanticBoundaries ${field}`);
+  }
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "security processor seed blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("security processor seed blocked state requires blockedReasons");
+  }
+  assertOptionalReferenceList(record.evidenceRefs, "security processor seed evidenceRefs");
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "security processor seed safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "security processor seed safeFacts");
+  }
+  rejectRouteControlByteFields(record, "security processor seed");
+  if (!Number(record.issuedAt || 0)) throw new Error("security processor seed missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("security processor seed expires before issuedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }

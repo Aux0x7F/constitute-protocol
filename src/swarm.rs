@@ -93,6 +93,7 @@ pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
 pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
 pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
 pub const RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT: &str = "event.fabric.processor.contract";
+pub const RECORD_SECURITY_PROCESSOR_SEED: &str = "security.processor.seed";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -1738,6 +1739,56 @@ pub struct EventFabricProcessorContractRecord {
     pub encrypted_detail_custody: Value,
     #[serde(default)]
     pub sampling_policy: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SecurityProcessorSeedRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub seed_id: String,
+    pub fabric_ref: String,
+    pub processor_ref: String,
+    pub processor_role_ref: String,
+    pub state: String,
+    pub threat_analysis_role: String,
+    #[serde(default)]
+    pub input_access_class_refs: Vec<String>,
+    #[serde(default)]
+    pub input_event_classes: Vec<String>,
+    #[serde(default)]
+    pub input_content_classes: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub processor_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub materialization_budget_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub detail_refs: Vec<String>,
+    #[serde(default)]
+    pub alert_output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_hold_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_hold_refs: Vec<String>,
+    #[serde(default)]
+    pub encrypted_detail_custody: Value,
+    #[serde(default)]
+    pub semantic_boundaries: Value,
     #[serde(default)]
     pub safe_facts: Value,
     #[serde(default)]
@@ -4013,6 +4064,158 @@ pub fn validate_event_fabric_processor_contract(
     {
         return Err(anyhow!(
             "event fabric processor contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_security_processor_seed(record: &SecurityProcessorSeedRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SECURITY_PROCESSOR_SEED,
+        "security processor seed",
+    )?;
+    require_non_empty(&record.seed_id, "security processor seed missing seedId")?;
+    require_non_empty(
+        &record.fabric_ref,
+        "security processor seed missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.processor_ref,
+        "security processor seed missing processorRef",
+    )?;
+    require_non_empty(
+        &record.processor_role_ref,
+        "security processor seed missing processorRoleRef",
+    )?;
+    require_non_empty(
+        &record.threat_analysis_role,
+        "security processor seed missing threatAnalysisRole",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "ready" | "degraded" | "blocked" | "pending" | "expired"
+    ) {
+        return Err(anyhow!("invalid security processor seed state"));
+    }
+    require_non_empty_vec(
+        &record.input_access_class_refs,
+        "security processor seed requires inputAccessClassRefs",
+    )?;
+    validate_reference_list(
+        &record.input_access_class_refs,
+        "security processor seed missing inputAccessClassRefs",
+    )?;
+    require_non_empty_vec(
+        &record.input_event_classes,
+        "security processor seed requires inputEventClasses",
+    )?;
+    validate_reference_list(
+        &record.input_event_classes,
+        "security processor seed missing inputEventClasses",
+    )?;
+    require_non_empty_vec(
+        &record.input_content_classes,
+        "security processor seed requires inputContentClasses",
+    )?;
+    for content_class in &record.input_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.access_group_refs,
+        "security processor seed missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.processor_contract_refs,
+        "security processor seed missing processorContractRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_profile_refs,
+        "security processor seed missing evidenceProfileRefs",
+    )?;
+    validate_reference_list(
+        &record.materialization_budget_refs,
+        "security processor seed missing materializationBudgetRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "security processor seed missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.detail_refs,
+        "security processor seed missing detailRefs",
+    )?;
+    validate_reference_list(
+        &record.alert_output_refs,
+        "security processor seed missing alertOutputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_hold_refs,
+        "security processor seed missing evidenceHoldRefs",
+    )?;
+    validate_reference_list(
+        &record.retention_hold_refs,
+        "security processor seed missing retentionHoldRefs",
+    )?;
+    if let Some(policy) = validate_policy_object(
+        &record.encrypted_detail_custody,
+        "security processor seed encryptedDetailCustody",
+    )? {
+        require_policy_string(
+            policy,
+            "state",
+            "security processor seed encryptedDetailCustody",
+        )?;
+    }
+    let Some(boundaries) = validate_policy_object(
+        &record.semantic_boundaries,
+        "security processor seed semanticBoundaries",
+    )?
+    else {
+        return Err(anyhow!(
+            "security processor seed requires semanticBoundaries"
+        ));
+    };
+    require_policy_string(
+        boundaries,
+        "logging",
+        "security processor seed semanticBoundaries",
+    )?;
+    require_policy_string(
+        boundaries,
+        "storage",
+        "security processor seed semanticBoundaries",
+    )?;
+    require_policy_string(
+        boundaries,
+        "eventDomain",
+        "security processor seed semanticBoundaries",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "security processor seed blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.evidence_refs,
+        "security processor seed missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "security processor seed missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "security processor seed safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "security processor seed safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "security processor seed")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("security processor seed missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "security processor seed expiresAt must be after issuedAt"
         ));
     }
     Ok(())
@@ -8881,6 +9084,52 @@ mod tests {
         bad_processor.processor_contract_id = "processor-contract:blocked".to_string();
         bad_processor.state = "blocked".to_string();
         assert!(validate_event_fabric_processor_contract(&bad_processor).is_err());
+
+        let security_seed = SecurityProcessorSeedRecord {
+            kind: Some(RECORD_SECURITY_PROCESSOR_SEED.to_string()),
+            seed_id: "security-seed:logging.default".to_string(),
+            fabric_ref: "event-fabric:logging.default".to_string(),
+            processor_ref: "constitute-security".to_string(),
+            processor_role_ref: "role:security.processor".to_string(),
+            state: "ready".to_string(),
+            threat_analysis_role: "eventFabricThreatAnalysis".to_string(),
+            input_access_class_refs: vec![event_class.class_id.clone()],
+            input_event_classes: event_class.event_classes.clone(),
+            input_content_classes: vec!["encryptedDetail".to_string()],
+            access_group_refs: vec![group.group_id.clone()],
+            processor_contract_refs: vec![processor.processor_contract_id.clone()],
+            evidence_profile_refs: vec!["logging.security.default".to_string()],
+            materialization_budget_refs: vec!["logging.security.default.90d".to_string()],
+            storage_refs: vec!["storage:logging.archive".to_string()],
+            detail_refs: vec!["encrypted-detail:logging.default".to_string()],
+            alert_output_refs: vec!["security:alerts".to_string()],
+            evidence_hold_refs: vec!["security:evidence-hold".to_string()],
+            retention_hold_refs: vec!["retention:security-hold".to_string()],
+            encrypted_detail_custody: json!({
+                "state": "referenceOnly",
+                "accessGroupRefs": [group.group_id.clone()]
+            }),
+            semantic_boundaries: json!({
+                "logging": "mayConsumeMaterializations",
+                "storage": "ciphertextFulfillmentOnly",
+                "eventDomain": "doesNotOwn"
+            }),
+            safe_facts: json!({
+                "purpose": "securityThreatAnalysis",
+                "detailCustody": "encryptedDetailRef"
+            }),
+            evidence_refs: vec!["evidence:security-seed".to_string()],
+            blocked_reasons: Vec::new(),
+            issued_at: 1_700_000_074,
+            expires_at: Some(1_707_776_074),
+        };
+        validate_security_processor_seed(&security_seed).expect("valid security processor seed");
+        let mut bad_seed = security_seed.clone();
+        bad_seed.state = "blocked".to_string();
+        assert!(validate_security_processor_seed(&bad_seed).is_err());
+        let mut missing_boundary = security_seed;
+        missing_boundary.semantic_boundaries = json!({ "logging": "mayConsumeMaterializations" });
+        assert!(validate_security_processor_seed(&missing_boundary).is_err());
 
         let revocation = AuthorityGrantRevocationPostureRecord {
             kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),

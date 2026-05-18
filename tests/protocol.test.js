@@ -104,6 +104,7 @@ import {
   assertContributionLifecycle,
   assertEventFabricAccessClass,
   assertEventFabricProcessorContract,
+  assertSecurityProcessorSeed,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -2250,6 +2251,56 @@ test("agreement grammar separates action authority, access epochs, private reada
     state: "blocked",
     blockedReasons: [],
   }), /blocked state requires blockedReasons/);
+
+  const securitySeed = assertSecurityProcessorSeed({
+    kind: SWARM.RECORD_KIND.SECURITY_PROCESSOR_SEED,
+    seedId: "security-seed:logging.default",
+    fabricRef: "event-fabric:logging.default",
+    processorRef: "constitute-security",
+    processorRoleRef: "role:security.processor",
+    state: "ready",
+    threatAnalysisRole: "eventFabricThreatAnalysis",
+    inputAccessClassRefs: ["event-class:security-runtime"],
+    inputEventClasses: ["securityAudit", "runtimeDiagnostic"],
+    inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
+    accessGroupRefs: [group.groupId],
+    processorContractRefs: [processor.processorContractId],
+    evidenceProfileRefs: ["logging.security.default"],
+    materializationBudgetRefs: ["logging.security.default.90d"],
+    storageRefs: ["storage:logging.archive"],
+    detailRefs: ["encrypted-detail:logging.default"],
+    alertOutputRefs: ["security:alerts"],
+    evidenceHoldRefs: ["security:evidence-hold"],
+    retentionHoldRefs: ["retention:security-hold"],
+    encryptedDetailCustody: {
+      state: "referenceOnly",
+      accessGroupRefs: [group.groupId],
+    },
+    semanticBoundaries: {
+      logging: "mayConsumeMaterializations",
+      storage: "ciphertextFulfillmentOnly",
+      eventDomain: "doesNotOwn",
+    },
+    safeFacts: {
+      purpose: "securityThreatAnalysis",
+      detailCustody: "encryptedDetailRef",
+    },
+    evidenceRefs: ["evidence:security-seed"],
+    issuedAt: 1700000074,
+    expiresAt: 1707776074,
+  });
+  assert.equal(securitySeed.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.equal(securitySeed.semanticBoundaries.eventDomain, "doesNotOwn");
+  assert.throws(() => assertSecurityProcessorSeed({
+    ...securitySeed,
+    seedId: "security-seed:blocked",
+    state: "blocked",
+    blockedReasons: [],
+  }), /blocked state requires blockedReasons/);
+  assert.throws(() => assertSecurityProcessorSeed({
+    ...securitySeed,
+    semanticBoundaries: { logging: "mayConsumeMaterializations" },
+  }), /semanticBoundaries storage/);
 
   assert.equal(assertAuthorityGrantRevocationPosture({
     kind: "authority.grant.revocationPosture",
