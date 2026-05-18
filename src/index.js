@@ -154,6 +154,16 @@ export const SURFACE_APP = Object.freeze({
     DIRECT_EDGE: "directEdge",
     NATIVE_CHECKS: "nativeChecks",
   }),
+  ADAPTER_LIFECYCLE_STATE: Object.freeze({
+    IDLE: "idle",
+    OPENING: "opening",
+    EVIDENCE_PENDING: "evidencePending",
+    USABLE: "usable",
+    RECONNECTING: "reconnecting",
+    RELEASED: "released",
+    EXPIRED: "expired",
+    BLOCKED: "blocked",
+  }),
 });
 
 export const RUNNER = Object.freeze({
@@ -184,6 +194,7 @@ export const RUNNER = Object.freeze({
     SUCCEEDED: "succeeded",
     RELEASED: "released",
     ROLLED_BACK: "rolledBack",
+    EXPIRED: "expired",
     BLOCKED: "blocked",
     FAILED: "failed",
     REJECTED: "rejected",
@@ -1318,8 +1329,10 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
     SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_MANIFEST_SELECTION: "surface.app.manifest.selection",
+    SURFACE_APP_SOURCE_CANDIDATE_POSTURE: "surface.app.source.candidate.posture",
     SURFACE_APP_MANIFEST_RUNNER_PLAN: "surface.app.manifest.runner.plan",
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
+    SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY: "surface.app.runtime.service-manager.actionability",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
     SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: "surface.app.fulfillment.identity.posture",
     SURFACE_APP_AUTHORITY_ACCESS_POSTURE: "surface.app.authority.access.posture",
@@ -1328,8 +1341,10 @@ export const SWARM = Object.freeze({
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
+    SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
+    APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1392,8 +1407,10 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
     SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_MANIFEST_SELECTION: "surface.app.manifest.selection",
+    SURFACE_APP_SOURCE_CANDIDATE_POSTURE: "surface.app.source.candidate.posture",
     SURFACE_APP_MANIFEST_RUNNER_PLAN: "surface.app.manifest.runner.plan",
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
+    SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY: "surface.app.runtime.service-manager.actionability",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
     SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: "surface.app.fulfillment.identity.posture",
     SURFACE_APP_AUTHORITY_ACCESS_POSTURE: "surface.app.authority.access.posture",
@@ -1402,8 +1419,10 @@ export const SWARM = Object.freeze({
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
+    SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
+    APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -5388,6 +5407,7 @@ export function assertSurfaceAppManifestSelection(record) {
   if (record.compatibilityWindow !== undefined) assertSurfaceAppCompatibilityWindow(record.compatibilityWindow, "surface app manifest selection compatibilityWindow");
   if (String(record.bootstrapContractRef || "").trim()) requireString(record.bootstrapContractRef, "surface app manifest selection bootstrapContractRef");
   if (String(record.releaseContractRef || "").trim()) requireString(record.releaseContractRef, "surface app manifest selection releaseContractRef");
+  if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.claim !== undefined && record.claim !== null) assertSurfaceAppManifestVersion(record.claim, "surface app manifest selection claim");
   if (state === "ready" && sourceMode !== SURFACE_APP.FULFILLMENT_MODE.BUNDLED) {
     if (!String(record.releaseContractRef || "").trim()) throw new Error("surface app ready remote selection requires releaseContractRef");
@@ -5401,6 +5421,53 @@ export function assertSurfaceAppManifestSelection(record) {
     throw new Error("surface app manifest selection expires before issuedAt");
   }
   assertNoEnumerableImplementationFields(record, "surface app manifest selection");
+  return record;
+}
+
+export function assertSurfaceAppSourceCandidatePosture(record) {
+  if (!isObject(record)) throw new Error("surface app source candidate posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE, "surface app source candidate posture");
+  const state = assertSurfaceAppRecordState(record, "surface app source candidate posture", ["ready", "degraded", "blocked"]);
+  const sourceMode = requireString(record.sourceMode, "surface app source candidate posture sourceMode");
+  if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app source candidate posture sourceMode");
+  requireString(record.sourceClass, "surface app source candidate posture sourceClass");
+  assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
+  assertOptionalReferenceList(record.bundledSourceRefs, "surface app source candidate posture bundledSourceRefs");
+  assertOptionalReferenceList(record.remoteSourceRefs, "surface app source candidate posture remoteSourceRefs");
+  assertOptionalReferenceList(record.storageObjectRefs, "surface app source candidate posture storageObjectRefs");
+  assertOptionalReferenceList(record.releaseSourceRefs, "surface app source candidate posture releaseSourceRefs");
+  assertOptionalReferenceList(record.swarmSourceRefs, "surface app source candidate posture swarmSourceRefs");
+  assertOptionalReferenceList(record.compatibilityRefs, "surface app source candidate posture compatibilityRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "surface app source candidate posture rollbackRefs");
+  assertOptionalReferenceList(record.secretBoundaryRefs, "surface app source candidate posture secretBoundaryRefs");
+  assertOptionalReferenceList(record.trustRefs, "surface app source candidate posture trustRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app source candidate posture evidenceRefs");
+  if (String(record.releaseContractRef || "").trim()) requireString(record.releaseContractRef, "surface app source candidate posture releaseContractRef");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app source candidate posture blockedReasons");
+  if (state === "ready" && blockedReasons.length) throw new Error("ready surface app source candidate posture cannot carry blockedReasons");
+  if (state !== "blocked" && sourceMode !== SURFACE_APP.FULFILLMENT_MODE.BUNDLED) {
+    const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
+    if (!candidateRefs.length) throw new Error("remote surface app source candidate requires candidateRefs");
+    if (!String(record.releaseContractRef || "").trim()) throw new Error("remote surface app source candidate requires releaseContractRef");
+    if (!assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs").length) {
+      throw new Error("remote surface app source candidate requires proofDigestRefs");
+    }
+    if (!assertOptionalReferenceList(record.rollbackRefs, "surface app source candidate posture rollbackRefs").length) {
+      throw new Error("remote surface app source candidate requires rollbackRefs");
+    }
+    if (!assertOptionalReferenceList(record.secretBoundaryRefs, "surface app source candidate posture secretBoundaryRefs").length) {
+      throw new Error("remote surface app source candidate requires secretBoundaryRefs");
+    }
+    if (!assertOptionalReferenceList(record.compatibilityRefs, "surface app source candidate posture compatibilityRefs").length) {
+      throw new Error("remote surface app source candidate requires compatibilityRefs");
+    }
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app source candidate posture missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app source candidate posture expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface app source candidate posture");
   return record;
 }
 
@@ -5455,10 +5522,12 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app runtime selection posture sourceMode");
   assertOptionalReferenceList(record.requiredModuleRoles, "surface app runtime selection posture requiredModuleRoles");
   if (record.compatibilityResult !== undefined) assertSurfaceAppReadiness(record.compatibilityResult, "surface app runtime compatibility result");
+  if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.sourceTrustResult !== undefined) assertSurfaceAppReadiness(record.sourceTrustResult, "surface app runtime source trust result");
   requireArray(record.modulePostures || [], "surface app runtime selection posture modulePostures").forEach(assertSurfaceModuleRolePosture);
   if (record.runnerReadiness !== undefined) assertSurfaceAppReadiness(record.runnerReadiness, "surface app runtime runner readiness");
   if (record.serviceManagerReadiness !== undefined) assertSurfaceAppReadiness(record.serviceManagerReadiness, "surface app runtime service manager readiness");
+  if (record.serviceManagerActionability !== undefined && record.serviceManagerActionability !== null) assertSurfaceAppServiceManagerActionability(record.serviceManagerActionability);
   if (record.fulfillmentIdentityPosture !== undefined && record.fulfillmentIdentityPosture !== null) {
     assertSurfaceAppFulfillmentIdentityPosture(record.fulfillmentIdentityPosture);
   }
@@ -5473,6 +5542,102 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
     throw new Error("surface app runtime selection posture expires before issuedAt");
   }
   assertNoEnumerableImplementationFields(record, "surface app runtime selection posture");
+  return record;
+}
+
+export function assertSurfaceAppServiceManagerActionability(record) {
+  if (!isObject(record)) throw new Error("surface app service manager actionability must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY, "surface app service manager actionability");
+  assertSurfaceAppRecordState(record, "surface app service manager actionability", ["ready", "degraded", "blocked", "unknown", "unchecked"]);
+  requireString(record.managerId, "surface app service manager actionability managerId");
+  requireString(record.subjectRef, "surface app service manager actionability subjectRef");
+  if (String(record.managerRef || "").trim()) requireString(record.managerRef, "surface app service manager actionability managerRef");
+  assertOptionalReferenceList(record.serviceManagerRequirementRefs, "surface app service manager actionability serviceManagerRequirementRefs");
+  assertOptionalReferenceList(record.operationRefs, "surface app service manager actionability operationRefs");
+  assertOptionalReferenceList(record.releaseContractRefs, "surface app service manager actionability releaseContractRefs");
+  assertOptionalReferenceList(record.secretBoundaryRefs, "surface app service manager actionability secretBoundaryRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "surface app service manager actionability proofDigestRefs");
+  assertOptionalReferenceList(record.labProofRefs, "surface app service manager actionability labProofRefs");
+  assertOptionalReferenceList(record.trainDigestRefs, "surface app service manager actionability trainDigestRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app service manager actionability evidenceRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "surface app service manager actionability capabilityRefs");
+  if (record.serviceManagerPosture !== undefined) assertServiceManagerPosture(record.serviceManagerPosture);
+  if (record.releaseContract !== undefined && record.releaseContract !== null) assertServiceManagerReleaseContract(record.releaseContract);
+  if (record.secretBoundary !== undefined && record.secretBoundary !== null) assertServiceManagerSecretBoundary(record.secretBoundary);
+  if (record.proofDigest !== undefined && record.proofDigest !== null) assertServiceManagerProofDigest(record.proofDigest);
+  if (record.labProof !== undefined && record.labProof !== null) assertServiceManagerLabProof(record.labProof);
+  if (record.trainDigest !== undefined && record.trainDigest !== null) assertServiceManagerTrainDigest(record.trainDigest);
+  requireArray(record.operationPostures || [], "surface app service manager actionability operationPostures")
+    .forEach(assertServiceManagerOperationPosture);
+  if (String(record.healthState || "").trim()) requireString(record.healthState, "surface app service manager actionability healthState");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app service manager actionability blockedReasons");
+  if (String(record.state || "") === "blocked" && blockedReasons.length === 0) {
+    throw new Error("surface app blocked service manager actionability requires blockedReasons");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app service manager actionability missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app service manager actionability expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface app service manager actionability");
+  return record;
+}
+
+export function assertSurfaceAdapterLifecyclePosture(record) {
+  if (!isObject(record)) throw new Error("surface adapter lifecycle posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE, "surface adapter lifecycle posture");
+  requireString(record.lifecycleId, "surface adapter lifecycle posture lifecycleId");
+  requireString(record.adapterRef, "surface adapter lifecycle posture adapterRef");
+  requireString(record.subjectRef, "surface adapter lifecycle posture subjectRef");
+  if (String(record.moduleRef || "").trim()) requireString(record.moduleRef, "surface adapter lifecycle posture moduleRef");
+  if (String(record.surfaceRef || "").trim()) requireString(record.surfaceRef, "surface adapter lifecycle posture surfaceRef");
+  if (String(record.role || "").trim() && !Object.values(SURFACE_APP.MODULE_ROLE).includes(record.role)) {
+    throw new Error("invalid surface adapter lifecycle role");
+  }
+  if (String(record.participantSide || "").trim() && !Object.values(SURFACE_APP.PARTICIPANT_SIDE).includes(record.participantSide)) {
+    throw new Error("invalid surface adapter lifecycle participantSide");
+  }
+  const state = requireString(record.state, "surface adapter lifecycle posture state");
+  if (!Object.values(SURFACE_APP.ADAPTER_LIFECYCLE_STATE).includes(state)) {
+    throw new Error("invalid surface adapter lifecycle state");
+  }
+  assertOptionalReferenceList(record.intentRefs, "surface adapter lifecycle posture intentRefs");
+  assertOptionalReferenceList(record.sessionRefs, "surface adapter lifecycle posture sessionRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface adapter lifecycle posture evidenceRefs");
+  assertOptionalReferenceList(record.releaseRefs, "surface adapter lifecycle posture releaseRefs");
+  assertOptionalReferenceList(record.resourceRefs, "surface adapter lifecycle posture resourceRefs");
+  assertOptionalReferenceList(record.blockedReasons, "surface adapter lifecycle posture blockedReasons");
+  if (record.reconnect !== undefined) {
+    if (!isObject(record.reconnect)) throw new Error("surface adapter lifecycle reconnect must be an object");
+    const attempt = Number(record.reconnect.attempt || 0);
+    const delayMs = Number(record.reconnect.delayMs || 0);
+    if (!Number.isFinite(attempt) || attempt < 0) throw new Error("surface adapter lifecycle reconnect attempt invalid");
+    if (!Number.isFinite(delayMs) || delayMs < 0) throw new Error("surface adapter lifecycle reconnect delay invalid");
+    if (String(record.reconnect.reason || "").trim()) requireString(record.reconnect.reason, "surface adapter lifecycle reconnect reason");
+    if (record.reconnect.nextRetryAt !== undefined && Number(record.reconnect.nextRetryAt || 0) <= Number(record.observedAt || record.issuedAt || 0)) {
+      throw new Error("surface adapter lifecycle reconnect nextRetryAt must be after observation");
+    }
+  }
+  if (record.cleanup !== undefined) {
+    if (!isObject(record.cleanup)) throw new Error("surface adapter lifecycle cleanup must be an object");
+    if (Number(record.cleanup.openResourceCount || 0) < 0) throw new Error("surface adapter lifecycle cleanup openResourceCount invalid");
+  }
+  const blockedReasons = Array.isArray(record.blockedReasons) ? record.blockedReasons : [];
+  if ([SURFACE_APP.ADAPTER_LIFECYCLE_STATE.BLOCKED, SURFACE_APP.ADAPTER_LIFECYCLE_STATE.EXPIRED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked or expired surface adapter lifecycle requires blockedReasons");
+  }
+  if (state === SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING && !isObject(record.reconnect)) {
+    throw new Error("reconnecting surface adapter lifecycle requires reconnect posture");
+  }
+  if (state === SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RELEASED && (record.releaseRefs || []).length === 0 && !String(record.releaseRef || "").trim()) {
+    throw new Error("released surface adapter lifecycle requires release ref");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface adapter lifecycle safeFacts");
+  if (!Number(record.issuedAt || 0)) throw new Error("surface adapter lifecycle posture missing issuedAt");
+  if (!Number(record.observedAt || 0)) throw new Error("surface adapter lifecycle posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface adapter lifecycle posture expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface adapter lifecycle posture");
   return record;
 }
 
@@ -5503,8 +5668,14 @@ export function assertSurfaceAppInstancePosture(record) {
   if (record.runnerReadiness !== undefined && record.runnerReadiness !== null) {
     assertSurfaceAppReadiness(record.runnerReadiness, "surface app instance runner readiness");
   }
+  if (record.runnerFulfillmentLifecycle !== undefined && record.runnerFulfillmentLifecycle !== null) {
+    assertAppRunnerFulfillmentLifecycle(record.runnerFulfillmentLifecycle);
+  }
   if (record.serviceManagerReadiness !== undefined && record.serviceManagerReadiness !== null) {
     assertSurfaceAppReadiness(record.serviceManagerReadiness, "surface app instance service manager readiness");
+  }
+  if (record.serviceManagerActionability !== undefined && record.serviceManagerActionability !== null) {
+    assertSurfaceAppServiceManagerActionability(record.serviceManagerActionability);
   }
   if (record.fulfillmentIdentityPosture !== undefined && record.fulfillmentIdentityPosture !== null) {
     assertSurfaceAppFulfillmentIdentityPosture(record.fulfillmentIdentityPosture);
@@ -5658,6 +5829,93 @@ export function assertAppRunnerFulfillmentReport(record) {
     capabilityRefs,
     sourceRefs,
     inputRefs,
+    outputRefs,
+    evidenceRefs,
+    proofRefs,
+    releaseRefs,
+    blockedReasons,
+  };
+}
+
+export function assertAppRunnerFulfillmentLifecycle(record) {
+  if (!isObject(record)) throw new Error("app runner fulfillment lifecycle must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_LIFECYCLE, "app runner fulfillment lifecycle");
+  requireString(record.lifecycleId, "app runner fulfillment lifecycle lifecycleId");
+  const reportId = requireString(record.reportId, "app runner fulfillment lifecycle reportId");
+  requireString(record.runnerId, "app runner fulfillment lifecycle runnerId");
+  assertResolvedMemberRef(record.runnerRef, "app runner fulfillment lifecycle runnerRef");
+  requireString(record.hostRef, "app runner fulfillment lifecycle hostRef");
+  requireString(record.runnerOperationId, "app runner fulfillment lifecycle runnerOperationId");
+  const operation = requireString(record.operation, "app runner fulfillment lifecycle operation");
+  if (!Object.values(RUNNER.OPERATION).includes(operation)) throw new Error("invalid app runner fulfillment lifecycle operation");
+  const state = assertRunnerFulfillmentState(record.state, "app runner fulfillment lifecycle state");
+  requireString(record.requesterRef, "app runner fulfillment lifecycle requesterRef");
+  requireString(record.subjectRef, "app runner fulfillment lifecycle subjectRef");
+  requireString(record.contractRef, "app runner fulfillment lifecycle contractRef");
+  if (record.appContractRef !== undefined) requireString(record.appContractRef, "app runner fulfillment lifecycle appContractRef");
+  if (record.appId !== undefined) requireString(record.appId, "app runner fulfillment lifecycle appId");
+  if (record.version !== undefined) requireString(record.version, "app runner fulfillment lifecycle version");
+  if (record.manifestRef !== undefined) requireString(record.manifestRef, "app runner fulfillment lifecycle manifestRef");
+  if (record.sourceMode !== undefined) {
+    const sourceMode = requireString(record.sourceMode, "app runner fulfillment lifecycle sourceMode");
+    if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid app runner fulfillment lifecycle sourceMode");
+  }
+  const sourceRefs = assertOptionalReferenceList(record.sourceRefs, "app runner fulfillment lifecycle sourceRefs");
+  assertOptionalReferenceList(record.grantRefs, "app runner fulfillment lifecycle grantRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "app runner fulfillment lifecycle capabilityRefs");
+  assertOptionalReferenceList(record.inputRefs, "app runner fulfillment lifecycle inputRefs");
+  const outputRefs = assertOptionalReferenceList(record.outputRefs, "app runner fulfillment lifecycle outputRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "app runner fulfillment lifecycle evidenceRefs");
+  const proofRefs = assertOptionalReferenceList(record.proofRefs, "app runner fulfillment lifecycle proofRefs");
+  const releaseRefs = assertOptionalReferenceList(record.releaseRefs, "app runner fulfillment lifecycle releaseRefs");
+  assertOptionalReferenceList(record.witnessRefs, "app runner fulfillment lifecycle witnessRefs");
+  assertOptionalReferenceList(record.releaseWitnessRefs, "app runner fulfillment lifecycle releaseWitnessRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app runner fulfillment lifecycle blockedReasons");
+  if (record.resourceBudget !== undefined && record.resourceBudget !== null) assertSafeObject(record.resourceBudget, "app runner fulfillment lifecycle resourceBudget");
+  if (record.resourcePosture !== undefined && record.resourcePosture !== null) assertResourcePosture(record.resourcePosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment lifecycle secretBoundary");
+  if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment lifecycle releasePosture");
+  if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment lifecycle rollbackPosture");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment lifecycle releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment lifecycle rollbackRef");
+  if (record.operationPosture !== undefined && record.operationPosture !== null) assertSafeObject(assertOptionalObject(record.operationPosture, "app runner fulfillment lifecycle operationPosture"), "app runner fulfillment lifecycle operationPosture");
+  if (record.fulfillmentPosture !== undefined && record.fulfillmentPosture !== null) assertSafeObject(assertOptionalObject(record.fulfillmentPosture, "app runner fulfillment lifecycle fulfillmentPosture"), "app runner fulfillment lifecycle fulfillmentPosture");
+  for (const field of ["requestedAt", "acceptedAt", "startedAt", "completedAt", "releasedAt", "rolledBackAt", "rejectedAt", "expiredAt", "observedAt", "expiresAt"]) {
+    assertOptionalTimeField(record[field], `app runner fulfillment lifecycle ${field}`);
+  }
+  const observedAt = Number(record.observedAt || 0);
+  if (!observedAt) throw new Error("app runner fulfillment lifecycle missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= observedAt) {
+    throw new Error("app runner fulfillment lifecycle expiresAt must be after observedAt");
+  }
+  const terminalBlocked = [
+    RUNNER.FULFILLMENT_STATE.BLOCKED,
+    RUNNER.FULFILLMENT_STATE.FAILED,
+    RUNNER.FULFILLMENT_STATE.REJECTED,
+    RUNNER.FULFILLMENT_STATE.CANCELLED,
+    RUNNER.FULFILLMENT_STATE.EXPIRED,
+  ];
+  if (terminalBlocked.includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked app runner fulfillment lifecycle requires blockedReasons");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.SUCCEEDED && outputRefs.length === 0 && proofRefs.length === 0) {
+    throw new Error("succeeded app runner fulfillment lifecycle requires outputRefs or proofRefs");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.SUCCEEDED && sourceRefs.length === 0) {
+    throw new Error("succeeded app runner fulfillment lifecycle requires sourceRefs");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.RELEASED && releaseRefs.length === 0 && !String(record.releaseRef || "").trim()) {
+    throw new Error("released app runner fulfillment lifecycle requires releaseRefs or releaseRef");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.ROLLED_BACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("rolledBack app runner fulfillment lifecycle requires rollbackRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "app runner fulfillment lifecycle safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "app runner fulfillment lifecycle");
+  return {
+    ...record,
+    reportId,
+    sourceRefs,
     outputRefs,
     evidenceRefs,
     proofRefs,

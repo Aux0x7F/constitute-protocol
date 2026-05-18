@@ -19,6 +19,7 @@ import {
   assertAppRecipe,
   assertAppRunnerAdvertisement,
   assertAppRunnerFulfillmentReport,
+  assertAppRunnerFulfillmentLifecycle,
   assertRunnerOperation,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
@@ -93,9 +94,12 @@ import {
   assertServiceManagerProofDigest,
   assertSurfaceAppManifest,
   assertSurfaceAppManifestSelection,
+  assertSurfaceAppSourceCandidatePosture,
   assertSurfaceAppManifestRunnerPlan,
   assertSurfaceAppRuntimeSelectionPosture,
+  assertSurfaceAppServiceManagerActionability,
   assertSurfaceAppInstancePosture,
+  assertSurfaceAdapterLifecyclePosture,
   assertSurfaceAppFulfillmentIdentityPosture,
   assertSurfaceAppAuthorityAccessPosture,
   assertSurfaceAppRunnerPlan,
@@ -1142,12 +1146,90 @@ test("surface app instance grammar validates clean selection and runner posture 
     },
     issuedAt,
   });
+  const sourceCandidatePosture = assertSurfaceAppSourceCandidatePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+    state: "ready",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    sourceClass: "bundled",
+    candidateRefs: ["bundle:logging-ui@0.1.0"],
+    bundledSourceRefs: ["bundle:logging-ui@0.1.0"],
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    blockedReasons: [],
+    issuedAt,
+  });
+  const blockedRemoteCandidate = assertSurfaceAppSourceCandidatePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+    state: "blocked",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+    sourceClass: "storagePinned",
+    candidateRefs: ["storage-object:logging-ui@0.2.0"],
+    storageObjectRefs: ["storage-object:logging-ui@0.2.0"],
+    releaseContractRef: "release:logging-ui@0.2.0",
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
+    rollbackRefs: ["rollback:logging-ui@0.1.0"],
+    secretBoundaryRefs: [],
+    blockedReasons: ["missingSecretBoundaryRef"],
+    issuedAt,
+  });
+  assert.equal(blockedRemoteCandidate.state, "blocked");
+  assert.throws(
+    () => assertSurfaceAppSourceCandidatePosture({
+      kind: SWARM.RECORD_KIND.SURFACE_APP_SOURCE_CANDIDATE_POSTURE,
+      state: "ready",
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+      sourceClass: "storagePinned",
+      candidateRefs: ["storage-object:logging-ui@0.2.0"],
+      releaseContractRef: "release:logging-ui@0.2.0",
+      proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
+      rollbackRefs: ["rollback:logging-ui@0.1.0"],
+      compatibilityRefs: ["protocol:surface-app:v1"],
+      blockedReasons: [],
+      issuedAt,
+    }),
+    /requires secretBoundaryRefs/
+  );
   const manifestRunnerPlan = assertSurfaceAppManifestRunnerPlan({
     kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_RUNNER_PLAN,
     planId: "surface-runner:logging-ui",
     state: "ready",
     manifestSelection,
     runnerPlan,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const serviceManagerActionability = assertSurfaceAppServiceManagerActionability({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY,
+    state: "ready",
+    managerId: "manager:logging-ui",
+    subjectRef: "surface-app:logging-ui@0.1.0",
+    managerRef: "member:service-manager:logging-ui",
+    serviceManagerRequirementRefs: ["service-manager:req:logging-ui"],
+    operationRefs: ["operation:logging-ui:healthCheck"],
+    healthState: "ready",
+    serviceManagerPosture: {
+      kind: SWARM.RECORD_KIND.SERVICE_MANAGER_POSTURE,
+      managerId: "manager:logging-ui",
+      subjectRef: "surface-app:logging-ui@0.1.0",
+      managerRef: "member:service-manager:logging-ui",
+      state: SURFACE_APP.SERVICE_MANAGER_POSTURE.READY,
+      issuedAt,
+    },
+    operationPostures: [
+      {
+        kind: SWARM.RECORD_KIND.SERVICE_MANAGER_OPERATION_POSTURE,
+        operationId: "operation:logging-ui:healthCheck",
+        managerId: "manager:logging-ui",
+        subjectRef: "surface-app:logging-ui@0.1.0",
+        managerRef: "member:service-manager:logging-ui",
+        requesterRef: "surface-app:logging-ui@0.1.0",
+        operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.HEALTH_CHECK,
+        state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.SUCCEEDED,
+        blockedReasons: [],
+        requestedAt: issuedAt,
+        completedAt: issuedAt + 1,
+      },
+    ],
     blockedReasons: [],
     issuedAt,
   });
@@ -1168,6 +1250,7 @@ test("surface app instance grammar validates clean selection and runner posture 
       state: "ready",
       blockedReasons: [],
     },
+    sourceCandidatePosture,
     sourceTrustResult: {
       kind: "surface.app.runtime.source.trust.result",
       state: "ready",
@@ -1184,6 +1267,7 @@ test("surface app instance grammar validates clean selection and runner posture 
       state: "unknown",
       blockedReasons: [],
     },
+    serviceManagerActionability,
     manifestSelection,
     manifestRunnerPlan,
     runnerPlan,
@@ -1546,6 +1630,32 @@ test("app runner fulfillment reports reduce operation lifecycle, release, resour
   assert.equal(report.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
   assert.equal(report.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
 
+  const lifecycle = assertAppRunnerFulfillmentLifecycle({
+    ...report,
+    kind: SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_LIFECYCLE,
+    lifecycleId: "app-runner-lifecycle:runner-proof:execute:1",
+    witnessRefs: ["witness:runner:operator"],
+    releaseWitnessRefs: [],
+    requestedAt: observedAt - 20,
+    acceptedAt: observedAt - 18,
+    startedAt: observedAt - 15,
+    completedAt: observedAt - 1,
+  });
+  assert.equal(lifecycle.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
+  assert.equal(lifecycle.reportId, report.reportId);
+  assert.deepEqual(lifecycle.witnessRefs, ["witness:runner:operator"]);
+
+  const released = assertAppRunnerFulfillmentLifecycle({
+    ...lifecycle,
+    lifecycleId: "app-runner-lifecycle:runner-proof:release:1",
+    state: RUNNER.FULFILLMENT_STATE.RELEASED,
+    releaseRefs: ["release:runner-proof"],
+    releasedAt: observedAt + 10,
+    observedAt: observedAt + 10,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(released.state, RUNNER.FULFILLMENT_STATE.RELEASED);
+
   assert.throws(() => assertAppRunnerFulfillmentReport({
     ...report,
     reportId: "app-runner:bad:missing-proof",
@@ -1573,6 +1683,14 @@ test("app runner fulfillment reports reduce operation lifecycle, release, resour
     reportId: "app-runner:bad:secret",
     safeFacts: { token: "inline-secret" },
   }), /unsafe safe fact key|forbidden protocol field/);
+
+  assert.throws(() => assertAppRunnerFulfillmentLifecycle({
+    ...lifecycle,
+    lifecycleId: "app-runner-lifecycle:bad:expired",
+    state: RUNNER.FULFILLMENT_STATE.EXPIRED,
+    blockedReasons: [],
+    expiredAt: observedAt + 3600,
+  }), /blocked app runner fulfillment lifecycle requires blockedReasons/);
 });
 
 test("service manager protected contracts gate bootstrap, secrets, train, and lab proof", () => {
@@ -3625,6 +3743,79 @@ test("stream sessions and recipe records validate without carrying media bytes",
     capacity: { slots: 1 },
     health: { status: "ok" },
   });
+});
+
+test("surface adapter lifecycle posture separates reconnect release and cleanup", () => {
+  assert.equal(SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING, "reconnecting");
+  assert.equal(SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE, "surface.adapter.lifecycle.posture");
+  assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:nvr-preview:1",
+    adapterRef: "adapter:media-webrtc:browser",
+    moduleRef: "constitute-ui/media-webrtc-adapter@0.1.0",
+    subjectRef: "session:nvr-preview-1",
+    surfaceRef: "surface:nvr-ui",
+    role: SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING,
+    intentRefs: ["intent:nvr-preview"],
+    sessionRefs: ["session:nvr-preview-1"],
+    evidenceRefs: ["media-proof:transport-state"],
+    releaseRefs: ["release:nvr-ui:local"],
+    reconnect: {
+      attempt: 2,
+      delayMs: 4000,
+      nextRetryAt: 1700000010,
+      reason: "inboundRtpStalled",
+    },
+    cleanup: {
+      openResourceCount: 1,
+      releaseRequired: true,
+    },
+    safeFacts: {
+      sourceCount: 2,
+      selectedIceServerCount: 1,
+    },
+    issuedAt: 1700000000,
+    observedAt: 1700000001,
+    expiresAt: 1700000060,
+  });
+  assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:nvr-preview:release",
+    adapterRef: "adapter:media-webrtc:browser",
+    subjectRef: "session:nvr-preview-1",
+    role: SURFACE_APP.MODULE_ROLE.PLATFORM_ADAPTER,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RELEASED,
+    sessionRefs: ["session:nvr-preview-1"],
+    releaseRefs: ["release:nvr-ui:local"],
+    cleanup: {
+      openResourceCount: 0,
+      releaseRequired: false,
+      releasedAt: 1700000012,
+    },
+    issuedAt: 1700000010,
+    observedAt: 1700000012,
+  });
+  assert.throws(() => assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:bad",
+    adapterRef: "adapter:media-webrtc:browser",
+    subjectRef: "session:nvr-preview-1",
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RECONNECTING,
+    issuedAt: 1700000000,
+    observedAt: 1700000001,
+  }), /requires reconnect posture/);
+  assert.throws(() => assertSurfaceAdapterLifecyclePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_ADAPTER_LIFECYCLE_POSTURE,
+    lifecycleId: "adapter-life:bad-release",
+    adapterRef: "adapter:media-webrtc:browser",
+    subjectRef: "session:nvr-preview-1",
+    state: SURFACE_APP.ADAPTER_LIFECYCLE_STATE.RELEASED,
+    issuedAt: 1700000000,
+    observedAt: 1700000001,
+  }), /release ref/);
 });
 
 test("stream session lifecycle classifier separates carrier record kind from reducer phase", () => {

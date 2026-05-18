@@ -1746,6 +1746,14 @@ export type SurfaceModuleRole =
 
 export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "gateway" | "operator" | "native" | "storage";
 export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
+export type SurfaceAppSourceClass =
+  | "bundled"
+  | "storagePinned"
+  | "releaseFetched"
+  | "swarmHosted"
+  | "nativeInstalled"
+  | "devOverlay"
+  | "unknown";
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
 export type SurfaceAppManifestVersionState = "current" | "compatible" | "updateAvailable" | "blocked" | "superseded";
 export type SurfaceAppDistributionPostureState = "pending" | "retained" | "degraded" | "blocked" | "superseded" | "ignored";
@@ -1786,6 +1794,15 @@ export type ServiceManagerProofProfile =
   | "loggingPressure"
   | "directEdge"
   | "nativeChecks";
+export type SurfaceAdapterLifecycleState =
+  | "idle"
+  | "opening"
+  | "evidencePending"
+  | "usable"
+  | "reconnecting"
+  | "released"
+  | "expired"
+  | "blocked";
 export type RunnerOperation = "prepare" | "execute" | "healthCheck" | "release" | "rollback" | "cancel";
 export type RunnerOperationState =
   | "requested"
@@ -1805,6 +1822,7 @@ export type AppRunnerFulfillmentState =
   | "succeeded"
   | "released"
   | "rolledBack"
+  | "expired"
   | "blocked"
   | "failed"
   | "rejected"
@@ -2314,10 +2332,34 @@ export type SurfaceAppManifestSelection = {
   compatibilityRefs?: string[];
   bootstrapContractRef?: string;
   releaseContractRef?: string;
+  sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   bundledContractAvailable?: boolean;
   evidenceRefs?: string[];
   blockedReasons?: string[];
   claim?: SurfaceAppManifestVersion | null;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppSourceCandidatePosture = {
+  kind?: "surface.app.source.candidate.posture";
+  state: "ready" | "degraded" | "blocked";
+  sourceMode: SurfaceModuleFulfillmentMode;
+  sourceClass: SurfaceAppSourceClass;
+  candidateRefs?: string[];
+  bundledSourceRefs?: string[];
+  remoteSourceRefs?: string[];
+  storageObjectRefs?: string[];
+  releaseSourceRefs?: string[];
+  swarmSourceRefs?: string[];
+  releaseContractRef?: string;
+  compatibilityRefs?: string[];
+  proofDigestRefs?: string[];
+  rollbackRefs?: string[];
+  secretBoundaryRefs?: string[];
+  trustRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
   issuedAt: number;
   expiresAt?: number;
 };
@@ -2366,15 +2408,45 @@ export type SurfaceAppRuntimeSelectionPosture = {
   sourceMode: SurfaceModuleFulfillmentMode;
   requiredModuleRoles?: SurfaceModuleRole[];
   compatibilityResult?: Record<string, unknown>;
+  sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   sourceTrustResult?: Record<string, unknown>;
   modulePostures?: SurfaceModuleRolePosture[];
   runnerReadiness?: Record<string, unknown>;
   serviceManagerReadiness?: Record<string, unknown>;
+  serviceManagerActionability?: SurfaceAppServiceManagerActionability;
   fulfillmentIdentityPosture?: SurfaceAppFulfillmentIdentityPosture | null;
   authorityAccessPosture?: SurfaceAppAuthorityAccessPosture | null;
   manifestSelection: SurfaceAppManifestSelection;
   manifestRunnerPlan: SurfaceAppManifestRunnerPlan;
   runnerPlan?: SurfaceAppRunnerPlan | null;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppServiceManagerActionability = {
+  kind?: "surface.app.runtime.service-manager.actionability";
+  state: "ready" | "degraded" | "blocked" | "unknown" | "unchecked";
+  managerId: string;
+  subjectRef: string;
+  managerRef?: string;
+  serviceManagerRequirementRefs?: string[];
+  operationRefs?: string[];
+  releaseContractRefs?: string[];
+  secretBoundaryRefs?: string[];
+  proofDigestRefs?: string[];
+  labProofRefs?: string[];
+  trainDigestRefs?: string[];
+  capabilityRefs?: string[];
+  evidenceRefs?: string[];
+  healthState?: string;
+  serviceManagerPosture?: ServiceManagerPosture;
+  releaseContract?: ServiceManagerReleaseContract | null;
+  secretBoundary?: ServiceManagerSecretBoundary | null;
+  proofDigest?: ServiceManagerProofDigest | null;
+  labProof?: ServiceManagerLabProof | null;
+  trainDigest?: ServiceManagerTrainDigest | null;
+  operationPostures?: ServiceManagerOperationPosture[];
   blockedReasons?: string[];
   issuedAt: number;
   expiresAt?: number;
@@ -2404,7 +2476,9 @@ export type SurfaceAppInstancePosture = {
   materializationBudgetRefs?: string[];
   runtimeSelectionPosture?: SurfaceAppRuntimeSelectionPosture | null;
   runnerReadiness?: Record<string, unknown> | null;
+  runnerFulfillmentLifecycle?: AppRunnerFulfillmentLifecycle | null;
   serviceManagerReadiness?: Record<string, unknown> | null;
+  serviceManagerActionability?: SurfaceAppServiceManagerActionability | null;
   fulfillmentIdentityPosture?: SurfaceAppFulfillmentIdentityPosture | null;
   authorityAccessPosture?: SurfaceAppAuthorityAccessPosture | null;
   runnerPlanRef?: string;
@@ -2414,6 +2488,42 @@ export type SurfaceAppInstancePosture = {
   serviceManagerProofRef?: string;
   blockedReasons?: string[];
   issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAdapterLifecyclePosture = {
+  kind?: "surface.adapter.lifecycle.posture";
+  lifecycleId: string;
+  adapterRef: string;
+  subjectRef: string;
+  moduleRef?: string;
+  surfaceRef?: string;
+  role?: SurfaceModuleRole;
+  participantSide?: SurfaceModuleParticipantSide;
+  state: SurfaceAdapterLifecycleState;
+  intentRefs?: string[];
+  sessionRefs?: string[];
+  evidenceRefs?: string[];
+  releaseRefs?: string[];
+  resourceRefs?: string[];
+  releaseRef?: string;
+  reconnect?: {
+    attempt?: number;
+    delayMs?: number;
+    nextRetryAt?: number;
+    reason?: string;
+    [key: string]: unknown;
+  };
+  cleanup?: {
+    openResourceCount?: number;
+    releaseRequired?: boolean;
+    releasedAt?: number;
+    [key: string]: unknown;
+  };
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  issuedAt: number;
+  observedAt: number;
   expiresAt?: number;
 };
 
@@ -2504,6 +2614,57 @@ export type AppRunnerFulfillmentReport = {
   fulfillmentPosture: Record<string, unknown>;
   safeFacts?: Record<string, unknown>;
   blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type AppRunnerFulfillmentLifecycle = {
+  kind?: "app.runner.fulfillment.lifecycle";
+  lifecycleId: string;
+  reportId: string;
+  runnerId: string;
+  runnerRef: string;
+  hostRef: string;
+  runnerOperationId: string;
+  operation: RunnerOperation;
+  state: AppRunnerFulfillmentState;
+  requesterRef: string;
+  subjectRef: string;
+  contractRef: string;
+  appContractRef?: string;
+  appId?: string;
+  version?: string;
+  manifestRef?: string;
+  sourceMode?: SurfaceModuleFulfillmentMode;
+  sourceRefs?: string[];
+  grantRefs?: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  releaseRefs?: string[];
+  witnessRefs?: string[];
+  releaseWitnessRefs?: string[];
+  resourceBudget?: Record<string, unknown> | null;
+  resourcePosture?: ResourcePosture | null;
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture | null;
+  rollbackPosture?: SurfaceReleasePosture | null;
+  releaseRef?: string;
+  rollbackRef?: string;
+  operationPosture?: Record<string, unknown> | null;
+  fulfillmentPosture?: Record<string, unknown> | null;
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  requestedAt?: number;
+  acceptedAt?: number;
+  startedAt?: number;
+  completedAt?: number;
+  releasedAt?: number;
+  rolledBackAt?: number;
+  rejectedAt?: number;
+  expiredAt?: number;
   observedAt: number;
   expiresAt?: number;
 };
@@ -2694,9 +2855,12 @@ export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;
 export function assertSurfaceAppDistributionPosture(record: unknown): SurfaceAppDistributionPosture;
 export function assertSurfaceAppSchemaPosture(record: unknown): SurfaceAppSchemaPosture;
 export function assertSurfaceAppManifestSelection(record: unknown): SurfaceAppManifestSelection;
+export function assertSurfaceAppSourceCandidatePosture(record: unknown): SurfaceAppSourceCandidatePosture;
 export function assertSurfaceAppManifestRunnerPlan(record: unknown): SurfaceAppManifestRunnerPlan;
 export function assertSurfaceAppRuntimeSelectionPosture(record: unknown): SurfaceAppRuntimeSelectionPosture;
+export function assertSurfaceAppServiceManagerActionability(record: unknown): SurfaceAppServiceManagerActionability;
 export function assertSurfaceAppInstancePosture(record: unknown): SurfaceAppInstancePosture;
+export function assertSurfaceAdapterLifecyclePosture(record: unknown): SurfaceAdapterLifecyclePosture;
 export function assertSurfaceAppFulfillmentIdentityPosture(record: unknown): SurfaceAppFulfillmentIdentityPosture;
 export function assertSurfaceAppAuthorityAccessPosture(record: unknown): SurfaceAppAuthorityAccessPosture;
 export function assertSurfaceAppRunnerPlan(record: unknown): SurfaceAppRunnerPlan;
@@ -2716,3 +2880,4 @@ export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
 export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
 export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;
+export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerFulfillmentLifecycle;
