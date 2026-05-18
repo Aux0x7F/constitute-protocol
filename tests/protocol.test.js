@@ -2890,6 +2890,43 @@ test("agreement grammar separates action authority, access epochs, private reada
     state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
     issuedAt: 1700000031,
   }), /rootRefs/);
+  assert.throws(() => assertAuthorityRootOperation({
+    kind: "authority.root.operation",
+    operationId: "root-op:enroll-missing-device",
+    operation: AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE,
+    identityRef,
+    actorRef: `root:${pubkeyFromSecretKey(ISSUER_SK)}`,
+    targetRef: `device:${BROWSER_PK}`,
+    adminGrantRefs: ["grant:root:admin"],
+    notificationRefs: ["notification:root-enroll"],
+    evidenceRefs: ["sig:root-op:enroll-missing-device"],
+    state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
+    issuedAt: 1700000032,
+  }), /deviceRefs/);
+  assert.throws(() => assertAuthorityRootOperation({
+    kind: "authority.root.operation",
+    operationId: "root-op:enroll-missing-notification",
+    operation: AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE,
+    identityRef,
+    actorRef: `root:${pubkeyFromSecretKey(ISSUER_SK)}`,
+    targetRef: `device:${BROWSER_PK}`,
+    adminGrantRefs: ["grant:root:admin"],
+    deviceRefs: [`device:${BROWSER_PK}`],
+    evidenceRefs: ["sig:root-op:enroll-missing-notification"],
+    state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
+    issuedAt: 1700000033,
+  }), /notificationRefs/);
+  assert.throws(() => assertAuthorityRootOperation({
+    kind: "authority.root.operation",
+    operationId: "root-op:refresh-missing-evidence",
+    operation: AGREEMENT.ROOT_OPERATION.REFRESH_ROOT,
+    identityRef,
+    actorRef: `root:${pubkeyFromSecretKey(ISSUER_SK)}`,
+    targetRef: `root:${pubkeyFromSecretKey(ISSUER_SK)}`,
+    adminGrantRefs: ["grant:root:admin"],
+    state: AGREEMENT.ACTION_GRANT_STATE.APPLIED,
+    issuedAt: 1700000034,
+  }), /evidenceRefs/);
 
   const group = assertAccessGroup({
     kind: "access.group",

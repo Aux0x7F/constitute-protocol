@@ -2306,6 +2306,8 @@ pub struct SurfaceAppAuthorityAccessPostureRecord {
     #[serde(default)]
     pub access_required: bool,
     #[serde(default)]
+    pub sync_required: bool,
+    #[serde(default)]
     pub root_refs: Vec<String>,
     #[serde(default)]
     pub device_refs: Vec<String>,
@@ -2315,6 +2317,12 @@ pub struct SurfaceAppAuthorityAccessPostureRecord {
     pub authority_refs: Vec<String>,
     #[serde(default)]
     pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub access_epoch_refs: Vec<String>,
+    #[serde(default)]
+    pub private_envelope_refs: Vec<String>,
+    #[serde(default)]
+    pub sync_refs: Vec<String>,
     #[serde(default)]
     pub required_content_classes: Vec<String>,
     #[serde(default)]
@@ -2327,6 +2335,8 @@ pub struct SurfaceAppAuthorityAccessPostureRecord {
     pub action_posture: Value,
     #[serde(default)]
     pub access_posture: Value,
+    #[serde(default)]
+    pub sync_posture: Value,
     #[serde(default)]
     pub revocation_posture: Value,
     #[serde(default)]
@@ -3769,6 +3779,31 @@ pub fn validate_authority_root_operation(record: &AuthorityRootOperationRecord) 
         return Err(anyhow!(
             "root-changing authority operation requires rootRefs"
         ));
+    }
+    if matches!(record.operation.as_str(), "enrollDevice" | "revokeDevice")
+        && record.device_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "device-changing authority operation requires deviceRefs"
+        ));
+    }
+    if matches!(
+        record.state.as_str(),
+        AGREEMENT_STATE_ACCEPTED | AGREEMENT_STATE_APPLIED
+    ) {
+        require_non_empty_vec(
+            &record.evidence_refs,
+            "accepted or applied authority root operation requires evidenceRefs",
+        )?;
+        if matches!(
+            record.operation.as_str(),
+            "addRoot" | "rotateRoot" | "revokeRoot" | "enrollDevice" | "revokeDevice"
+        ) {
+            require_non_empty_vec(
+                &record.notification_refs,
+                "root or device authority operation requires notificationRefs",
+            )?;
+        }
     }
     validate_safe_facts(&record.safe_facts, "authority root operation safeFacts")?;
     if record.issued_at == 0 {
@@ -5450,6 +5485,18 @@ pub fn validate_surface_app_authority_access_posture(
         &record.access_group_refs,
         "surface app authority access posture missing accessGroupRefs",
     )?;
+    validate_reference_list(
+        &record.access_epoch_refs,
+        "surface app authority access posture missing accessEpochRefs",
+    )?;
+    validate_reference_list(
+        &record.private_envelope_refs,
+        "surface app authority access posture missing privateEnvelopeRefs",
+    )?;
+    validate_reference_list(
+        &record.sync_refs,
+        "surface app authority access posture missing syncRefs",
+    )?;
     for content_class in &record.required_content_classes {
         validate_content_class(content_class)?;
     }
@@ -5472,6 +5519,10 @@ pub fn validate_surface_app_authority_access_posture(
     validate_safe_facts(
         &record.access_posture,
         "surface app authority access posture accessPosture",
+    )?;
+    validate_safe_facts(
+        &record.sync_posture,
+        "surface app authority access posture syncPosture",
     )?;
     validate_safe_facts(
         &record.revocation_posture,
@@ -5511,6 +5562,14 @@ pub fn validate_surface_app_authority_access_posture(
     {
         return Err(anyhow!(
             "surface app authority access posture access requires requiredContentClasses"
+        ));
+    }
+    if record.sync_required
+        && record.sync_refs.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture sync requires syncRefs"
         ));
     }
     if record.state == SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED && record.blocked_reasons.is_empty()
@@ -10849,6 +10908,21 @@ mod tests {
         bad_root_rotation.root_refs.clear();
         assert!(validate_authority_root_operation(&bad_root_rotation).is_err());
 
+        let mut bad_device_enrollment = root_operation.clone();
+        bad_device_enrollment.operation_id = "root-op:enroll-missing-device".to_string();
+        bad_device_enrollment.device_refs.clear();
+        assert!(validate_authority_root_operation(&bad_device_enrollment).is_err());
+
+        let mut missing_notification = root_operation.clone();
+        missing_notification.operation_id = "root-op:enroll-missing-notification".to_string();
+        missing_notification.notification_refs.clear();
+        assert!(validate_authority_root_operation(&missing_notification).is_err());
+
+        let mut missing_evidence = root_operation.clone();
+        missing_evidence.operation_id = "root-op:enroll-missing-evidence".to_string();
+        missing_evidence.evidence_refs.clear();
+        assert!(validate_authority_root_operation(&missing_evidence).is_err());
+
         let group = AccessGroupRecord {
             kind: Some(RECORD_ACCESS_GROUP.to_string()),
             group_id: "access-group:logging-secure".to_string(),
@@ -11548,11 +11622,17 @@ mod tests {
             app_id: "constitute-nvr-ui".to_string(),
             action_required: true,
             access_required: true,
+            sync_required: true,
             root_refs: vec!["root:aux".to_string()],
             device_refs: vec!["device:aux-browser".to_string()],
             grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
             authority_refs: vec!["authority:aux-browser".to_string()],
             access_group_refs: vec!["access-group:nvr-ui:media-preview".to_string()],
+            access_epoch_refs: vec!["access-epoch:nvr-ui:media-preview:7".to_string()],
+            private_envelope_refs: vec![
+                "private-envelope:nvr-ui:media-preview:latest".to_string(),
+            ],
+            sync_refs: vec!["witness:nvr-ui:manifest:observed".to_string()],
             required_content_classes: vec![
                 "uiProjection".to_string(),
                 "mediaReference".to_string(),
@@ -11567,7 +11647,13 @@ mod tests {
             access_posture: json!({
                 "state": "ready",
                 "accessGroupRefCount": 1,
+                "accessEpochRefCount": 1,
+                "privateEnvelopeRefCount": 1,
                 "requiredContentClassCount": 2
+            }),
+            sync_posture: json!({
+                "state": "ready",
+                "syncRefCount": 1
             }),
             revocation_posture: json!({
                 "state": "clear"
@@ -11578,7 +11664,8 @@ mod tests {
             revocation_state: None,
             safe_facts: json!({
                 "actionRequired": true,
-                "accessRequired": true
+                "accessRequired": true,
+                "syncRequired": true
             }),
             blocked_reasons: vec![],
             issued_at: 1_700_000_000,
@@ -11597,6 +11684,11 @@ mod tests {
             "authority-access:surface-app:nvr-ui:missing-access".to_string();
         missing_access_group.access_group_refs = vec![];
         assert!(validate_surface_app_authority_access_posture(&missing_access_group).is_err());
+
+        let mut missing_sync = posture.clone();
+        missing_sync.posture_id = "authority-access:surface-app:nvr-ui:missing-sync".to_string();
+        missing_sync.sync_refs = vec![];
+        assert!(validate_surface_app_authority_access_posture(&missing_sync).is_err());
 
         let mut revoked_ready = posture;
         revoked_ready.posture_id = "authority-access:surface-app:nvr-ui:revoked".to_string();

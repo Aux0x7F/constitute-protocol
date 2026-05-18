@@ -4062,9 +4062,9 @@ export function assertAuthorityRootOperation(record) {
   requireString(record.targetRef, "authority root operation targetRef");
   const adminGrantRefs = assertReferenceList(record.adminGrantRefs, "authority root operation adminGrantRefs");
   const rootRefs = assertOptionalReferenceList(record.rootRefs, "authority root operation rootRefs");
-  assertOptionalReferenceList(record.deviceRefs, "authority root operation deviceRefs");
-  assertOptionalReferenceList(record.notificationRefs, "authority root operation notificationRefs");
-  assertOptionalReferenceList(record.evidenceRefs, "authority root operation evidenceRefs");
+  const deviceRefs = assertOptionalReferenceList(record.deviceRefs, "authority root operation deviceRefs");
+  const notificationRefs = assertOptionalReferenceList(record.notificationRefs, "authority root operation notificationRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "authority root operation evidenceRefs");
   const state = assertActionGrantStateName(record.state, "authority root operation state");
   const blockedReason = String(record.blockedReason || "").trim();
   if ([AGREEMENT.ACTION_GRANT_STATE.BLOCKED, AGREEMENT.ACTION_GRANT_STATE.REJECTED].includes(state) && !blockedReason) {
@@ -4073,6 +4073,15 @@ export function assertAuthorityRootOperation(record) {
   if (adminGrantRefs.length === 0) throw new Error("authority root operation requires adminGrantRefs");
   if ([AGREEMENT.ROOT_OPERATION.ROTATE_ROOT, AGREEMENT.ROOT_OPERATION.REVOKE_ROOT, AGREEMENT.ROOT_OPERATION.ADD_ROOT].includes(record.operation) && rootRefs.length === 0) {
     throw new Error("root-changing authority operation requires rootRefs");
+  }
+  if ([AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE, AGREEMENT.ROOT_OPERATION.REVOKE_DEVICE].includes(record.operation) && deviceRefs.length === 0) {
+    throw new Error("device-changing authority operation requires deviceRefs");
+  }
+  if ([AGREEMENT.ACTION_GRANT_STATE.ACCEPTED, AGREEMENT.ACTION_GRANT_STATE.APPLIED].includes(state)) {
+    if (evidenceRefs.length === 0) throw new Error("accepted or applied authority root operation requires evidenceRefs");
+    if ([AGREEMENT.ROOT_OPERATION.ADD_ROOT, AGREEMENT.ROOT_OPERATION.ROTATE_ROOT, AGREEMENT.ROOT_OPERATION.REVOKE_ROOT, AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE, AGREEMENT.ROOT_OPERATION.REVOKE_DEVICE].includes(record.operation) && notificationRefs.length === 0) {
+      throw new Error("root or device authority operation requires notificationRefs");
+    }
   }
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "authority root operation safeFacts");
   if (!Number(record.issuedAt || 0)) throw new Error("authority root operation missing issuedAt");
