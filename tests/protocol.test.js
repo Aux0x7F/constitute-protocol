@@ -88,6 +88,7 @@ import {
   assertServiceManagerTrainDigest,
   assertServiceManagerOperationPosture,
   assertServiceManagerProofDigest,
+  assertSurfaceAppManifest,
   assertSurfaceAppBootstrapContract,
   assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
@@ -751,6 +752,53 @@ test("surface bootstrap contracts gate service manager release and secret postur
     },
     issuedAt,
   }), /forbidden protocol field/);
+});
+
+test("surface app manifests pin versioned app contracts and block unproven remote sources", () => {
+  const issuedAt = 1700000000;
+  const manifest = assertSurfaceAppManifest({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST,
+    manifestId: "surface-app-manifest:nvr-ui",
+    appId: "constitute-nvr-ui",
+    state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+    currentAppContractRef: "surface-app:nvr-ui@0.1.0",
+    currentVersion: "0.1.0",
+    defaultSourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    versions: [
+      {
+        appContractRef: "surface-app:nvr-ui@0.1.0",
+        version: "0.1.0",
+        state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+        sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        moduleRefs: ["constitute-ui/runtime-surface-client@0.1.0"],
+        compatibilityRefs: ["protocol:surface-app:v1"],
+      },
+    ],
+    appContractRefs: ["surface-app:nvr-ui@0.1.0"],
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(manifest.currentAppContractRef, "surface-app:nvr-ui@0.1.0");
+
+  assert.throws(() => assertSurfaceAppManifest({
+    ...manifest,
+    currentVersion: "0.2.0",
+  }), /missing current version claim/);
+
+  assert.throws(() => assertSurfaceAppManifest({
+    ...manifest,
+    versions: [
+      {
+        appContractRef: "surface-app:nvr-ui@0.2.0",
+        version: "0.2.0",
+        state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+        sourceMode: SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE,
+      },
+    ],
+    currentAppContractRef: "surface-app:nvr-ui@0.2.0",
+    currentVersion: "0.2.0",
+  }), /non-bundled source requires releaseContractRef/);
 });
 
 test("service manager operations and proof digests validate release train evidence", () => {

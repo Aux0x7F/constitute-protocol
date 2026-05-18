@@ -61,6 +61,13 @@ export const SURFACE_APP = Object.freeze({
     UPDATE_AVAILABLE: "updateAvailable",
     BLOCKED: "blocked",
   }),
+  MANIFEST_VERSION_STATE: Object.freeze({
+    CURRENT: "current",
+    COMPATIBLE: "compatible",
+    UPDATE_AVAILABLE: "updateAvailable",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+  }),
   BOOTSTRAP_POSTURE: Object.freeze({
     STATIC: "static",
     READY: "ready",
@@ -1255,6 +1262,7 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_SECRET_BOUNDARY: "service.manager.secretBoundary",
     SERVICE_MANAGER_TRAIN_DIGEST: "service.manager.train.digest",
     SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
+    SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
@@ -1314,6 +1322,7 @@ export const SWARM = Object.freeze({
     SERVICE_MANAGER_SECRET_BOUNDARY: "service.manager.secretBoundary",
     SERVICE_MANAGER_TRAIN_DIGEST: "service.manager.train.digest",
     SERVICE_MANAGER_LAB_PROOF: "service.manager.labProof",
+    SURFACE_APP_MANIFEST: "surface.app.manifest",
     SURFACE_APP_BOOTSTRAP_CONTRACT: "surface.app.bootstrap.contract",
     SURFACE_APP_BOOTSTRAP_POSTURE: "surface.app.bootstrap.posture",
   }),
@@ -4622,6 +4631,75 @@ export function assertSurfaceAppBootstrapContract(record) {
   if (!Number(record.issuedAt || 0)) throw new Error("surface app bootstrap contract missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
     throw new Error("surface app bootstrap contract expires before issuedAt");
+  }
+  return record;
+}
+
+function assertSurfaceAppManifestVersion(record, context = "surface app manifest version") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  requireString(record.appContractRef, `${context} appContractRef`);
+  requireString(record.version, `${context} version`);
+  const state = requireString(record.state, `${context} state`);
+  if (!Object.values(SURFACE_APP.MANIFEST_VERSION_STATE).includes(state)) throw new Error(`invalid ${context} state`);
+  if (record.sourceMode !== undefined && !Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(record.sourceMode)) {
+    throw new Error(`invalid ${context} sourceMode`);
+  }
+  assertOptionalReferenceList(record.compatibilityRefs, `${context} compatibilityRefs`);
+  assertOptionalReferenceList(record.moduleRefs, `${context} moduleRefs`);
+  if (record.bootstrapContractRef !== undefined) requireString(record.bootstrapContractRef, `${context} bootstrapContractRef`);
+  if (record.releaseContractRef !== undefined) requireString(record.releaseContractRef, `${context} releaseContractRef`);
+  assertOptionalReferenceList(record.authorityRefs, `${context} authorityRefs`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  if (state === SURFACE_APP.MANIFEST_VERSION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error(`${context} blocked state requires blockedReasons`);
+  }
+  if (
+    [SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT, SURFACE_APP.MANIFEST_VERSION_STATE.COMPATIBLE, SURFACE_APP.MANIFEST_VERSION_STATE.UPDATE_AVAILABLE].includes(state)
+    && [SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE, SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT, SURFACE_APP.FULFILLMENT_MODE.NATIVE_INSTALLED].includes(record.sourceMode)
+    && !String(record.releaseContractRef || "").trim()
+  ) {
+    throw new Error(`${context} non-bundled source requires releaseContractRef`);
+  }
+  return record;
+}
+
+export function assertSurfaceAppManifest(record) {
+  if (!isObject(record)) throw new Error("surface app manifest must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_MANIFEST, "surface app manifest");
+  requireString(record.manifestId, "surface app manifest manifestId");
+  requireString(record.appId, "surface app manifest appId");
+  requireString(record.currentAppContractRef, "surface app manifest currentAppContractRef");
+  requireString(record.currentVersion, "surface app manifest currentVersion");
+  const state = requireString(record.state || SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT, "surface app manifest state");
+  if (!Object.values(SURFACE_APP.MANIFEST_VERSION_STATE).includes(state)) throw new Error("invalid surface app manifest state");
+  if (record.defaultSourceMode !== undefined && !Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(record.defaultSourceMode)) {
+    throw new Error("invalid surface app manifest defaultSourceMode");
+  }
+  const versions = requireNonEmptyArray(record.versions, "surface app manifest versions")
+    .map((entry, index) => assertSurfaceAppManifestVersion(entry, `surface app manifest versions[${index}]`));
+  const current = versions.find((entry) => (
+    String(entry.appContractRef) === String(record.currentAppContractRef)
+    && String(entry.version) === String(record.currentVersion)
+  ));
+  if (!current) throw new Error("surface app manifest missing current version claim");
+  assertOptionalReferenceList(record.appContractRefs, "surface app manifest appContractRefs");
+  assertOptionalReferenceList(record.compatibilityRefs, "surface app manifest compatibilityRefs");
+  assertOptionalReferenceList(record.bootstrapContractRefs, "surface app manifest bootstrapContractRefs");
+  assertOptionalReferenceList(record.releaseContractRefs, "surface app manifest releaseContractRefs");
+  assertOptionalReferenceList(record.authorityRefs, "surface app manifest authorityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app manifest evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app manifest blockedReasons");
+  if (state === SURFACE_APP.MANIFEST_VERSION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("surface app manifest blocked state requires blockedReasons");
+  }
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "surface app manifest secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "surface app manifest releasePosture");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface app manifest safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "surface app manifest");
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app manifest missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app manifest expires before issuedAt");
   }
   return record;
 }

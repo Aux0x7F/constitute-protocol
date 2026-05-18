@@ -1683,6 +1683,7 @@ export type SurfaceModuleRole =
 export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "operator" | "native" | "storage";
 export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
+export type SurfaceAppManifestVersionState = "current" | "compatible" | "updateAvailable" | "blocked" | "superseded";
 export type SurfaceAppBootstrapPostureState = "static" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerPostureState = "manual" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerOperation =
@@ -1890,6 +1891,43 @@ export type SurfaceAppBootstrapContract = {
   blockedReasons?: string[];
   secretBoundary?: SurfaceSecretBoundary;
   releaseContract?: ServiceManagerReleaseContract;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppManifestVersion = {
+  appContractRef: string;
+  version: string;
+  state: SurfaceAppManifestVersionState;
+  sourceMode?: SurfaceModuleFulfillmentMode;
+  moduleRefs?: string[];
+  compatibilityRefs?: string[];
+  bootstrapContractRef?: string;
+  releaseContractRef?: string;
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SurfaceAppManifest = {
+  kind?: "surface.app.manifest";
+  manifestId: string;
+  appId: string;
+  state?: SurfaceAppManifestVersionState;
+  currentAppContractRef: string;
+  currentVersion: string;
+  defaultSourceMode?: SurfaceModuleFulfillmentMode;
+  versions: SurfaceAppManifestVersion[];
+  appContractRefs?: string[];
+  compatibilityRefs?: string[];
+  bootstrapContractRefs?: string[];
+  releaseContractRefs?: string[];
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture;
   safeFacts?: Record<string, unknown>;
   issuedAt: number;
   expiresAt?: number;
@@ -2179,6 +2217,7 @@ export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
 export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
 export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
+export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;
 export function assertServiceManagerPosture(record: unknown): ServiceManagerPosture;
 export function assertServiceManagerSecretBoundary(record: unknown): ServiceManagerSecretBoundary;
 export function assertServiceManagerReleaseContract(record: unknown): ServiceManagerReleaseContract;

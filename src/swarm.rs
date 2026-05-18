@@ -109,6 +109,7 @@ pub const RECORD_SERVICE_MANAGER_RELEASE_CONTRACT: &str = "service.manager.relea
 pub const RECORD_SERVICE_MANAGER_SECRET_BOUNDARY: &str = "service.manager.secretBoundary";
 pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.digest";
 pub const RECORD_SERVICE_MANAGER_LAB_PROOF: &str = "service.manager.labProof";
+pub const RECORD_SURFACE_APP_MANIFEST: &str = "surface.app.manifest";
 pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
 
 pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
@@ -116,6 +117,12 @@ pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";
 pub const SURFACE_APP_CONTRACT_STATE_BLOCKED: &str = "blocked";
 pub const SURFACE_APP_CONTRACT_STATE_SUPERSEDED: &str = "superseded";
 pub const SURFACE_APP_CONTRACT_STATE_EXPIRED: &str = "expired";
+
+pub const SURFACE_APP_MANIFEST_VERSION_CURRENT: &str = "current";
+pub const SURFACE_APP_MANIFEST_VERSION_COMPATIBLE: &str = "compatible";
+pub const SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE: &str = "updateAvailable";
+pub const SURFACE_APP_MANIFEST_VERSION_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_MANIFEST_VERSION_SUPERSEDED: &str = "superseded";
 
 pub const SURFACE_SECRET_BOUNDARY_NOT_REQUIRED: &str = "notRequired";
 pub const SURFACE_SECRET_BOUNDARY_RESOLVED: &str = "resolved";
@@ -1864,6 +1871,65 @@ pub struct SurfaceAppBootstrapContractRecord {
     pub train_digest_ref: Option<String>,
     #[serde(default)]
     pub lab_proof_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppManifestVersionRecord {
+    pub app_contract_ref: String,
+    pub version: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_mode: Option<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bootstrap_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_contract_ref: Option<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppManifestRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub manifest_id: String,
+    pub app_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    pub current_app_contract_ref: String,
+    pub current_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_source_mode: Option<String>,
+    pub versions: Vec<SurfaceAppManifestVersionRecord>,
+    #[serde(default)]
+    pub app_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub bootstrap_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub release_contract_refs: Vec<String>,
     #[serde(default)]
     pub authority_refs: Vec<String>,
     #[serde(default)]
@@ -4239,6 +4305,158 @@ pub fn validate_surface_app_bootstrap_contract(
     Ok(())
 }
 
+fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecord) -> Result<()> {
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app manifest version missing appContractRef",
+    )?;
+    require_non_empty(&record.version, "surface app manifest version missing version")?;
+    validate_surface_app_manifest_version_state(&record.state)?;
+    if let Some(source_mode) = record.source_mode.as_deref() {
+        validate_surface_fulfillment_mode(source_mode)?;
+        if matches!(
+            record.state.as_str(),
+            SURFACE_APP_MANIFEST_VERSION_CURRENT
+                | SURFACE_APP_MANIFEST_VERSION_COMPATIBLE
+                | SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE
+        ) && matches!(
+            source_mode,
+            SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE
+                | SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT
+                | SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED
+        ) && record
+            .release_contract_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "surface app manifest non-bundled version requires releaseContractRef"
+            ));
+        }
+    }
+    validate_reference_list(
+        &record.module_refs,
+        "surface app manifest version missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "surface app manifest version missing compatibilityRefs",
+    )?;
+    validate_optional_ref(
+        record.bootstrap_contract_ref.as_deref(),
+        "surface app manifest version missing bootstrapContractRef",
+    )?;
+    validate_optional_ref(
+        record.release_contract_ref.as_deref(),
+        "surface app manifest version missing releaseContractRef",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app manifest version missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app manifest version missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_APP_MANIFEST_VERSION_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "surface app manifest blocked version requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app manifest version missing blockedReasons",
+    )?;
+    Ok(())
+}
+
+pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_MANIFEST,
+        "surface app manifest",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "surface app manifest")?;
+    require_non_empty(&record.manifest_id, "surface app manifest missing manifestId")?;
+    require_non_empty(&record.app_id, "surface app manifest missing appId")?;
+    require_non_empty(
+        &record.current_app_contract_ref,
+        "surface app manifest missing currentAppContractRef",
+    )?;
+    require_non_empty(
+        &record.current_version,
+        "surface app manifest missing currentVersion",
+    )?;
+    if let Some(state) = record.state.as_deref() {
+        validate_surface_app_manifest_version_state(state)?;
+    }
+    if let Some(source_mode) = record.default_source_mode.as_deref() {
+        validate_surface_fulfillment_mode(source_mode)?;
+    }
+    if record.versions.is_empty() {
+        return Err(anyhow!("surface app manifest requires versions"));
+    }
+    for version in &record.versions {
+        validate_surface_app_manifest_version(version)?;
+    }
+    if !record.versions.iter().any(|version| {
+        version.app_contract_ref == record.current_app_contract_ref
+            && version.version == record.current_version
+    }) {
+        return Err(anyhow!("surface app manifest missing current version claim"));
+    }
+    validate_reference_list(
+        &record.app_contract_refs,
+        "surface app manifest missing appContractRefs",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "surface app manifest missing compatibilityRefs",
+    )?;
+    validate_reference_list(
+        &record.bootstrap_contract_refs,
+        "surface app manifest missing bootstrapContractRefs",
+    )?;
+    validate_reference_list(
+        &record.release_contract_refs,
+        "surface app manifest missing releaseContractRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app manifest missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app manifest missing evidenceRefs",
+    )?;
+    if record.state.as_deref() == Some(SURFACE_APP_MANIFEST_VERSION_BLOCKED)
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "surface app manifest blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app manifest missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "surface app manifest safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("surface app manifest missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app manifest expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_swarm_identity_graph(records: &[Value]) -> Result<()> {
     for record in records {
         let Some(object) = record.as_object() else {
@@ -5171,6 +5389,21 @@ fn validate_service_manager_contract_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported service manager contract state"))
+    }
+}
+
+fn validate_surface_app_manifest_version_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_MANIFEST_VERSION_CURRENT
+            | SURFACE_APP_MANIFEST_VERSION_COMPATIBLE
+            | SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE
+            | SURFACE_APP_MANIFEST_VERSION_BLOCKED
+            | SURFACE_APP_MANIFEST_VERSION_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface app manifest version state"))
     }
 }
 
@@ -8571,6 +8804,65 @@ mod tests {
         let mut bad_bootstrap = bootstrap_contract;
         bad_bootstrap.release_contract_ref = None;
         assert!(validate_surface_app_bootstrap_contract(&bad_bootstrap).is_err());
+    }
+
+    #[test]
+    fn validates_surface_app_manifest_version_pins() {
+        let manifest = SurfaceAppManifestRecord {
+            kind: Some(RECORD_SURFACE_APP_MANIFEST.to_string()),
+            manifest_id: "surface-app-manifest:nvr-ui".to_string(),
+            app_id: "constitute-nvr-ui".to_string(),
+            state: Some(SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string()),
+            current_app_contract_ref: "surface-app:nvr-ui@0.1.0".to_string(),
+            current_version: "0.1.0".to_string(),
+            default_source_mode: Some(SURFACE_FULFILLMENT_MODE_BUNDLED.to_string()),
+            versions: vec![SurfaceAppManifestVersionRecord {
+                app_contract_ref: "surface-app:nvr-ui@0.1.0".to_string(),
+                version: "0.1.0".to_string(),
+                state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
+                source_mode: Some(SURFACE_FULFILLMENT_MODE_BUNDLED.to_string()),
+                module_refs: vec!["module:runtime-client@0.1.0".to_string()],
+                compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+                bootstrap_contract_ref: None,
+                release_contract_ref: None,
+                authority_refs: vec![],
+                evidence_refs: vec![],
+                blocked_reasons: vec![],
+            }],
+            app_contract_refs: vec!["surface-app:nvr-ui@0.1.0".to_string()],
+            compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+            bootstrap_contract_refs: vec![],
+            release_contract_refs: vec![],
+            authority_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_surface_app_manifest(&manifest).expect("valid manifest");
+
+        let mut missing_current = manifest.clone();
+        missing_current.current_version = "0.2.0".to_string();
+        assert!(validate_surface_app_manifest(&missing_current).is_err());
+
+        let mut remote_without_release = manifest;
+        remote_without_release.current_app_contract_ref = "surface-app:nvr-ui@0.2.0".to_string();
+        remote_without_release.current_version = "0.2.0".to_string();
+        remote_without_release.versions = vec![SurfaceAppManifestVersionRecord {
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            version: "0.2.0".to_string(),
+            state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
+            source_mode: Some(SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE.to_string()),
+            module_refs: vec![],
+            compatibility_refs: vec![],
+            bootstrap_contract_ref: None,
+            release_contract_ref: None,
+            authority_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+        }];
+        assert!(validate_surface_app_manifest(&remote_without_release).is_err());
     }
 
     #[test]
