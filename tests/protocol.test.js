@@ -1396,6 +1396,9 @@ test("service manager operations and proof digests validate release train eviden
     },
     evidenceRefs: ["ci:gateway:linux", "ci:gateway:windows"],
     proofRefs: ["proof:gateway:smoke"],
+    witnessRefs: ["witness:gateway-manager:observed"],
+    retentionRefs: ["retention:gateway-release:90d"],
+    releaseWitnessRefs: ["witness:operator:release-ready"],
     safeFacts: {
       ci: "passed",
       architecture: "surface-bootstrap",
@@ -1407,6 +1410,16 @@ test("service manager operations and proof digests validate release train eviden
     expiresAt: requestedAt + 3600,
   });
   assert.equal(operation.operation, SURFACE_APP.SERVICE_MANAGER_OPERATION.PROMOTE);
+  assert.deepEqual(operation.witnessRefs, ["witness:gateway-manager:observed"]);
+
+  const releaseOperation = assertServiceManagerOperationPosture({
+    ...operation,
+    operationId: "operation:gateway:release:2026-05-17",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.RELEASE,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.SUCCEEDED,
+    releaseWitnessRefs: ["witness:operator:released"],
+  });
+  assert.equal(releaseOperation.operation, SURFACE_APP.SERVICE_MANAGER_OPERATION.RELEASE);
 
   const digest = assertServiceManagerProofDigest({
     kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
@@ -1467,6 +1480,16 @@ test("service manager operations and proof digests validate release train eviden
     state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED,
     requestedAt,
   }), /blocked or failed operation requires blockedReasons/);
+  assert.throws(() => assertServiceManagerOperationPosture({
+    operationId: "operation:release-missing-ref",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    requesterRef: "identity:operator",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.RELEASE,
+    state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.REQUESTED,
+    requestedAt,
+  }), /release operation requires releaseRef/);
   assert.throws(() => assertServiceManagerOperationPosture({
     ...operation,
     operationId: "operation:unresolved-runner",

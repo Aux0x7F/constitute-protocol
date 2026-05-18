@@ -1772,6 +1772,8 @@ export type ServiceManagerOperation =
   | "stop"
   | "restart"
   | "rollback"
+  | "release"
+  | "secretReady"
   | "healthCheck"
   | "promote";
 export type ServiceManagerOperationState =
@@ -2151,6 +2153,9 @@ export type ServiceManagerOperationPosture = {
   resourcePosture?: ResourcePosture;
   evidenceRefs?: string[];
   proofRefs?: string[];
+  witnessRefs?: string[];
+  retentionRefs?: string[];
+  releaseWitnessRefs?: string[];
   blockedReasons?: string[];
   safeFacts?: Record<string, unknown>;
   requestedAt: number;

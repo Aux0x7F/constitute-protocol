@@ -114,6 +114,8 @@ export const SURFACE_APP = Object.freeze({
     STOP: "stop",
     RESTART: "restart",
     ROLLBACK: "rollback",
+    RELEASE: "release",
+    SECRET_READY: "secretReady",
     HEALTH_CHECK: "healthCheck",
     PROMOTE: "promote",
   }),
@@ -5045,6 +5047,9 @@ export function assertServiceManagerOperationPosture(record) {
   assertOptionalReferenceList(record.grantRefs, "service manager operation posture grantRefs");
   assertOptionalReferenceList(record.evidenceRefs, "service manager operation posture evidenceRefs");
   assertOptionalReferenceList(record.proofRefs, "service manager operation posture proofRefs");
+  assertOptionalReferenceList(record.witnessRefs, "service manager operation posture witnessRefs");
+  assertOptionalReferenceList(record.retentionRefs, "service manager operation posture retentionRefs");
+  assertOptionalReferenceList(record.releaseWitnessRefs, "service manager operation posture releaseWitnessRefs");
   if (record.runnerOperationRef !== undefined) requireString(record.runnerOperationRef, "service manager operation posture runnerOperationRef");
   if (record.runnerRef !== undefined) assertResolvedMemberRef(record.runnerRef, "service manager operation posture runnerRef");
   if (record.hostRef !== undefined) requireString(record.hostRef, "service manager operation posture hostRef");
@@ -5052,6 +5057,9 @@ export function assertServiceManagerOperationPosture(record) {
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager operation posture rollbackRef");
   if (operation === SURFACE_APP.SERVICE_MANAGER_OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
     throw new Error("service manager rollback operation requires rollbackRef");
+  }
+  if (operation === SURFACE_APP.SERVICE_MANAGER_OPERATION.RELEASE && !String(record.releaseRef || "").trim()) {
+    throw new Error("service manager release operation requires releaseRef");
   }
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager operation secretBoundary");
   if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "service manager operation releasePosture");
