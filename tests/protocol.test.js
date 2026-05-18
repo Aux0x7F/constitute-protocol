@@ -819,7 +819,30 @@ test("service manager operations and proof digests validate release train eviden
     serviceRefs: ["service:gateway"],
     capabilityRefs: ["service.manage"],
     authorityRefs: ["identity:operator"],
+    grantRefs: ["authority-grant:service-manager:gateway"],
+    runnerOperationRef: "runner-operation:gateway:promote:2026-05-17",
+    runnerRef: BROWSER_PK,
+    hostRef: "host:lab-gateway",
     releaseRef: "release:gateway:2026-05-17",
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:gateway:2026-05-17",
+      releaseRef: "release:gateway:2026-05-17",
+      rollbackRef: "rollback:gateway:previous",
+    },
+    resourceBudget: {
+      profileRef: "resource-profile:service-manager",
+      maxMemoryMiB: 512,
+    },
+    resourcePosture: {
+      kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+      postureId: "resource-posture:service-manager:gateway",
+      profileId: "resource-profile:service-manager",
+      state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+      counts: { memoryMiB: 120 },
+      budgets: { memoryMiB: 512 },
+      sampledAt: requestedAt + 30,
+    },
     evidenceRefs: ["ci:gateway:linux", "ci:gateway:windows"],
     proofRefs: ["proof:gateway:smoke"],
     safeFacts: {
@@ -893,6 +916,11 @@ test("service manager operations and proof digests validate release train eviden
     state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED,
     requestedAt,
   }), /blocked or failed operation requires blockedReasons/);
+  assert.throws(() => assertServiceManagerOperationPosture({
+    ...operation,
+    operationId: "operation:unresolved-runner",
+    runnerRef: "member:gateway-manager",
+  }), /resolved public key/);
   assert.throws(() => assertServiceManagerProofDigest({
     kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
     digestId: "proof-digest:empty",

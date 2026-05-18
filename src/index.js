@@ -4854,14 +4854,23 @@ export function assertServiceManagerOperationPosture(record) {
   assertOptionalReferenceList(record.serviceRefs, "service manager operation posture serviceRefs");
   assertOptionalCapabilityList(record.capabilityRefs, "service manager operation posture capabilityRefs");
   assertOptionalReferenceList(record.authorityRefs, "service manager operation posture authorityRefs");
+  assertOptionalReferenceList(record.grantRefs, "service manager operation posture grantRefs");
   assertOptionalReferenceList(record.evidenceRefs, "service manager operation posture evidenceRefs");
   assertOptionalReferenceList(record.proofRefs, "service manager operation posture proofRefs");
+  if (record.runnerOperationRef !== undefined) requireString(record.runnerOperationRef, "service manager operation posture runnerOperationRef");
+  if (record.runnerRef !== undefined) assertResolvedMemberRef(record.runnerRef, "service manager operation posture runnerRef");
+  if (record.hostRef !== undefined) requireString(record.hostRef, "service manager operation posture hostRef");
   if (record.releaseRef !== undefined) requireString(record.releaseRef, "service manager operation posture releaseRef");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager operation posture rollbackRef");
   if (operation === SURFACE_APP.SERVICE_MANAGER_OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
     throw new Error("service manager rollback operation requires rollbackRef");
   }
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager operation secretBoundary");
+  if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "service manager operation releasePosture");
+  if (record.rollbackPosture !== undefined) assertSurfaceReleasePosture(record.rollbackPosture, "service manager operation rollbackPosture");
+  if (record.resourceBudget !== undefined && !isObject(record.resourceBudget)) throw new Error("service manager operation posture resourceBudget must be an object");
+  if (record.resourceBudget !== undefined) assertSafeObject(record.resourceBudget, "service manager operation posture resourceBudget");
+  if (record.resourcePosture !== undefined) assertResourcePosture(record.resourcePosture);
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service manager operation posture blockedReasons");
   if ([SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED, SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.FAILED].includes(state) && blockedReasons.length === 0) {
     throw new Error("service manager blocked or failed operation requires blockedReasons");

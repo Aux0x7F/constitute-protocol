@@ -2039,9 +2039,17 @@ export type ServiceManagerOperationPosture = {
   serviceRefs?: string[];
   capabilityRefs?: string[];
   authorityRefs?: string[];
+  grantRefs?: string[];
+  runnerOperationRef?: string;
+  runnerRef?: string;
+  hostRef?: string;
   releaseRef?: string;
   rollbackRef?: string;
   secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture;
+  rollbackPosture?: SurfaceReleasePosture;
+  resourceBudget?: Record<string, unknown>;
+  resourcePosture?: ResourcePosture;
   evidenceRefs?: string[];
   proofRefs?: string[];
   blockedReasons?: string[];
