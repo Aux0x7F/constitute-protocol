@@ -1321,6 +1321,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_SOURCE_CANDIDATE_POSTURE: "surface.app.source.candidate.posture",
     SURFACE_APP_MANIFEST_RUNNER_PLAN: "surface.app.manifest.runner.plan",
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
+    SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY: "surface.app.runtime.service-manager.actionability",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
     SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: "surface.app.fulfillment.identity.posture",
     SURFACE_APP_AUTHORITY_ACCESS_POSTURE: "surface.app.authority.access.posture",
@@ -1396,6 +1397,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_SOURCE_CANDIDATE_POSTURE: "surface.app.source.candidate.posture",
     SURFACE_APP_MANIFEST_RUNNER_PLAN: "surface.app.manifest.runner.plan",
     SURFACE_APP_RUNTIME_SELECTION_POSTURE: "surface.app.runtime.selection.posture",
+    SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY: "surface.app.runtime.service-manager.actionability",
     SURFACE_APP_INSTANCE_POSTURE: "surface.app.instance.posture",
     SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: "surface.app.fulfillment.identity.posture",
     SURFACE_APP_AUTHORITY_ACCESS_POSTURE: "surface.app.authority.access.posture",
@@ -5510,6 +5512,7 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   requireArray(record.modulePostures || [], "surface app runtime selection posture modulePostures").forEach(assertSurfaceModuleRolePosture);
   if (record.runnerReadiness !== undefined) assertSurfaceAppReadiness(record.runnerReadiness, "surface app runtime runner readiness");
   if (record.serviceManagerReadiness !== undefined) assertSurfaceAppReadiness(record.serviceManagerReadiness, "surface app runtime service manager readiness");
+  if (record.serviceManagerActionability !== undefined && record.serviceManagerActionability !== null) assertSurfaceAppServiceManagerActionability(record.serviceManagerActionability);
   if (record.fulfillmentIdentityPosture !== undefined && record.fulfillmentIdentityPosture !== null) {
     assertSurfaceAppFulfillmentIdentityPosture(record.fulfillmentIdentityPosture);
   }
@@ -5524,6 +5527,43 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
     throw new Error("surface app runtime selection posture expires before issuedAt");
   }
   assertNoEnumerableImplementationFields(record, "surface app runtime selection posture");
+  return record;
+}
+
+export function assertSurfaceAppServiceManagerActionability(record) {
+  if (!isObject(record)) throw new Error("surface app service manager actionability must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SURFACE_APP_SERVICE_MANAGER_ACTIONABILITY, "surface app service manager actionability");
+  assertSurfaceAppRecordState(record, "surface app service manager actionability", ["ready", "degraded", "blocked", "unknown", "unchecked"]);
+  requireString(record.managerId, "surface app service manager actionability managerId");
+  requireString(record.subjectRef, "surface app service manager actionability subjectRef");
+  if (String(record.managerRef || "").trim()) requireString(record.managerRef, "surface app service manager actionability managerRef");
+  assertOptionalReferenceList(record.serviceManagerRequirementRefs, "surface app service manager actionability serviceManagerRequirementRefs");
+  assertOptionalReferenceList(record.operationRefs, "surface app service manager actionability operationRefs");
+  assertOptionalReferenceList(record.releaseContractRefs, "surface app service manager actionability releaseContractRefs");
+  assertOptionalReferenceList(record.secretBoundaryRefs, "surface app service manager actionability secretBoundaryRefs");
+  assertOptionalReferenceList(record.proofDigestRefs, "surface app service manager actionability proofDigestRefs");
+  assertOptionalReferenceList(record.labProofRefs, "surface app service manager actionability labProofRefs");
+  assertOptionalReferenceList(record.trainDigestRefs, "surface app service manager actionability trainDigestRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "surface app service manager actionability evidenceRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "surface app service manager actionability capabilityRefs");
+  if (record.serviceManagerPosture !== undefined) assertServiceManagerPosture(record.serviceManagerPosture);
+  if (record.releaseContract !== undefined && record.releaseContract !== null) assertServiceManagerReleaseContract(record.releaseContract);
+  if (record.secretBoundary !== undefined && record.secretBoundary !== null) assertServiceManagerSecretBoundary(record.secretBoundary);
+  if (record.proofDigest !== undefined && record.proofDigest !== null) assertServiceManagerProofDigest(record.proofDigest);
+  if (record.labProof !== undefined && record.labProof !== null) assertServiceManagerLabProof(record.labProof);
+  if (record.trainDigest !== undefined && record.trainDigest !== null) assertServiceManagerTrainDigest(record.trainDigest);
+  requireArray(record.operationPostures || [], "surface app service manager actionability operationPostures")
+    .forEach(assertServiceManagerOperationPosture);
+  if (String(record.healthState || "").trim()) requireString(record.healthState, "surface app service manager actionability healthState");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "surface app service manager actionability blockedReasons");
+  if (String(record.state || "") === "blocked" && blockedReasons.length === 0) {
+    throw new Error("surface app blocked service manager actionability requires blockedReasons");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("surface app service manager actionability missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("surface app service manager actionability expires before issuedAt");
+  }
+  assertNoEnumerableImplementationFields(record, "surface app service manager actionability");
   return record;
 }
 
@@ -5556,6 +5596,9 @@ export function assertSurfaceAppInstancePosture(record) {
   }
   if (record.serviceManagerReadiness !== undefined && record.serviceManagerReadiness !== null) {
     assertSurfaceAppReadiness(record.serviceManagerReadiness, "surface app instance service manager readiness");
+  }
+  if (record.serviceManagerActionability !== undefined && record.serviceManagerActionability !== null) {
+    assertSurfaceAppServiceManagerActionability(record.serviceManagerActionability);
   }
   if (record.fulfillmentIdentityPosture !== undefined && record.fulfillmentIdentityPosture !== null) {
     assertSurfaceAppFulfillmentIdentityPosture(record.fulfillmentIdentityPosture);

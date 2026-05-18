@@ -2403,11 +2403,40 @@ export type SurfaceAppRuntimeSelectionPosture = {
   modulePostures?: SurfaceModuleRolePosture[];
   runnerReadiness?: Record<string, unknown>;
   serviceManagerReadiness?: Record<string, unknown>;
+  serviceManagerActionability?: SurfaceAppServiceManagerActionability;
   fulfillmentIdentityPosture?: SurfaceAppFulfillmentIdentityPosture | null;
   authorityAccessPosture?: SurfaceAppAuthorityAccessPosture | null;
   manifestSelection: SurfaceAppManifestSelection;
   manifestRunnerPlan: SurfaceAppManifestRunnerPlan;
   runnerPlan?: SurfaceAppRunnerPlan | null;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppServiceManagerActionability = {
+  kind?: "surface.app.runtime.service-manager.actionability";
+  state: "ready" | "degraded" | "blocked" | "unknown" | "unchecked";
+  managerId: string;
+  subjectRef: string;
+  managerRef?: string;
+  serviceManagerRequirementRefs?: string[];
+  operationRefs?: string[];
+  releaseContractRefs?: string[];
+  secretBoundaryRefs?: string[];
+  proofDigestRefs?: string[];
+  labProofRefs?: string[];
+  trainDigestRefs?: string[];
+  capabilityRefs?: string[];
+  evidenceRefs?: string[];
+  healthState?: string;
+  serviceManagerPosture?: ServiceManagerPosture;
+  releaseContract?: ServiceManagerReleaseContract | null;
+  secretBoundary?: ServiceManagerSecretBoundary | null;
+  proofDigest?: ServiceManagerProofDigest | null;
+  labProof?: ServiceManagerLabProof | null;
+  trainDigest?: ServiceManagerTrainDigest | null;
+  operationPostures?: ServiceManagerOperationPosture[];
   blockedReasons?: string[];
   issuedAt: number;
   expiresAt?: number;
@@ -2438,6 +2467,7 @@ export type SurfaceAppInstancePosture = {
   runtimeSelectionPosture?: SurfaceAppRuntimeSelectionPosture | null;
   runnerReadiness?: Record<string, unknown> | null;
   serviceManagerReadiness?: Record<string, unknown> | null;
+  serviceManagerActionability?: SurfaceAppServiceManagerActionability | null;
   fulfillmentIdentityPosture?: SurfaceAppFulfillmentIdentityPosture | null;
   authorityAccessPosture?: SurfaceAppAuthorityAccessPosture | null;
   runnerPlanRef?: string;
@@ -2730,6 +2760,7 @@ export function assertSurfaceAppManifestSelection(record: unknown): SurfaceAppMa
 export function assertSurfaceAppSourceCandidatePosture(record: unknown): SurfaceAppSourceCandidatePosture;
 export function assertSurfaceAppManifestRunnerPlan(record: unknown): SurfaceAppManifestRunnerPlan;
 export function assertSurfaceAppRuntimeSelectionPosture(record: unknown): SurfaceAppRuntimeSelectionPosture;
+export function assertSurfaceAppServiceManagerActionability(record: unknown): SurfaceAppServiceManagerActionability;
 export function assertSurfaceAppInstancePosture(record: unknown): SurfaceAppInstancePosture;
 export function assertSurfaceAppFulfillmentIdentityPosture(record: unknown): SurfaceAppFulfillmentIdentityPosture;
 export function assertSurfaceAppAuthorityAccessPosture(record: unknown): SurfaceAppAuthorityAccessPosture;
