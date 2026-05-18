@@ -5541,7 +5541,14 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   const sourceMode = requireString(record.sourceMode, "surface app runtime selection posture sourceMode");
   if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app runtime selection posture sourceMode");
   assertOptionalReferenceList(record.requiredModuleRoles, "surface app runtime selection posture requiredModuleRoles");
+  assertOptionalReferenceList(record.requiredPrimitiveRefs, "surface app runtime selection posture requiredPrimitiveRefs");
+  assertOptionalReferenceList(record.permissionRequirementRefs, "surface app runtime selection posture permissionRequirementRefs");
+  assertOptionalReferenceList(record.capabilityRequirementRefs, "surface app runtime selection posture capabilityRequirementRefs");
+  assertOptionalReferenceList(record.projectionSubscriptionRefs, "surface app runtime selection posture projectionSubscriptionRefs");
+  assertOptionalReferenceList(record.materializationBudgetRefs, "surface app runtime selection posture materializationBudgetRefs");
+  assertOptionalReferenceList(record.accessRequirementRefs, "surface app runtime selection posture accessRequirementRefs");
   if (record.compatibilityResult !== undefined) assertSurfaceAppReadiness(record.compatibilityResult, "surface app runtime compatibility result");
+  if (record.appContractResolution !== undefined) assertSafeObject(record.appContractResolution, "surface app runtime contract resolution");
   if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.sourceTrustResult !== undefined) assertSurfaceAppReadiness(record.sourceTrustResult, "surface app runtime source trust result");
   requireArray(record.modulePostures || [], "surface app runtime selection posture modulePostures").forEach(assertSurfaceModuleRolePosture);

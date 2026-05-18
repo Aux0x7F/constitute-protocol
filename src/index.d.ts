@@ -2412,7 +2412,14 @@ export type SurfaceAppRuntimeSelectionPosture = {
   pinnedVersion: string;
   sourceMode: SurfaceModuleFulfillmentMode;
   requiredModuleRoles?: SurfaceModuleRole[];
+  requiredPrimitiveRefs?: string[];
+  permissionRequirementRefs?: string[];
+  capabilityRequirementRefs?: string[];
+  projectionSubscriptionRefs?: string[];
+  materializationBudgetRefs?: string[];
+  accessRequirementRefs?: string[];
   compatibilityResult?: Record<string, unknown>;
+  appContractResolution?: Record<string, unknown>;
   sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   sourceTrustResult?: Record<string, unknown>;
   modulePostures?: SurfaceModuleRolePosture[];
