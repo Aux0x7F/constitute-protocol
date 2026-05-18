@@ -82,8 +82,14 @@ import {
   assertMediaTransportPath,
   assertMediaTransportObservation,
   assertServiceManagerPosture,
+  assertServiceManagerSecretBoundary,
+  assertServiceManagerReleaseContract,
+  assertServiceManagerLabProof,
+  assertServiceManagerTrainDigest,
   assertServiceManagerOperationPosture,
   assertServiceManagerProofDigest,
+  assertSurfaceAppManifest,
+  assertSurfaceAppBootstrapContract,
   assertSurfaceAppBootstrapPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
@@ -92,10 +98,13 @@ import {
   assertActionAuthorityExercise,
   assertActionAuthorityGrant,
   assertAuthorityGrantRevocationPosture,
+  assertAuthorityMultiIdentityProof,
   assertAuthorityRootOperation,
   assertConsumerFloor,
   assertContributionLifecycle,
   assertEventFabricAccessClass,
+  assertEventFabricProcessorContract,
+  assertSecurityProcessorSeed,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -747,6 +756,53 @@ test("surface bootstrap contracts gate service manager release and secret postur
   }), /forbidden protocol field/);
 });
 
+test("surface app manifests pin versioned app contracts and block unproven remote sources", () => {
+  const issuedAt = 1700000000;
+  const manifest = assertSurfaceAppManifest({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST,
+    manifestId: "surface-app-manifest:nvr-ui",
+    appId: "constitute-nvr-ui",
+    state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+    currentAppContractRef: "surface-app:nvr-ui@0.1.0",
+    currentVersion: "0.1.0",
+    defaultSourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    versions: [
+      {
+        appContractRef: "surface-app:nvr-ui@0.1.0",
+        version: "0.1.0",
+        state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+        sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        moduleRefs: ["constitute-ui/runtime-surface-client@0.1.0"],
+        compatibilityRefs: ["protocol:surface-app:v1"],
+      },
+    ],
+    appContractRefs: ["surface-app:nvr-ui@0.1.0"],
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(manifest.currentAppContractRef, "surface-app:nvr-ui@0.1.0");
+
+  assert.throws(() => assertSurfaceAppManifest({
+    ...manifest,
+    currentVersion: "0.2.0",
+  }), /missing current version claim/);
+
+  assert.throws(() => assertSurfaceAppManifest({
+    ...manifest,
+    versions: [
+      {
+        appContractRef: "surface-app:nvr-ui@0.2.0",
+        version: "0.2.0",
+        state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+        sourceMode: SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE,
+      },
+    ],
+    currentAppContractRef: "surface-app:nvr-ui@0.2.0",
+    currentVersion: "0.2.0",
+  }), /non-bundled source requires releaseContractRef/);
+});
+
 test("service manager operations and proof digests validate release train evidence", () => {
   const requestedAt = 1700000000;
   const operation = assertServiceManagerOperationPosture({
@@ -857,6 +913,162 @@ test("service manager operations and proof digests validate release train eviden
     },
     observedAt: requestedAt + 80,
   }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("service manager protected contracts gate bootstrap, secrets, train, and lab proof", () => {
+  const issuedAt = 1700000000;
+  const secretBoundary = assertServiceManagerSecretBoundary({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_SECRET_BOUNDARY,
+    boundaryId: "secret-boundary:lab-gateway",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    state: SURFACE_APP.SECRET_BOUNDARY.RESOLVED,
+    secretRefs: ["secret:gateway-lab"],
+    accessGroupRefs: ["access:ops:epoch-7"],
+    authorityRefs: ["authority:ops-admin"],
+    evidenceRefs: ["evidence:secret-resolution"],
+    safeFacts: { posture: "resolved" },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(secretBoundary.state, SURFACE_APP.SECRET_BOUNDARY.RESOLVED);
+
+  const releaseContract = assertServiceManagerReleaseContract({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_RELEASE_CONTRACT,
+    contractId: "release-contract:gateway:2026-05-18",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY,
+    appContractRef: "surface-app:gateway-ui@0.1.0",
+    version: "2026.05.18",
+    buildRef: "build:gateway:2026-05-18",
+    releaseRef: "release:gateway:2026-05-18",
+    rollbackRef: "rollback:gateway:previous",
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    authorityRefs: ["authority:ops-admin"],
+    secretBoundaryRefs: [secretBoundary.boundaryId],
+    labProofRefs: ["lab-proof:gateway:surface-landscape"],
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:gateway:2026-05-18",
+      releaseRef: "release:gateway:2026-05-18",
+      rollbackRef: "rollback:gateway:previous",
+    },
+    safeFacts: { compatibility: "current" },
+    issuedAt,
+    expiresAt: issuedAt + 7200,
+  });
+  assert.equal(releaseContract.state, SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY);
+
+  const labProof = assertServiceManagerLabProof({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_LAB_PROOF,
+    proofId: "lab-proof:gateway:surface-landscape",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    profile: SURFACE_APP.SERVICE_MANAGER_PROOF_PROFILE.SURFACE_LANDSCAPE,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    trainRef: "train:surface-bootstrap:2026-05-18",
+    releaseContractRef: releaseContract.contractId,
+    appContractRef: "surface-app:gateway-ui@0.1.0",
+    surfaceRefs: ["surface:account", "surface:gateway-ui"],
+    serviceRefs: ["service:gateway"],
+    environmentRefs: ["env:lab"],
+    artifactRefs: ["artifact:proof:surface-landscape"],
+    metricsRefs: ["metrics:proof:surface-landscape"],
+    proofRefs: ["proof:surface-landscape:pass"],
+    safeFacts: { profile: "surfaceLandscape", verdict: "passed" },
+    startedAt: issuedAt + 10,
+    completedAt: issuedAt + 610,
+    observedAt: issuedAt + 620,
+    expiresAt: issuedAt + 7200,
+  });
+  assert.equal(labProof.profile, SURFACE_APP.SERVICE_MANAGER_PROOF_PROFILE.SURFACE_LANDSCAPE);
+
+  const trainDigest = assertServiceManagerTrainDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_TRAIN_DIGEST,
+    trainId: "train:surface-bootstrap:2026-05-18",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    repoRefs: ["repo:constitute-gateway-ui", "repo:constitute-account"],
+    commitRefs: ["git:gateway-ui:275e05b", "git:account:6a166fb"],
+    appContractRefs: ["surface-app:gateway-ui@0.1.0"],
+    releaseContractRefs: [releaseContract.contractId],
+    labProofRefs: [labProof.proofId],
+    metricsRefs: ["metrics:spine:service-bootstrap"],
+    observedAt: issuedAt + 630,
+    expiresAt: issuedAt + 7200,
+  });
+  assert.equal(trainDigest.state, SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED);
+
+  const bootstrapContract = assertSurfaceAppBootstrapContract({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_CONTRACT,
+    bootstrapContractId: "bootstrap-contract:gateway-ui",
+    appContractRef: "surface-app:gateway-ui@0.1.0",
+    appId: "constitute-gateway-ui",
+    state: SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE,
+    moduleRefs: ["module:surface-runtime-client@0.1.0", "module:gateway-view@0.1.0"],
+    serviceManagerRef: "manager:lab-gateway",
+    releaseContractRef: releaseContract.contractId,
+    secretBoundaryRef: secretBoundary.boundaryId,
+    trainDigestRef: trainDigest.trainId,
+    labProofProfileRefs: [SURFACE_APP.SERVICE_MANAGER_PROOF_PROFILE.SURFACE_LANDSCAPE],
+    authorityRefs: ["authority:ops-admin"],
+    evidenceRefs: ["evidence:bootstrap-resolution"],
+    issuedAt,
+    expiresAt: issuedAt + 7200,
+  });
+  assert.equal(bootstrapContract.sourceMode, SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE);
+
+  assert.throws(() => assertServiceManagerSecretBoundary({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_SECRET_BOUNDARY,
+    boundaryId: "secret-boundary:bad",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    state: SURFACE_APP.SECRET_BOUNDARY.RESOLVED,
+    issuedAt,
+  }), /resolved secret boundary requires secretRefs or accessGroupRefs/);
+  assert.throws(() => assertServiceManagerReleaseContract({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_RELEASE_CONTRACT,
+    contractId: "release-contract:bad",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    managerRef: "member:gateway-manager",
+    state: SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY,
+    buildRef: "build:gateway",
+    releaseRef: "release:gateway",
+    issuedAt,
+  }), /ready release contract requires rollbackRef/);
+  assert.throws(() => assertServiceManagerLabProof({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_LAB_PROOF,
+    proofId: "lab-proof:bad",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    profile: SURFACE_APP.SERVICE_MANAGER_PROOF_PROFILE.SURFACE_LANDSCAPE,
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    safeFacts: { token: "inline-secret" },
+    startedAt: issuedAt,
+  }), /proved lab proof requires artifactRefs|unsafe safe fact key/);
+  assert.throws(() => assertServiceManagerTrainDigest({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_TRAIN_DIGEST,
+    trainId: "train:bad",
+    managerId: "manager:lab-gateway",
+    subjectRef: "service:gateway",
+    state: SURFACE_APP.SERVICE_MANAGER_PROOF_STATE.PROVED,
+    observedAt: issuedAt,
+  }), /proved train digest requires releaseContractRefs/);
+  assert.throws(() => assertSurfaceAppBootstrapContract({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_CONTRACT,
+    bootstrapContractId: "bootstrap-contract:bad",
+    appContractRef: "surface-app:gateway-ui@0.1.0",
+    appId: "constitute-gateway-ui",
+    state: SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE,
+    moduleRefs: ["module:surface-runtime-client@0.1.0"],
+    issuedAt,
+  }), /non-bundled bootstrap contract requires releaseContractRef/);
 });
 
 test("storage manifest helpers validate ciphertext-addressed objects", () => {
@@ -1284,11 +1496,16 @@ test("resource posture and retention release blockers validate before cleanup", 
     subjectRef: "nvr:chunk:front:1700000000",
     effectiveRetention: "durable",
     state: SWARM.RETENTION_RELEASE_STATE.RELEASE_BLOCKED,
+    policyRefs: ["policy:nvr-media-retention"],
+    overlayRefs: ["overlay:operator-hold"],
     ownerRefs: ["identity:operator"],
     holderRefs: [BROWSER_PK],
     fulfillmentRefs: [],
     residencyLayers: ["browserHotCache"],
+    witnessRefs: ["witness:runtime:observed"],
     blockers: [{ code: "missingFulfillment", ownerRef: "identity:operator" }],
+    validUntil: 1700000100,
+    releaseAfter: 1700000100,
     evaluatedAt: 1700000003,
   });
 
@@ -1298,8 +1515,16 @@ test("resource posture and retention release blockers validate before cleanup", 
     subjectRef: "debug:projection:sample",
     effectiveRetention: "disposable",
     state: SWARM.RETENTION_RELEASE_STATE.FREEABLE,
+    policyRefs: ["policy:debug-cache"],
+    overlayRefs: ["overlay:none"],
     ownerRefs: ["runtime:browser"],
     residencyLayers: ["browserHotCache"],
+    witnessRefs: ["witness:runtime:release"],
+    supersessionRefs: [],
+    retractionRefs: [],
+    revocationRefs: [],
+    validUntil: 1700000003,
+    releaseAfter: 1700000004,
     evaluatedAt: 1700000004,
   });
 
@@ -1964,6 +2189,119 @@ test("agreement grammar separates action authority, access epochs, private reada
     issuedAt: 1700000071,
   }), /publicSafe/);
 
+  const floor = assertConsumerFloor({
+    kind: SWARM.RECORD_KIND.CONSUMER_FLOOR,
+    floorId: "consumer-floor:logging.processor",
+    materializationId: "event-fabric:logging-security",
+    consumerRef: "role:logging.processor",
+    subjectRef: "event-fabric:logging.default",
+    ackFloor: "event:9",
+    witnessFloor: "event:8",
+    compactionFloor: "snapshot:1",
+    lagState: "caughtUp",
+    observedAt: 1700000072,
+    sampledAt: 1700000072,
+  });
+  const processor = assertEventFabricProcessorContract({
+    kind: SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_CONTRACT,
+    processorContractId: "processor-contract:logging.security-replay",
+    fabricRef: "event-fabric:logging.default",
+    processorRef: "service:logging",
+    processorRoleRef: "role:logging.processor",
+    state: "ready",
+    inputAccessClassRefs: ["event-class:security-runtime"],
+    inputEventClasses: ["securityAudit", "runtimeDiagnostic"],
+    inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
+    outputRefs: ["projection:logging.dashboard", "storage:logging.archive"],
+    storageRefs: ["storage:logging.archive"],
+    accessGroupRefs: [group.groupId],
+    consumerFloor: floor,
+    bitemporalPolicy: {
+      eventTimeField: "occurredAt",
+      observedTimeField: "observedAt",
+    },
+    schemaPolicy: {
+      currentVersion: "logging.event.v1",
+      unknownVersionPosture: "ignore",
+    },
+    compactionPolicy: {
+      snapshotCadence: "bounded",
+      compactionFloor: "snapshot:1",
+    },
+    cardinalityPolicy: {
+      maxLabelValues: 1000,
+      highCardinalityOverflow: "encryptedDetailRef",
+    },
+    encryptedDetailCustody: {
+      state: "referenceOnly",
+      accessGroupRefs: [group.groupId],
+    },
+    samplingPolicy: {
+      state: "adaptive",
+      degradeBefore: ["authority", "route", "activation"],
+    },
+    evidenceRefs: ["evidence:processor-contract"],
+    issuedAt: 1700000073,
+  });
+  assert.equal(processor.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.equal(processor.consumerFloor.ackFloor, "event:9");
+  assert.throws(() => assertEventFabricProcessorContract({
+    ...processor,
+    processorContractId: "processor-contract:blocked",
+    state: "blocked",
+    blockedReasons: [],
+  }), /blocked state requires blockedReasons/);
+
+  const securitySeed = assertSecurityProcessorSeed({
+    kind: SWARM.RECORD_KIND.SECURITY_PROCESSOR_SEED,
+    seedId: "security-seed:logging.default",
+    fabricRef: "event-fabric:logging.default",
+    processorRef: "constitute-security",
+    processorRoleRef: "role:security.processor",
+    state: "ready",
+    threatAnalysisRole: "eventFabricThreatAnalysis",
+    inputAccessClassRefs: ["event-class:security-runtime"],
+    inputEventClasses: ["securityAudit", "runtimeDiagnostic"],
+    inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
+    accessGroupRefs: [group.groupId],
+    processorContractRefs: [processor.processorContractId],
+    evidenceProfileRefs: ["logging.security.default"],
+    materializationBudgetRefs: ["logging.security.default.90d"],
+    storageRefs: ["storage:logging.archive"],
+    detailRefs: ["encrypted-detail:logging.default"],
+    alertOutputRefs: ["security:alerts"],
+    evidenceHoldRefs: ["security:evidence-hold"],
+    retentionHoldRefs: ["retention:security-hold"],
+    encryptedDetailCustody: {
+      state: "referenceOnly",
+      accessGroupRefs: [group.groupId],
+    },
+    semanticBoundaries: {
+      logging: "mayConsumeMaterializations",
+      storage: "ciphertextFulfillmentOnly",
+      eventDomain: "doesNotOwn",
+    },
+    safeFacts: {
+      purpose: "securityThreatAnalysis",
+      detailCustody: "encryptedDetailRef",
+    },
+    evidenceRefs: ["evidence:security-seed"],
+    issuedAt: 1700000074,
+    expiresAt: 1707776074,
+  });
+  assert.equal(securitySeed.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.equal(securitySeed.semanticBoundaries.eventDomain, "doesNotOwn");
+  assert.throws(() => assertSecurityProcessorSeed({
+    ...securitySeed,
+    seedId: "security-seed:blocked",
+    state: "blocked",
+    blockedReasons: [],
+  }), /blocked state requires blockedReasons/);
+  assert.throws(() => assertSecurityProcessorSeed({
+    ...securitySeed,
+    semanticBoundaries: { logging: "mayConsumeMaterializations" },
+  }), /semanticBoundaries storage/);
+
   assert.equal(assertAuthorityGrantRevocationPosture({
     kind: "authority.grant.revocationPosture",
     revocationId: "revocation:logging:writer",
@@ -1979,6 +2317,98 @@ test("agreement grammar separates action authority, access epochs, private reada
     issuedAt: 1700000080,
     effectiveAt: 1700000081,
   }).plane, AGREEMENT.PLANE.ACTION_AUTHORITY);
+});
+
+test("multi-identity authority proof covers sync, read, write/reduce, and revoke/expire separately", () => {
+  const proof = {
+    kind: SWARM.RECORD_KIND.AUTHORITY_MULTI_IDENTITY_PROOF,
+    proofId: "authority-proof:aux-to-agent:full-access",
+    ownerIdentityRef: "identity:aux",
+    granteeIdentityRef: "identity:agent-dev",
+    granteeMemberRef: `member:${BROWSER_PK}`,
+    subjectRefs: [
+      "contract:gateway.default",
+      "contract:logging.default",
+      "contract:nvr.streams",
+      "contract:storage.default",
+    ],
+    actionGrantRefs: [
+      "grant:gateway:agent-full-access",
+      "grant:logging:agent-writer",
+      "grant:nvr:agent-preview",
+    ],
+    accessGroupRefs: ["access-group:identity:aux:security-events"],
+    accessEpochRefs: ["access-epoch:identity:aux:security-events:3"],
+    privateEnvelopeRefs: ["private-envelope:logging-event:sample"],
+    revocationRefs: ["revocation:grant:agent-full-access"],
+    checks: [
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.SYNC,
+        plane: AGREEMENT.PLANE.DELIVERY_WITNESS,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "contract:gateway.default",
+        grantRefs: ["grant:gateway:agent-full-access"],
+        evidenceRefs: ["witness:gateway:agent-sync"],
+      },
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.READ,
+        plane: AGREEMENT.PLANE.ACCESS_AUTHORITY,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "event-fabric:logging.default",
+        accessGroupRefs: ["access-group:identity:aux:security-events"],
+        accessEpochRefs: ["access-epoch:identity:aux:security-events:3"],
+        evidenceRefs: ["proof:caac-open:agent-dev"],
+      },
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.WRITE_REDUCE,
+        plane: AGREEMENT.PLANE.ACTION_AUTHORITY,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "contract:logging.default",
+        grantRefs: ["grant:logging:agent-writer"],
+        exerciseRefs: ["exercise:logging:agent-writer:1"],
+        evidenceRefs: ["event:logging:agent-test"],
+      },
+      {
+        check: AGREEMENT.AUTHORITY_PROOF_CHECK.REVOKE_EXPIRE,
+        plane: AGREEMENT.PLANE.ACTION_AUTHORITY,
+        state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+        targetRef: "grant:gateway:agent-full-access",
+        grantRefs: ["grant:gateway:agent-full-access"],
+        evidenceRefs: ["revocation:grant:agent-full-access"],
+        expiresAt: 1700000900,
+      },
+    ],
+    state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
+    evidenceRefs: ["proof:multi-identity:agent-dev"],
+    safeFacts: { proofClass: "multiIdentityFullAccess", grantee: "agent-dev" },
+    issuedAt: 1700000300,
+    expiresAt: 1700000900,
+  };
+
+  assert.equal(assertAuthorityMultiIdentityProof(proof).state, AGREEMENT.AUTHORITY_PROOF_STATE.PROVED);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    checks: proof.checks.filter((check) => check.check !== AGREEMENT.AUTHORITY_PROOF_CHECK.SYNC),
+  }), /missing sync check/);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    checks: proof.checks.map((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.READ
+      ? { ...check, accessGroupRefs: [] }
+      : check),
+  }), /read authority proof check requires accessGroupRefs/);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    checks: proof.checks.map((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.WRITE_REDUCE
+      ? { ...check, plane: AGREEMENT.PLANE.ACCESS_AUTHORITY }
+      : check),
+  }), /write\/revoke authority proof checks/);
+  assert.throws(() => assertAuthorityMultiIdentityProof({
+    ...proof,
+    revocationRefs: [],
+    checks: proof.checks.map((check) => check.check === AGREEMENT.AUTHORITY_PROOF_CHECK.REVOKE_EXPIRE
+      ? { ...check, expiresAt: undefined }
+      : check),
+  }), /revoke\/expire authority proof requires revocationRefs or expiresAt/);
 });
 
 test("swarm frame IDs canonicalize absent CAAC body fields like Rust validators", () => {

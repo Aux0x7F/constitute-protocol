@@ -979,11 +979,19 @@ export type RetentionReleasePosture = {
   subjectRef: string;
   effectiveRetention: string;
   state: RetentionReleaseState;
+  policyRefs?: string[];
+  overlayRefs?: string[];
   ownerRefs: string[];
   holderRefs?: string[];
   fulfillmentRefs?: string[];
   residencyLayers: string[];
+  witnessRefs?: string[];
+  supersessionRefs?: string[];
+  retractionRefs?: string[];
+  revocationRefs?: string[];
   blockers?: Array<string | Record<string, unknown>>;
+  validUntil?: number;
+  releaseAfter?: number;
   evaluatedAt: number;
 };
 
@@ -1158,6 +1166,8 @@ export type SwarmRevocationRecord = {
 
 export type AgreementPlane = "actionAuthority" | "accessAuthority" | "deliveryWitness" | "materialization";
 export type ActionGrantState = "requested" | "accepted" | "applied" | "rejected" | "blocked" | "expired" | "revoked";
+export type AuthorityProofState = "proved" | "degraded" | "blocked" | "expired" | "revoked";
+export type AuthorityProofCheckKind = "sync" | "read" | "writeReduce" | "revokeExpire";
 export type RootAuthorityOperation = "addRoot" | "refreshRoot" | "rotateRoot" | "revokeRoot" | "enrollDevice" | "revokeDevice";
 export type AccessEpochChangeKind = "create" | "addMember" | "removeMember" | "rotateKey" | "revokeMember" | "partitionSplit" | "partitionMerge" | "purposeKey";
 export type AgreementContentClass = "safeFacts" | "safeIndex" | "uiProjection" | "encryptedDetail" | "encryptedRaw" | "mediaReference" | "diagnosticDetail";
@@ -1242,6 +1252,41 @@ export type AuthorityGrantRevocationPostureRecord = {
   effectiveAt?: number;
 };
 
+export type AuthorityProofCheck = {
+  check: AuthorityProofCheckKind;
+  plane: AgreementPlane;
+  state: AuthorityProofState;
+  targetRef: string;
+  grantRefs?: string[];
+  accessGroupRefs?: string[];
+  accessEpochRefs?: string[];
+  exerciseRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReason?: string;
+  expiresAt?: number;
+};
+
+export type AuthorityMultiIdentityProofRecord = {
+  kind?: "authority.multiIdentity.proof";
+  proofId: string;
+  ownerIdentityRef: string;
+  granteeIdentityRef: string;
+  granteeMemberRef: string;
+  subjectRefs: string[];
+  actionGrantRefs: string[];
+  accessGroupRefs: string[];
+  accessEpochRefs?: string[];
+  privateEnvelopeRefs?: string[];
+  revocationRefs?: string[];
+  checks: AuthorityProofCheck[];
+  state?: AuthorityProofState;
+  blockedReasons?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type AccessGroupRecord = {
   kind?: "access.group";
   groupId: string;
@@ -1310,6 +1355,68 @@ export type EventFabricAccessClassRecord = {
   indexPolicy?: Record<string, unknown>;
   safeFacts?: Record<string, unknown>;
   issuedAt: number;
+};
+
+export type EventFabricProcessorContractRecord = {
+  kind?: "event.fabric.processor.contract";
+  processorContractId: string;
+  fabricRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  state: "ready" | "degraded" | "blocked" | "pending" | "expired";
+  inputAccessClassRefs: string[];
+  inputEventClasses: string[];
+  inputContentClasses: AgreementContentClass[];
+  outputRefs?: string[];
+  storageRefs?: string[];
+  accessGroupRefs?: string[];
+  consumerFloor?: ConsumerFloor;
+  materializationBudget?: MaterializationBudget;
+  bitemporalPolicy?: Record<string, unknown>;
+  schemaPolicy?: Record<string, unknown>;
+  compactionPolicy?: Record<string, unknown>;
+  cardinalityPolicy?: Record<string, unknown>;
+  encryptedDetailCustody?: Record<string, unknown>;
+  samplingPolicy?: Record<string, unknown>;
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SecurityProcessorSeedRecord = {
+  kind?: "security.processor.seed";
+  seedId: string;
+  fabricRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  state: "ready" | "degraded" | "blocked" | "pending" | "expired";
+  threatAnalysisRole: string;
+  inputAccessClassRefs: string[];
+  inputEventClasses: string[];
+  inputContentClasses: AgreementContentClass[];
+  accessGroupRefs?: string[];
+  processorContractRefs?: string[];
+  evidenceProfileRefs?: string[];
+  materializationBudgetRefs?: string[];
+  storageRefs?: string[];
+  detailRefs?: string[];
+  alertOutputRefs?: string[];
+  evidenceHoldRefs?: string[];
+  retentionHoldRefs?: string[];
+  encryptedDetailCustody?: Record<string, unknown>;
+  semanticBoundaries: {
+    logging: string;
+    storage: string;
+    eventDomain: string;
+    [key: string]: unknown;
+  };
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
 };
 
 export type ProjectionSnapshot = {
@@ -1638,6 +1745,7 @@ export type SurfaceModuleRole =
 export type SurfaceModuleParticipantSide = "window" | "runtime" | "service" | "operator" | "native" | "storage";
 export type SurfaceModuleFulfillmentMode = "bundled" | "swarmPackage" | "storageObject" | "nativeInstalled" | "devOverlay";
 export type SurfaceAppUpdatePostureState = "static" | "compatible" | "updateAvailable" | "blocked";
+export type SurfaceAppManifestVersionState = "current" | "compatible" | "updateAvailable" | "blocked" | "superseded";
 export type SurfaceAppBootstrapPostureState = "static" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerPostureState = "manual" | "ready" | "degraded" | "blocked" | "unavailable";
 export type ServiceManagerOperation =
@@ -1661,6 +1769,14 @@ export type ServiceManagerOperationState =
 export type ServiceManagerProofState = "pending" | "proved" | "failed" | "blocked" | "expired";
 export type SurfaceSecretBoundaryState = "notRequired" | "resolved" | "blocked" | "unavailable";
 export type SurfaceReleasePostureState = "static" | "buildReady" | "releaseReady" | "rollbackReady" | "blocked" | "unavailable";
+export type ServiceManagerContractState = "draft" | "ready" | "blocked" | "superseded" | "expired";
+export type ServiceManagerProofProfile =
+  | "surfaceLandscape"
+  | "nvrLive30s"
+  | "longStream10m"
+  | "loggingPressure"
+  | "directEdge"
+  | "nativeChecks";
 
 export type SurfaceModuleClaim = {
   moduleRef: string;
@@ -1726,6 +1842,157 @@ export type SurfaceReleasePosture = {
   evidenceRefs?: string[];
   blockedReasons?: string[];
   [key: string]: unknown;
+};
+
+export type ServiceManagerSecretBoundary = {
+  kind?: "service.manager.secretBoundary";
+  boundaryId: string;
+  managerId: string;
+  subjectRef: string;
+  state: SurfaceSecretBoundaryState;
+  secretRefs?: string[];
+  accessGroupRefs?: string[];
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type ServiceManagerReleaseContract = {
+  kind?: "service.manager.release.contract";
+  contractId: string;
+  managerId: string;
+  subjectRef: string;
+  managerRef: string;
+  state: ServiceManagerContractState;
+  appContractRef?: string;
+  version?: string;
+  buildRef?: string;
+  releaseRef?: string;
+  rollbackRef?: string;
+  rollbackRequired?: boolean;
+  compatibilityRefs?: string[];
+  authorityRefs?: string[];
+  secretBoundaryRefs?: string[];
+  proofDigestRefs?: string[];
+  labProofRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture;
+  rollbackPosture?: SurfaceReleasePosture;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type ServiceManagerLabProof = {
+  kind?: "service.manager.labProof";
+  proofId: string;
+  managerId: string;
+  subjectRef: string;
+  profile: ServiceManagerProofProfile;
+  state: ServiceManagerProofState;
+  trainRef?: string;
+  releaseContractRef?: string;
+  appContractRef?: string;
+  surfaceRefs?: string[];
+  serviceRefs?: string[];
+  environmentRefs?: string[];
+  artifactRefs?: string[];
+  metricsRefs?: string[];
+  proofRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  startedAt: number;
+  acceptedAt?: number;
+  completedAt?: number;
+  observedAt?: number;
+  expiresAt?: number;
+};
+
+export type ServiceManagerTrainDigest = {
+  kind?: "service.manager.train.digest";
+  trainId: string;
+  managerId: string;
+  subjectRef: string;
+  state: ServiceManagerProofState;
+  repoRefs?: string[];
+  commitRefs?: string[];
+  appContractRefs?: string[];
+  releaseContractRefs?: string[];
+  operationRefs?: string[];
+  proofDigestRefs?: string[];
+  labProofRefs?: string[];
+  metricsRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppBootstrapContract = {
+  kind?: "surface.app.bootstrap.contract";
+  bootstrapContractId: string;
+  appContractRef: string;
+  appId: string;
+  state: ServiceManagerContractState;
+  sourceMode: SurfaceModuleFulfillmentMode;
+  moduleRefs?: string[];
+  serviceManagerRef?: string;
+  releaseContractRef?: string;
+  secretBoundaryRef?: string;
+  trainDigestRef?: string;
+  labProofProfileRefs?: string[];
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  secretBoundary?: SurfaceSecretBoundary;
+  releaseContract?: ServiceManagerReleaseContract;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type SurfaceAppManifestVersion = {
+  appContractRef: string;
+  version: string;
+  state: SurfaceAppManifestVersionState;
+  sourceMode?: SurfaceModuleFulfillmentMode;
+  moduleRefs?: string[];
+  compatibilityRefs?: string[];
+  bootstrapContractRef?: string;
+  releaseContractRef?: string;
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SurfaceAppManifest = {
+  kind?: "surface.app.manifest";
+  manifestId: string;
+  appId: string;
+  state?: SurfaceAppManifestVersionState;
+  currentAppContractRef: string;
+  currentVersion: string;
+  defaultSourceMode?: SurfaceModuleFulfillmentMode;
+  versions: SurfaceAppManifestVersion[];
+  appContractRefs?: string[];
+  compatibilityRefs?: string[];
+  bootstrapContractRefs?: string[];
+  releaseContractRefs?: string[];
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  expiresAt?: number;
 };
 
 export type ServiceManagerPosture = {
@@ -1961,10 +2228,13 @@ export function assertAuthorityRootOperation(record: unknown): AuthorityRootOper
 export function assertActionAuthorityGrant(record: unknown): ActionAuthorityGrantRecord;
 export function assertActionAuthorityExercise(record: unknown): ActionAuthorityExerciseRecord;
 export function assertAuthorityGrantRevocationPosture(record: unknown): AuthorityGrantRevocationPostureRecord;
+export function assertAuthorityMultiIdentityProof(record: unknown): AuthorityMultiIdentityProofRecord;
 export function assertAccessGroup(record: unknown): AccessGroupRecord;
 export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
 export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
+export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
+export function assertSecurityProcessorSeed(record: unknown): SecurityProcessorSeedRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {
@@ -2011,9 +2281,15 @@ export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
 export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
 export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
+export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;
 export function assertServiceManagerPosture(record: unknown): ServiceManagerPosture;
+export function assertServiceManagerSecretBoundary(record: unknown): ServiceManagerSecretBoundary;
+export function assertServiceManagerReleaseContract(record: unknown): ServiceManagerReleaseContract;
+export function assertServiceManagerLabProof(record: unknown): ServiceManagerLabProof;
+export function assertServiceManagerTrainDigest(record: unknown): ServiceManagerTrainDigest;
 export function assertServiceManagerOperationPosture(record: unknown): ServiceManagerOperationPosture;
 export function assertServiceManagerProofDigest(record: unknown): ServiceManagerProofDigest;
+export function assertSurfaceAppBootstrapContract(record: unknown): SurfaceAppBootstrapContract;
 export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBootstrapPosture;
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;

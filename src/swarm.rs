@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::caac::{CAAC_ALG_V1, CAAC_VERSION, CaacEnvelope, verify_envelope_signature};
 
@@ -51,6 +51,15 @@ pub const AGREEMENT_STATE_REJECTED: &str = "rejected";
 pub const AGREEMENT_STATE_BLOCKED: &str = "blocked";
 pub const AGREEMENT_STATE_EXPIRED: &str = "expired";
 pub const AGREEMENT_STATE_REVOKED: &str = "revoked";
+pub const AUTHORITY_PROOF_STATE_PROVED: &str = "proved";
+pub const AUTHORITY_PROOF_STATE_DEGRADED: &str = "degraded";
+pub const AUTHORITY_PROOF_STATE_BLOCKED: &str = "blocked";
+pub const AUTHORITY_PROOF_STATE_EXPIRED: &str = "expired";
+pub const AUTHORITY_PROOF_STATE_REVOKED: &str = "revoked";
+pub const AUTHORITY_PROOF_CHECK_SYNC: &str = "sync";
+pub const AUTHORITY_PROOF_CHECK_READ: &str = "read";
+pub const AUTHORITY_PROOF_CHECK_WRITE_REDUCE: &str = "writeReduce";
+pub const AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE: &str = "revokeExpire";
 
 pub const RECORD_NODE_CAPABILITY: &str = "node.capability";
 pub const RECORD_RUNTIME_ACTIVATION_REQUEST: &str = "runtime.activation.request";
@@ -78,10 +87,13 @@ pub const RECORD_AUTHORITY_ROOT_OPERATION: &str = "authority.root.operation";
 pub const RECORD_AUTHORITY_ACTION_GRANT: &str = "authority.action.grant";
 pub const RECORD_AUTHORITY_ACTION_EXERCISE: &str = "authority.action.exercise";
 pub const RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE: &str = "authority.grant.revocationPosture";
+pub const RECORD_AUTHORITY_MULTI_IDENTITY_PROOF: &str = "authority.multiIdentity.proof";
 pub const RECORD_ACCESS_GROUP: &str = "access.group";
 pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
 pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
 pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
+pub const RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT: &str = "event.fabric.processor.contract";
+pub const RECORD_SECURITY_PROCESSOR_SEED: &str = "security.processor.seed";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -95,6 +107,41 @@ pub const RECORD_CONTRIBUTION_LIFECYCLE: &str = "contribution.lifecycle";
 pub const RECORD_MEDIA_FULFILLMENT_EVIDENCE: &str = "media.fulfillment.evidence";
 pub const RECORD_MEDIA_TRANSPORT_PATH: &str = "media.transport.path";
 pub const RECORD_MEDIA_TRANSPORT_OBSERVATION: &str = "media.transport.observation";
+pub const RECORD_SERVICE_MANAGER_RELEASE_CONTRACT: &str = "service.manager.release.contract";
+pub const RECORD_SERVICE_MANAGER_SECRET_BOUNDARY: &str = "service.manager.secretBoundary";
+pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.digest";
+pub const RECORD_SERVICE_MANAGER_LAB_PROOF: &str = "service.manager.labProof";
+pub const RECORD_SURFACE_APP_MANIFEST: &str = "surface.app.manifest";
+pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
+
+pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
+pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";
+pub const SURFACE_APP_CONTRACT_STATE_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_CONTRACT_STATE_SUPERSEDED: &str = "superseded";
+pub const SURFACE_APP_CONTRACT_STATE_EXPIRED: &str = "expired";
+
+pub const SURFACE_APP_MANIFEST_VERSION_CURRENT: &str = "current";
+pub const SURFACE_APP_MANIFEST_VERSION_COMPATIBLE: &str = "compatible";
+pub const SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE: &str = "updateAvailable";
+pub const SURFACE_APP_MANIFEST_VERSION_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_MANIFEST_VERSION_SUPERSEDED: &str = "superseded";
+
+pub const SURFACE_SECRET_BOUNDARY_NOT_REQUIRED: &str = "notRequired";
+pub const SURFACE_SECRET_BOUNDARY_RESOLVED: &str = "resolved";
+pub const SURFACE_SECRET_BOUNDARY_BLOCKED: &str = "blocked";
+pub const SURFACE_SECRET_BOUNDARY_UNAVAILABLE: &str = "unavailable";
+
+pub const SERVICE_MANAGER_PROOF_STATE_PENDING: &str = "pending";
+pub const SERVICE_MANAGER_PROOF_STATE_PROVED: &str = "proved";
+pub const SERVICE_MANAGER_PROOF_STATE_FAILED: &str = "failed";
+pub const SERVICE_MANAGER_PROOF_STATE_BLOCKED: &str = "blocked";
+pub const SERVICE_MANAGER_PROOF_STATE_EXPIRED: &str = "expired";
+
+pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
+pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
+pub const SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT: &str = "storageObject";
+pub const SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED: &str = "nativeInstalled";
+pub const SURFACE_FULFILLMENT_MODE_DEV_OVERLAY: &str = "devOverlay";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -434,6 +481,10 @@ pub struct RetentionReleasePosture {
     pub effective_retention: String,
     pub state: String,
     #[serde(default)]
+    pub policy_refs: Vec<String>,
+    #[serde(default)]
+    pub overlay_refs: Vec<String>,
+    #[serde(default)]
     pub owner_refs: Vec<String>,
     #[serde(default)]
     pub holder_refs: Vec<String>,
@@ -442,7 +493,19 @@ pub struct RetentionReleasePosture {
     #[serde(default)]
     pub residency_layers: Vec<String>,
     #[serde(default)]
+    pub witness_refs: Vec<String>,
+    #[serde(default)]
+    pub supersession_refs: Vec<String>,
+    #[serde(default)]
+    pub retraction_refs: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
     pub blockers: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub valid_until: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_after: Option<u64>,
     pub evaluated_at: u64,
 }
 
@@ -1466,6 +1529,69 @@ pub struct AuthorityGrantRevocationPostureRecord {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct AuthorityProofCheck {
+    pub check: String,
+    pub plane: String,
+    pub state: String,
+    pub target_ref: String,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub access_epoch_refs: Vec<String>,
+    #[serde(default)]
+    pub exercise_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocked_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthorityMultiIdentityProofRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub proof_id: String,
+    pub owner_identity_ref: String,
+    pub grantee_identity_ref: String,
+    pub grantee_member_ref: String,
+    #[serde(default)]
+    pub subject_refs: Vec<String>,
+    #[serde(default)]
+    pub action_grant_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub access_epoch_refs: Vec<String>,
+    #[serde(default)]
+    pub private_envelope_refs: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
+    pub checks: Vec<AuthorityProofCheck>,
+    #[serde(default = "default_authority_proof_state")]
+    pub state: String,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+fn default_authority_proof_state() -> String {
+    AUTHORITY_PROOF_STATE_PROVED.to_string()
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct AccessGroupRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
@@ -1573,6 +1699,349 @@ pub struct EventFabricAccessClassRecord {
     #[serde(default)]
     pub safe_facts: Value,
     pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EventFabricProcessorContractRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub processor_contract_id: String,
+    pub fabric_ref: String,
+    pub processor_ref: String,
+    pub processor_role_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub input_access_class_refs: Vec<String>,
+    #[serde(default)]
+    pub input_event_classes: Vec<String>,
+    #[serde(default)]
+    pub input_content_classes: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub consumer_floor: Option<ConsumerFloor>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub materialization_budget: Option<MaterializationBudget>,
+    #[serde(default)]
+    pub bitemporal_policy: Value,
+    #[serde(default)]
+    pub schema_policy: Value,
+    #[serde(default)]
+    pub compaction_policy: Value,
+    #[serde(default)]
+    pub cardinality_policy: Value,
+    #[serde(default)]
+    pub encrypted_detail_custody: Value,
+    #[serde(default)]
+    pub sampling_policy: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SecurityProcessorSeedRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub seed_id: String,
+    pub fabric_ref: String,
+    pub processor_ref: String,
+    pub processor_role_ref: String,
+    pub state: String,
+    pub threat_analysis_role: String,
+    #[serde(default)]
+    pub input_access_class_refs: Vec<String>,
+    #[serde(default)]
+    pub input_event_classes: Vec<String>,
+    #[serde(default)]
+    pub input_content_classes: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub processor_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub materialization_budget_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub detail_refs: Vec<String>,
+    #[serde(default)]
+    pub alert_output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_hold_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_hold_refs: Vec<String>,
+    #[serde(default)]
+    pub encrypted_detail_custody: Value,
+    #[serde(default)]
+    pub semantic_boundaries: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerSecretBoundaryRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub boundary_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub secret_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerReleaseContractRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub contract_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub manager_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub build_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_required: Option<bool>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub secret_boundary_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_digest_refs: Vec<String>,
+    #[serde(default)]
+    pub lab_proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerLabProofRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub proof_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub profile: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub train_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_contract_ref: Option<String>,
+    #[serde(default)]
+    pub surface_refs: Vec<String>,
+    #[serde(default)]
+    pub service_refs: Vec<String>,
+    #[serde(default)]
+    pub environment_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub metrics_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub started_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accepted_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerTrainDigestRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub train_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub repo_refs: Vec<String>,
+    #[serde(default)]
+    pub commit_refs: Vec<String>,
+    #[serde(default)]
+    pub app_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub release_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub operation_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_digest_refs: Vec<String>,
+    #[serde(default)]
+    pub lab_proof_refs: Vec<String>,
+    #[serde(default)]
+    pub metrics_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppBootstrapContractRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub bootstrap_contract_id: String,
+    pub app_contract_ref: String,
+    pub app_id: String,
+    pub state: String,
+    pub source_mode: String,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_manager_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret_boundary_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub train_digest_ref: Option<String>,
+    #[serde(default)]
+    pub lab_proof_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppManifestVersionRecord {
+    pub app_contract_ref: String,
+    pub version: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_mode: Option<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bootstrap_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_contract_ref: Option<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppManifestRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub manifest_id: String,
+    pub app_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    pub current_app_contract_ref: String,
+    pub current_version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_source_mode: Option<String>,
+    pub versions: Vec<SurfaceAppManifestVersionRecord>,
+    #[serde(default)]
+    pub app_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub bootstrap_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub release_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -3030,6 +3499,196 @@ pub fn validate_authority_grant_revocation_posture(
     Ok(())
 }
 
+fn validate_authority_proof_check_record(record: &AuthorityProofCheck) -> Result<()> {
+    validate_authority_proof_check(&record.check)?;
+    validate_agreement_plane(&record.plane)?;
+    validate_authority_proof_state(&record.state)?;
+    require_non_empty(
+        &record.target_ref,
+        "authority proof check missing targetRef",
+    )?;
+    for reference in &record.grant_refs {
+        require_non_empty(reference, "authority proof check missing grantRef")?;
+    }
+    for reference in &record.access_group_refs {
+        require_non_empty(reference, "authority proof check missing accessGroupRef")?;
+    }
+    for reference in &record.access_epoch_refs {
+        require_non_empty(reference, "authority proof check missing accessEpochRef")?;
+    }
+    for reference in &record.exercise_refs {
+        require_non_empty(reference, "authority proof check missing exerciseRef")?;
+    }
+    for reference in &record.evidence_refs {
+        require_non_empty(reference, "authority proof check missing evidenceRef")?;
+    }
+    if matches!(
+        record.state.as_str(),
+        AUTHORITY_PROOF_STATE_DEGRADED
+            | AUTHORITY_PROOF_STATE_BLOCKED
+            | AUTHORITY_PROOF_STATE_EXPIRED
+            | AUTHORITY_PROOF_STATE_REVOKED
+    ) && record
+        .blocked_reason
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "non-proved authority proof check requires blockedReason"
+        ));
+    }
+    match record.check.as_str() {
+        AUTHORITY_PROOF_CHECK_SYNC if record.plane != AGREEMENT_PLANE_DELIVERY_WITNESS => {
+            return Err(anyhow!(
+                "sync authority proof check must use deliveryWitness plane"
+            ));
+        }
+        AUTHORITY_PROOF_CHECK_READ if record.plane != AGREEMENT_PLANE_ACCESS_AUTHORITY => {
+            return Err(anyhow!(
+                "read authority proof check must use accessAuthority plane"
+            ));
+        }
+        AUTHORITY_PROOF_CHECK_WRITE_REDUCE | AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE
+            if record.plane != AGREEMENT_PLANE_ACTION_AUTHORITY =>
+        {
+            return Err(anyhow!(
+                "write/revoke authority proof checks must use actionAuthority plane"
+            ));
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+pub fn validate_authority_multi_identity_proof(
+    record: &AuthorityMultiIdentityProofRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_AUTHORITY_MULTI_IDENTITY_PROOF,
+        "authority multi-identity proof",
+    )?;
+    require_non_empty(
+        &record.proof_id,
+        "authority multi-identity proof missing proofId",
+    )?;
+    require_non_empty(
+        &record.owner_identity_ref,
+        "authority multi-identity proof missing ownerIdentityRef",
+    )?;
+    require_non_empty(
+        &record.grantee_identity_ref,
+        "authority multi-identity proof missing granteeIdentityRef",
+    )?;
+    require_non_empty(
+        &record.grantee_member_ref,
+        "authority multi-identity proof missing granteeMemberRef",
+    )?;
+    require_non_empty_vec(
+        &record.subject_refs,
+        "authority multi-identity proof missing subjectRefs",
+    )?;
+    require_non_empty_vec(
+        &record.action_grant_refs,
+        "authority multi-identity proof missing actionGrantRefs",
+    )?;
+    require_non_empty_vec(
+        &record.access_group_refs,
+        "authority multi-identity proof missing accessGroupRefs",
+    )?;
+    if record.checks.is_empty() {
+        return Err(anyhow!("authority multi-identity proof missing checks"));
+    }
+    validate_authority_proof_state(&record.state)?;
+    let mut kinds = BTreeSet::new();
+    let mut has_action = false;
+    let mut has_access = false;
+    let mut has_delivery = false;
+    let mut read_has_group = false;
+    let mut revoke_has_expiry = false;
+    for check in &record.checks {
+        validate_authority_proof_check_record(check)?;
+        kinds.insert(check.check.as_str());
+        has_action |= check.plane == AGREEMENT_PLANE_ACTION_AUTHORITY;
+        has_access |= check.plane == AGREEMENT_PLANE_ACCESS_AUTHORITY;
+        has_delivery |= check.plane == AGREEMENT_PLANE_DELIVERY_WITNESS;
+        if check.check == AUTHORITY_PROOF_CHECK_READ && !check.access_group_refs.is_empty() {
+            read_has_group = true;
+        }
+        if check.check == AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE && check.expires_at.is_some() {
+            revoke_has_expiry = true;
+        }
+    }
+    for required in [
+        AUTHORITY_PROOF_CHECK_SYNC,
+        AUTHORITY_PROOF_CHECK_READ,
+        AUTHORITY_PROOF_CHECK_WRITE_REDUCE,
+        AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE,
+    ] {
+        if !kinds.contains(required) {
+            return Err(anyhow!(
+                "authority multi-identity proof missing {required} check"
+            ));
+        }
+    }
+    if !has_action {
+        return Err(anyhow!(
+            "authority multi-identity proof requires actionAuthority check"
+        ));
+    }
+    if !has_access {
+        return Err(anyhow!(
+            "authority multi-identity proof requires accessAuthority check"
+        ));
+    }
+    if !has_delivery {
+        return Err(anyhow!(
+            "authority multi-identity proof requires deliveryWitness check"
+        ));
+    }
+    if !read_has_group {
+        return Err(anyhow!(
+            "read authority proof check requires accessGroupRefs"
+        ));
+    }
+    if record.revocation_refs.is_empty() && !revoke_has_expiry {
+        return Err(anyhow!(
+            "revoke/expire authority proof requires revocationRefs or expiresAt"
+        ));
+    }
+    if matches!(
+        record.state.as_str(),
+        AUTHORITY_PROOF_STATE_BLOCKED | AUTHORITY_PROOF_STATE_DEGRADED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked or degraded authority multi-identity proof requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "authority multi-identity proof safeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "authority multi-identity proof safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("authority multi-identity proof missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "authority multi-identity proof expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_access_group(record: &AccessGroupRecord) -> Result<()> {
     validate_optional_kind(&record.kind, RECORD_ACCESS_GROUP, "access group")?;
     require_non_empty(&record.group_id, "access group missing groupId")?;
@@ -3222,6 +3881,1027 @@ pub fn validate_event_fabric_access_class(record: &EventFabricAccessClassRecord)
     validate_safe_facts(&record.safe_facts, "event fabric access class safeFacts")?;
     if record.issued_at == 0 {
         return Err(anyhow!("event fabric access class missing issuedAt"));
+    }
+    Ok(())
+}
+
+fn validate_policy_object<'a>(
+    value: &'a Value,
+    context: &str,
+) -> Result<Option<&'a serde_json::Map<String, Value>>> {
+    if value.is_null() {
+        return Ok(None);
+    }
+    validate_safe_facts(value, context)?;
+    value
+        .as_object()
+        .map(Some)
+        .ok_or_else(|| anyhow!("{context} must be an object"))
+}
+
+fn require_policy_string(
+    policy: &serde_json::Map<String, Value>,
+    key: &str,
+    context: &str,
+) -> Result<()> {
+    let Some(value) = policy.get(key).and_then(Value::as_str) else {
+        return Err(anyhow!("{context} missing {key}"));
+    };
+    require_non_empty(value, &format!("{context} missing {key}"))
+}
+
+pub fn validate_event_fabric_processor_contract(
+    record: &EventFabricProcessorContractRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT,
+        "event fabric processor contract",
+    )?;
+    require_non_empty(
+        &record.processor_contract_id,
+        "event fabric processor contract missing processorContractId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "event fabric processor contract missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.processor_ref,
+        "event fabric processor contract missing processorRef",
+    )?;
+    require_non_empty(
+        &record.processor_role_ref,
+        "event fabric processor contract missing processorRoleRef",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "ready" | "degraded" | "blocked" | "pending" | "expired"
+    ) {
+        return Err(anyhow!("invalid event fabric processor contract state"));
+    }
+    require_non_empty_vec(
+        &record.input_access_class_refs,
+        "event fabric processor contract requires inputAccessClassRefs",
+    )?;
+    validate_reference_list(
+        &record.input_access_class_refs,
+        "event fabric processor contract missing inputAccessClassRefs",
+    )?;
+    require_non_empty_vec(
+        &record.input_event_classes,
+        "event fabric processor contract requires inputEventClasses",
+    )?;
+    validate_reference_list(
+        &record.input_event_classes,
+        "event fabric processor contract missing inputEventClasses",
+    )?;
+    require_non_empty_vec(
+        &record.input_content_classes,
+        "event fabric processor contract requires inputContentClasses",
+    )?;
+    for content_class in &record.input_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.output_refs,
+        "event fabric processor contract missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "event fabric processor contract missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "event fabric processor contract missing accessGroupRefs",
+    )?;
+    if let Some(floor) = &record.consumer_floor {
+        validate_consumer_floor(floor)?;
+    }
+    if let Some(budget) = &record.materialization_budget {
+        validate_materialization_budget(budget)?;
+    }
+    if let Some(policy) = validate_policy_object(
+        &record.bitemporal_policy,
+        "event fabric processor contract bitemporalPolicy",
+    )? {
+        require_policy_string(
+            policy,
+            "eventTimeField",
+            "event fabric processor contract bitemporalPolicy",
+        )?;
+        require_policy_string(
+            policy,
+            "observedTimeField",
+            "event fabric processor contract bitemporalPolicy",
+        )?;
+    }
+    if let Some(policy) = validate_policy_object(
+        &record.schema_policy,
+        "event fabric processor contract schemaPolicy",
+    )? {
+        require_policy_string(
+            policy,
+            "currentVersion",
+            "event fabric processor contract schemaPolicy",
+        )?;
+    }
+    validate_policy_object(
+        &record.compaction_policy,
+        "event fabric processor contract compactionPolicy",
+    )?;
+    validate_policy_object(
+        &record.cardinality_policy,
+        "event fabric processor contract cardinalityPolicy",
+    )?;
+    if let Some(policy) = validate_policy_object(
+        &record.encrypted_detail_custody,
+        "event fabric processor contract encryptedDetailCustody",
+    )? {
+        require_policy_string(
+            policy,
+            "state",
+            "event fabric processor contract encryptedDetailCustody",
+        )?;
+    }
+    if let Some(policy) = validate_policy_object(
+        &record.sampling_policy,
+        "event fabric processor contract samplingPolicy",
+    )? {
+        require_policy_string(
+            policy,
+            "state",
+            "event fabric processor contract samplingPolicy",
+        )?;
+    }
+    validate_reference_list(
+        &record.evidence_refs,
+        "event fabric processor contract missing evidenceRefs",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "event fabric processor contract blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "event fabric processor contract missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "event fabric processor contract safeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "event fabric processor contract safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("event fabric processor contract missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "event fabric processor contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_security_processor_seed(record: &SecurityProcessorSeedRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SECURITY_PROCESSOR_SEED,
+        "security processor seed",
+    )?;
+    require_non_empty(&record.seed_id, "security processor seed missing seedId")?;
+    require_non_empty(
+        &record.fabric_ref,
+        "security processor seed missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.processor_ref,
+        "security processor seed missing processorRef",
+    )?;
+    require_non_empty(
+        &record.processor_role_ref,
+        "security processor seed missing processorRoleRef",
+    )?;
+    require_non_empty(
+        &record.threat_analysis_role,
+        "security processor seed missing threatAnalysisRole",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "ready" | "degraded" | "blocked" | "pending" | "expired"
+    ) {
+        return Err(anyhow!("invalid security processor seed state"));
+    }
+    require_non_empty_vec(
+        &record.input_access_class_refs,
+        "security processor seed requires inputAccessClassRefs",
+    )?;
+    validate_reference_list(
+        &record.input_access_class_refs,
+        "security processor seed missing inputAccessClassRefs",
+    )?;
+    require_non_empty_vec(
+        &record.input_event_classes,
+        "security processor seed requires inputEventClasses",
+    )?;
+    validate_reference_list(
+        &record.input_event_classes,
+        "security processor seed missing inputEventClasses",
+    )?;
+    require_non_empty_vec(
+        &record.input_content_classes,
+        "security processor seed requires inputContentClasses",
+    )?;
+    for content_class in &record.input_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.access_group_refs,
+        "security processor seed missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.processor_contract_refs,
+        "security processor seed missing processorContractRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_profile_refs,
+        "security processor seed missing evidenceProfileRefs",
+    )?;
+    validate_reference_list(
+        &record.materialization_budget_refs,
+        "security processor seed missing materializationBudgetRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "security processor seed missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.detail_refs,
+        "security processor seed missing detailRefs",
+    )?;
+    validate_reference_list(
+        &record.alert_output_refs,
+        "security processor seed missing alertOutputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_hold_refs,
+        "security processor seed missing evidenceHoldRefs",
+    )?;
+    validate_reference_list(
+        &record.retention_hold_refs,
+        "security processor seed missing retentionHoldRefs",
+    )?;
+    if let Some(policy) = validate_policy_object(
+        &record.encrypted_detail_custody,
+        "security processor seed encryptedDetailCustody",
+    )? {
+        require_policy_string(
+            policy,
+            "state",
+            "security processor seed encryptedDetailCustody",
+        )?;
+    }
+    let Some(boundaries) = validate_policy_object(
+        &record.semantic_boundaries,
+        "security processor seed semanticBoundaries",
+    )?
+    else {
+        return Err(anyhow!(
+            "security processor seed requires semanticBoundaries"
+        ));
+    };
+    require_policy_string(
+        boundaries,
+        "logging",
+        "security processor seed semanticBoundaries",
+    )?;
+    require_policy_string(
+        boundaries,
+        "storage",
+        "security processor seed semanticBoundaries",
+    )?;
+    require_policy_string(
+        boundaries,
+        "eventDomain",
+        "security processor seed semanticBoundaries",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "security processor seed blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.evidence_refs,
+        "security processor seed missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "security processor seed missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "security processor seed safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "security processor seed safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "security processor seed")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("security processor seed missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "security processor seed expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_secret_boundary(
+    record: &ServiceManagerSecretBoundaryRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_SECRET_BOUNDARY,
+        "service manager secret boundary",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager secret boundary",
+    )?;
+    require_non_empty(
+        &record.boundary_id,
+        "service manager secret boundary missing boundaryId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager secret boundary missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager secret boundary missing subjectRef",
+    )?;
+    validate_surface_secret_boundary_state(&record.state)?;
+    validate_reference_list(
+        &record.secret_refs,
+        "service manager secret boundary missing secretRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "service manager secret boundary missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "service manager secret boundary missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager secret boundary missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_SECRET_BOUNDARY_RESOLVED
+        && record.secret_refs.is_empty()
+        && record.access_group_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager resolved secret boundary requires secretRefs or accessGroupRefs"
+        ));
+    }
+    if record.state == SURFACE_SECRET_BOUNDARY_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "service manager blocked secret boundary requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager secret boundary missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "service manager secret boundary safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("service manager secret boundary missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "service manager secret boundary expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_release_contract(
+    record: &ServiceManagerReleaseContractRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_RELEASE_CONTRACT,
+        "service manager release contract",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager release contract",
+    )?;
+    require_non_empty(
+        &record.contract_id,
+        "service manager release contract missing contractId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager release contract missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager release contract missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.manager_ref,
+        "service manager release contract missing managerRef",
+    )?;
+    validate_service_manager_contract_state(&record.state)?;
+    validate_optional_ref(
+        record.app_contract_ref.as_deref(),
+        "service manager release contract missing appContractRef",
+    )?;
+    validate_optional_ref(
+        record.version.as_deref(),
+        "service manager release contract missing version",
+    )?;
+    validate_optional_ref(
+        record.build_ref.as_deref(),
+        "service manager release contract missing buildRef",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "service manager release contract missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "service manager release contract missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "service manager release contract missing compatibilityRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "service manager release contract missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.secret_boundary_refs,
+        "service manager release contract missing secretBoundaryRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_digest_refs,
+        "service manager release contract missing proofDigestRefs",
+    )?;
+    validate_reference_list(
+        &record.lab_proof_refs,
+        "service manager release contract missing labProofRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager release contract missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_APP_CONTRACT_STATE_READY {
+        if record
+            .build_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "service manager ready release contract requires buildRef"
+            ));
+        }
+        if record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "service manager ready release contract requires releaseRef"
+            ));
+        }
+        if record.rollback_required.unwrap_or(true)
+            && record
+                .rollback_ref
+                .as_deref()
+                .unwrap_or_default()
+                .trim()
+                .is_empty()
+        {
+            return Err(anyhow!(
+                "service manager ready release contract requires rollbackRef unless rollbackRequired is false"
+            ));
+        }
+    }
+    if record.state == SURFACE_APP_CONTRACT_STATE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "service manager blocked release contract requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager release contract missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "service manager release contract safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("service manager release contract missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "service manager release contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_lab_proof(record: &ServiceManagerLabProofRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_LAB_PROOF,
+        "service manager lab proof",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "service manager lab proof")?;
+    require_non_empty(
+        &record.proof_id,
+        "service manager lab proof missing proofId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager lab proof missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager lab proof missing subjectRef",
+    )?;
+    validate_service_manager_proof_profile(&record.profile)?;
+    validate_service_manager_proof_state(&record.state)?;
+    validate_optional_ref(
+        record.train_ref.as_deref(),
+        "service manager lab proof missing trainRef",
+    )?;
+    validate_optional_ref(
+        record.release_contract_ref.as_deref(),
+        "service manager lab proof missing releaseContractRef",
+    )?;
+    validate_optional_ref(
+        record.app_contract_ref.as_deref(),
+        "service manager lab proof missing appContractRef",
+    )?;
+    validate_reference_list(
+        &record.surface_refs,
+        "service manager lab proof missing surfaceRefs",
+    )?;
+    validate_reference_list(
+        &record.service_refs,
+        "service manager lab proof missing serviceRefs",
+    )?;
+    validate_reference_list(
+        &record.environment_refs,
+        "service manager lab proof missing environmentRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "service manager lab proof missing artifactRefs",
+    )?;
+    validate_reference_list(
+        &record.metrics_refs,
+        "service manager lab proof missing metricsRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "service manager lab proof missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager lab proof missing evidenceRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SERVICE_MANAGER_PROOF_STATE_BLOCKED | SERVICE_MANAGER_PROOF_STATE_FAILED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager blocked or failed lab proof requires blockedReasons"
+        ));
+    }
+    if record.state == SERVICE_MANAGER_PROOF_STATE_PROVED
+        && record.artifact_refs.is_empty()
+        && record.metrics_refs.is_empty()
+        && record.proof_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager proved lab proof requires artifactRefs, metricsRefs, or proofRefs"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager lab proof missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "service manager lab proof safeFacts")?;
+    if record.started_at == 0 {
+        return Err(anyhow!("service manager lab proof missing startedAt"));
+    }
+    if record
+        .completed_at
+        .is_some_and(|completed_at| completed_at < record.started_at)
+    {
+        return Err(anyhow!(
+            "service manager lab proof completedAt must not be before startedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.started_at)
+    {
+        return Err(anyhow!(
+            "service manager lab proof expiresAt must be after startedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_train_digest(
+    record: &ServiceManagerTrainDigestRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_TRAIN_DIGEST,
+        "service manager train digest",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager train digest",
+    )?;
+    require_non_empty(
+        &record.train_id,
+        "service manager train digest missing trainId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager train digest missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager train digest missing subjectRef",
+    )?;
+    validate_service_manager_proof_state(&record.state)?;
+    validate_reference_list(
+        &record.repo_refs,
+        "service manager train digest missing repoRefs",
+    )?;
+    validate_reference_list(
+        &record.commit_refs,
+        "service manager train digest missing commitRefs",
+    )?;
+    validate_reference_list(
+        &record.app_contract_refs,
+        "service manager train digest missing appContractRefs",
+    )?;
+    validate_reference_list(
+        &record.release_contract_refs,
+        "service manager train digest missing releaseContractRefs",
+    )?;
+    validate_reference_list(
+        &record.operation_refs,
+        "service manager train digest missing operationRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_digest_refs,
+        "service manager train digest missing proofDigestRefs",
+    )?;
+    validate_reference_list(
+        &record.lab_proof_refs,
+        "service manager train digest missing labProofRefs",
+    )?;
+    validate_reference_list(
+        &record.metrics_refs,
+        "service manager train digest missing metricsRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager train digest missing evidenceRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SERVICE_MANAGER_PROOF_STATE_BLOCKED | SERVICE_MANAGER_PROOF_STATE_FAILED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager blocked or failed train digest requires blockedReasons"
+        ));
+    }
+    if record.state == SERVICE_MANAGER_PROOF_STATE_PROVED {
+        require_non_empty_vec(
+            &record.release_contract_refs,
+            "service manager proved train digest requires releaseContractRefs",
+        )?;
+        if record.lab_proof_refs.is_empty() && record.proof_digest_refs.is_empty() {
+            return Err(anyhow!(
+                "service manager proved train digest requires labProofRefs or proofDigestRefs"
+            ));
+        }
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager train digest missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "service manager train digest safeFacts")?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("service manager train digest missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "service manager train digest expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_surface_app_bootstrap_contract(
+    record: &SurfaceAppBootstrapContractRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT,
+        "surface app bootstrap contract",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "surface app bootstrap contract",
+    )?;
+    require_non_empty(
+        &record.bootstrap_contract_id,
+        "surface app bootstrap contract missing bootstrapContractId",
+    )?;
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app bootstrap contract missing appContractRef",
+    )?;
+    require_non_empty(
+        &record.app_id,
+        "surface app bootstrap contract missing appId",
+    )?;
+    validate_service_manager_contract_state(&record.state)?;
+    validate_surface_fulfillment_mode(&record.source_mode)?;
+    validate_reference_list(
+        &record.module_refs,
+        "surface app bootstrap contract missing moduleRefs",
+    )?;
+    validate_optional_ref(
+        record.service_manager_ref.as_deref(),
+        "surface app bootstrap contract missing serviceManagerRef",
+    )?;
+    validate_optional_ref(
+        record.release_contract_ref.as_deref(),
+        "surface app bootstrap contract missing releaseContractRef",
+    )?;
+    validate_optional_ref(
+        record.secret_boundary_ref.as_deref(),
+        "surface app bootstrap contract missing secretBoundaryRef",
+    )?;
+    validate_optional_ref(
+        record.train_digest_ref.as_deref(),
+        "surface app bootstrap contract missing trainDigestRef",
+    )?;
+    validate_reference_list(
+        &record.lab_proof_profile_refs,
+        "surface app bootstrap contract missing labProofProfileRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app bootstrap contract missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app bootstrap contract missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_APP_CONTRACT_STATE_READY {
+        require_non_empty_vec(
+            &record.module_refs,
+            "surface app ready bootstrap contract requires moduleRefs",
+        )?;
+        if matches!(
+            record.source_mode.as_str(),
+            SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE
+                | SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT
+                | SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED
+        ) && record
+            .release_contract_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "surface app non-bundled bootstrap contract requires releaseContractRef"
+            ));
+        }
+    }
+    if record.state == SURFACE_APP_CONTRACT_STATE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "surface app blocked bootstrap contract requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app bootstrap contract missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "surface app bootstrap contract safeFacts",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("surface app bootstrap contract missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app bootstrap contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecord) -> Result<()> {
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app manifest version missing appContractRef",
+    )?;
+    require_non_empty(
+        &record.version,
+        "surface app manifest version missing version",
+    )?;
+    validate_surface_app_manifest_version_state(&record.state)?;
+    if let Some(source_mode) = record.source_mode.as_deref() {
+        validate_surface_fulfillment_mode(source_mode)?;
+        if matches!(
+            record.state.as_str(),
+            SURFACE_APP_MANIFEST_VERSION_CURRENT
+                | SURFACE_APP_MANIFEST_VERSION_COMPATIBLE
+                | SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE
+        ) && matches!(
+            source_mode,
+            SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE
+                | SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT
+                | SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED
+        ) && record
+            .release_contract_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+        {
+            return Err(anyhow!(
+                "surface app manifest non-bundled version requires releaseContractRef"
+            ));
+        }
+    }
+    validate_reference_list(
+        &record.module_refs,
+        "surface app manifest version missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "surface app manifest version missing compatibilityRefs",
+    )?;
+    validate_optional_ref(
+        record.bootstrap_contract_ref.as_deref(),
+        "surface app manifest version missing bootstrapContractRef",
+    )?;
+    validate_optional_ref(
+        record.release_contract_ref.as_deref(),
+        "surface app manifest version missing releaseContractRef",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app manifest version missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app manifest version missing evidenceRefs",
+    )?;
+    if record.state == SURFACE_APP_MANIFEST_VERSION_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "surface app manifest blocked version requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app manifest version missing blockedReasons",
+    )?;
+    Ok(())
+}
+
+pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_MANIFEST,
+        "surface app manifest",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "surface app manifest")?;
+    require_non_empty(
+        &record.manifest_id,
+        "surface app manifest missing manifestId",
+    )?;
+    require_non_empty(&record.app_id, "surface app manifest missing appId")?;
+    require_non_empty(
+        &record.current_app_contract_ref,
+        "surface app manifest missing currentAppContractRef",
+    )?;
+    require_non_empty(
+        &record.current_version,
+        "surface app manifest missing currentVersion",
+    )?;
+    if let Some(state) = record.state.as_deref() {
+        validate_surface_app_manifest_version_state(state)?;
+    }
+    if let Some(source_mode) = record.default_source_mode.as_deref() {
+        validate_surface_fulfillment_mode(source_mode)?;
+    }
+    if record.versions.is_empty() {
+        return Err(anyhow!("surface app manifest requires versions"));
+    }
+    for version in &record.versions {
+        validate_surface_app_manifest_version(version)?;
+    }
+    if !record.versions.iter().any(|version| {
+        version.app_contract_ref == record.current_app_contract_ref
+            && version.version == record.current_version
+    }) {
+        return Err(anyhow!(
+            "surface app manifest missing current version claim"
+        ));
+    }
+    validate_reference_list(
+        &record.app_contract_refs,
+        "surface app manifest missing appContractRefs",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "surface app manifest missing compatibilityRefs",
+    )?;
+    validate_reference_list(
+        &record.bootstrap_contract_refs,
+        "surface app manifest missing bootstrapContractRefs",
+    )?;
+    validate_reference_list(
+        &record.release_contract_refs,
+        "surface app manifest missing releaseContractRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app manifest missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app manifest missing evidenceRefs",
+    )?;
+    if record.state.as_deref() == Some(SURFACE_APP_MANIFEST_VERSION_BLOCKED)
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "surface app manifest blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app manifest missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "surface app manifest safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("surface app manifest missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app manifest expiresAt must be after issuedAt"
+        ));
     }
     Ok(())
 }
@@ -4114,6 +5794,20 @@ fn require_non_empty_vec(values: &[String], message: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_reference_list(values: &[String], message: &str) -> Result<()> {
+    for value in values {
+        require_non_empty(value, message)?;
+    }
+    Ok(())
+}
+
+fn validate_optional_ref(value: Option<&str>, message: &str) -> Result<()> {
+    if let Some(value) = value {
+        require_non_empty(value, message)?;
+    }
+    Ok(())
+}
+
 fn validate_capability_names(values: &[String]) -> Result<()> {
     for value in values {
         validate_capability_name(value)?;
@@ -4129,6 +5823,96 @@ fn validate_authority_domain(domain: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported authority domain"))
+    }
+}
+
+fn validate_service_manager_contract_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_CONTRACT_STATE_DRAFT
+            | SURFACE_APP_CONTRACT_STATE_READY
+            | SURFACE_APP_CONTRACT_STATE_BLOCKED
+            | SURFACE_APP_CONTRACT_STATE_SUPERSEDED
+            | SURFACE_APP_CONTRACT_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager contract state"))
+    }
+}
+
+fn validate_surface_app_manifest_version_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_MANIFEST_VERSION_CURRENT
+            | SURFACE_APP_MANIFEST_VERSION_COMPATIBLE
+            | SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE
+            | SURFACE_APP_MANIFEST_VERSION_BLOCKED
+            | SURFACE_APP_MANIFEST_VERSION_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface app manifest version state"))
+    }
+}
+
+fn validate_surface_secret_boundary_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_SECRET_BOUNDARY_NOT_REQUIRED
+            | SURFACE_SECRET_BOUNDARY_RESOLVED
+            | SURFACE_SECRET_BOUNDARY_BLOCKED
+            | SURFACE_SECRET_BOUNDARY_UNAVAILABLE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface secret boundary state"))
+    }
+}
+
+fn validate_service_manager_proof_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_MANAGER_PROOF_STATE_PENDING
+            | SERVICE_MANAGER_PROOF_STATE_PROVED
+            | SERVICE_MANAGER_PROOF_STATE_FAILED
+            | SERVICE_MANAGER_PROOF_STATE_BLOCKED
+            | SERVICE_MANAGER_PROOF_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager proof state"))
+    }
+}
+
+fn validate_service_manager_proof_profile(profile: &str) -> Result<()> {
+    if matches!(
+        profile,
+        "surfaceLandscape"
+            | "nvrLive30s"
+            | "longStream10m"
+            | "loggingPressure"
+            | "directEdge"
+            | "nativeChecks"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager proof profile"))
+    }
+}
+
+fn validate_surface_fulfillment_mode(mode: &str) -> Result<()> {
+    if matches!(
+        mode,
+        SURFACE_FULFILLMENT_MODE_BUNDLED
+            | SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE
+            | SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT
+            | SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED
+            | SURFACE_FULFILLMENT_MODE_DEV_OVERLAY
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface fulfillment mode"))
     }
 }
 
@@ -4160,6 +5944,35 @@ fn validate_action_grant_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported action grant state"))
+    }
+}
+
+fn validate_authority_proof_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        AUTHORITY_PROOF_STATE_PROVED
+            | AUTHORITY_PROOF_STATE_DEGRADED
+            | AUTHORITY_PROOF_STATE_BLOCKED
+            | AUTHORITY_PROOF_STATE_EXPIRED
+            | AUTHORITY_PROOF_STATE_REVOKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported authority proof state"))
+    }
+}
+
+fn validate_authority_proof_check(check: &str) -> Result<()> {
+    if matches!(
+        check,
+        AUTHORITY_PROOF_CHECK_SYNC
+            | AUTHORITY_PROOF_CHECK_READ
+            | AUTHORITY_PROOF_CHECK_WRITE_REDUCE
+            | AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported authority proof check"))
     }
 }
 
@@ -5243,11 +7056,25 @@ pub fn validate_retention_release_posture(record: &RetentionReleasePosture) -> R
         "retention release missing effectiveRetention",
     )?;
     validate_retention_release_state(&record.state)?;
+    validate_reference_list(&record.policy_refs, "retention release policyRefs")?;
+    validate_reference_list(&record.overlay_refs, "retention release overlayRefs")?;
     require_non_empty_vec(&record.owner_refs, "retention release missing ownerRefs")?;
+    validate_reference_list(&record.holder_refs, "retention release holderRefs")?;
+    validate_reference_list(
+        &record.fulfillment_refs,
+        "retention release fulfillmentRefs",
+    )?;
     require_non_empty_vec(
         &record.residency_layers,
         "retention release missing residencyLayers",
     )?;
+    validate_reference_list(&record.witness_refs, "retention release witnessRefs")?;
+    validate_reference_list(
+        &record.supersession_refs,
+        "retention release supersessionRefs",
+    )?;
+    validate_reference_list(&record.retraction_refs, "retention release retractionRefs")?;
+    validate_reference_list(&record.revocation_refs, "retention release revocationRefs")?;
     if record.state == "releaseBlocked" && record.blockers.is_empty() {
         return Err(anyhow!(
             "releaseBlocked retention posture requires blockers"
@@ -5258,6 +7085,13 @@ pub fn validate_retention_release_posture(record: &RetentionReleasePosture) -> R
     }
     if record.evaluated_at == 0 {
         return Err(anyhow!("retention release missing evaluatedAt"));
+    }
+    if let (Some(valid_until), Some(release_after)) = (record.valid_until, record.release_after) {
+        if release_after < valid_until {
+            return Err(anyhow!(
+                "retention release releaseAfter must not be before validUntil"
+            ));
+        }
     }
     Ok(())
 }
@@ -6496,11 +8330,19 @@ mod tests {
             subject_ref: "nvr:chunk:front:0".to_string(),
             effective_retention: "durable".to_string(),
             state: "releaseBlocked".to_string(),
+            policy_refs: vec!["policy:nvr-media-retention".to_string()],
+            overlay_refs: vec!["overlay:operator-hold".to_string()],
             owner_refs: vec!["identity:operator".to_string()],
             holder_refs: vec![participant_ref.clone()],
             fulfillment_refs: vec![],
             residency_layers: vec!["browserHotCache".to_string()],
+            witness_refs: vec!["witness:runtime:observed".to_string()],
+            supersession_refs: vec![],
+            retraction_refs: vec![],
+            revocation_refs: vec![],
             blockers: vec![json!({ "code": "missingFulfillment" })],
+            valid_until: Some(1_700_000_010),
+            release_after: Some(1_700_000_010),
             evaluated_at: 1_700_000_006,
         })
         .expect("valid retention release posture");
@@ -7167,17 +9009,139 @@ mod tests {
         bad_event_class.privacy_tier = "publicSafe".to_string();
         assert!(validate_event_fabric_access_class(&bad_event_class).is_err());
 
+        let processor_floor = ConsumerFloor {
+            kind: Some(RECORD_CONSUMER_FLOOR.to_string()),
+            floor_id: "consumer-floor:logging.processor".to_string(),
+            consumer_ref: "role:logging.processor".to_string(),
+            subscription_id: None,
+            materialization_id: Some("event-fabric:logging-security".to_string()),
+            subject_ref: Some("event-fabric:logging.default".to_string()),
+            cursor: None,
+            ack_floor: Some("event:9".to_string()),
+            witness_floor: Some("event:8".to_string()),
+            compaction_floor: Some("snapshot:1".to_string()),
+            event_time_floor: None,
+            observed_time_floor: Some(1_700_000_072),
+            lag_state: "caughtUp".to_string(),
+            reason: None,
+            redelivery: json!({ "mode": "processorReplay" }),
+            replay: json!({ "mode": "bitemporal" }),
+            evidence_refs: vec!["evidence:consumer-floor".to_string()],
+            sampled_at: 1_700_000_072,
+            expires_at: Some(1_700_000_132),
+        };
+        let processor = EventFabricProcessorContractRecord {
+            kind: Some(RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT.to_string()),
+            processor_contract_id: "processor-contract:logging.security-replay".to_string(),
+            fabric_ref: "event-fabric:logging.default".to_string(),
+            processor_ref: "service:logging".to_string(),
+            processor_role_ref: "role:logging.processor".to_string(),
+            state: "ready".to_string(),
+            input_access_class_refs: vec![event_class.class_id.clone()],
+            input_event_classes: event_class.event_classes.clone(),
+            input_content_classes: vec!["encryptedDetail".to_string()],
+            output_refs: vec![
+                "projection:logging.dashboard".to_string(),
+                "storage:logging.archive".to_string(),
+            ],
+            storage_refs: vec!["storage:logging.archive".to_string()],
+            access_group_refs: vec![group.group_id.clone()],
+            consumer_floor: Some(processor_floor),
+            materialization_budget: None,
+            bitemporal_policy: json!({
+                "eventTimeField": "occurredAt",
+                "observedTimeField": "observedAt"
+            }),
+            schema_policy: json!({
+                "currentVersion": "logging.event.v1",
+                "unknownVersionPosture": "ignore"
+            }),
+            compaction_policy: json!({
+                "snapshotCadence": "bounded",
+                "compactionFloor": "snapshot:1"
+            }),
+            cardinality_policy: json!({
+                "maxLabelValues": 1000,
+                "highCardinalityOverflow": "encryptedDetailRef"
+            }),
+            encrypted_detail_custody: json!({
+                "state": "referenceOnly",
+                "accessGroupRefs": [group.group_id.clone()]
+            }),
+            sampling_policy: json!({
+                "state": "adaptive",
+                "degradeBefore": ["authority", "route", "activation"]
+            }),
+            safe_facts: Value::Null,
+            evidence_refs: vec!["evidence:processor-contract".to_string()],
+            blocked_reasons: Vec::new(),
+            issued_at: 1_700_000_073,
+            expires_at: Some(1_700_000_433),
+        };
+        validate_event_fabric_processor_contract(&processor)
+            .expect("valid event fabric processor contract");
+        let mut bad_processor = processor.clone();
+        bad_processor.processor_contract_id = "processor-contract:blocked".to_string();
+        bad_processor.state = "blocked".to_string();
+        assert!(validate_event_fabric_processor_contract(&bad_processor).is_err());
+
+        let security_seed = SecurityProcessorSeedRecord {
+            kind: Some(RECORD_SECURITY_PROCESSOR_SEED.to_string()),
+            seed_id: "security-seed:logging.default".to_string(),
+            fabric_ref: "event-fabric:logging.default".to_string(),
+            processor_ref: "constitute-security".to_string(),
+            processor_role_ref: "role:security.processor".to_string(),
+            state: "ready".to_string(),
+            threat_analysis_role: "eventFabricThreatAnalysis".to_string(),
+            input_access_class_refs: vec![event_class.class_id.clone()],
+            input_event_classes: event_class.event_classes.clone(),
+            input_content_classes: vec!["encryptedDetail".to_string()],
+            access_group_refs: vec![group.group_id.clone()],
+            processor_contract_refs: vec![processor.processor_contract_id.clone()],
+            evidence_profile_refs: vec!["logging.security.default".to_string()],
+            materialization_budget_refs: vec!["logging.security.default.90d".to_string()],
+            storage_refs: vec!["storage:logging.archive".to_string()],
+            detail_refs: vec!["encrypted-detail:logging.default".to_string()],
+            alert_output_refs: vec!["security:alerts".to_string()],
+            evidence_hold_refs: vec!["security:evidence-hold".to_string()],
+            retention_hold_refs: vec!["retention:security-hold".to_string()],
+            encrypted_detail_custody: json!({
+                "state": "referenceOnly",
+                "accessGroupRefs": [group.group_id.clone()]
+            }),
+            semantic_boundaries: json!({
+                "logging": "mayConsumeMaterializations",
+                "storage": "ciphertextFulfillmentOnly",
+                "eventDomain": "doesNotOwn"
+            }),
+            safe_facts: json!({
+                "purpose": "securityThreatAnalysis",
+                "detailCustody": "encryptedDetailRef"
+            }),
+            evidence_refs: vec!["evidence:security-seed".to_string()],
+            blocked_reasons: Vec::new(),
+            issued_at: 1_700_000_074,
+            expires_at: Some(1_707_776_074),
+        };
+        validate_security_processor_seed(&security_seed).expect("valid security processor seed");
+        let mut bad_seed = security_seed.clone();
+        bad_seed.state = "blocked".to_string();
+        assert!(validate_security_processor_seed(&bad_seed).is_err());
+        let mut missing_boundary = security_seed;
+        missing_boundary.semantic_boundaries = json!({ "logging": "mayConsumeMaterializations" });
+        assert!(validate_security_processor_seed(&missing_boundary).is_err());
+
         let revocation = AuthorityGrantRevocationPostureRecord {
             kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),
             revocation_id: "revocation:logging:writer".to_string(),
-            target_grant_ref: grant.grant_id,
-            issuer_ref,
+            target_grant_ref: grant.grant_id.clone(),
+            issuer_ref: issuer_ref.clone(),
             authority_domain: "identity".to_string(),
             affected_grant_refs: vec![
                 "grant:logging:writer".to_string(),
                 "grant:logging:writer:delegated".to_string(),
             ],
-            affected_access_group_refs: vec![group.group_id],
+            affected_access_group_refs: vec![group.group_id.clone()],
             inherited_scope_refs: vec!["contract:logging.default".to_string()],
             state: AGREEMENT_STATE_REVOKED.to_string(),
             reason_code: "operatorRevoked".to_string(),
@@ -7187,6 +9151,295 @@ mod tests {
         };
         validate_authority_grant_revocation_posture(&revocation)
             .expect("valid grant revocation posture");
+
+        let proof = AuthorityMultiIdentityProofRecord {
+            kind: Some(RECORD_AUTHORITY_MULTI_IDENTITY_PROOF.to_string()),
+            proof_id: "authority-proof:aux-to-agent:full-access".to_string(),
+            owner_identity_ref: "identity:aux".to_string(),
+            grantee_identity_ref: "identity:agent-dev".to_string(),
+            grantee_member_ref: browser_member.clone(),
+            subject_refs: vec![
+                "contract:gateway.default".to_string(),
+                "contract:logging.default".to_string(),
+                "contract:nvr.streams".to_string(),
+            ],
+            action_grant_refs: vec![grant.grant_id.clone()],
+            access_group_refs: vec![group.group_id.clone()],
+            access_epoch_refs: vec![epoch.epoch_id.clone()],
+            private_envelope_refs: vec![envelope.envelope_id.clone()],
+            revocation_refs: vec![revocation.revocation_id.clone()],
+            checks: vec![
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_SYNC.to_string(),
+                    plane: AGREEMENT_PLANE_DELIVERY_WITNESS.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: "contract:gateway.default".to_string(),
+                    grant_refs: vec![grant.grant_id.clone()],
+                    access_group_refs: vec![],
+                    access_epoch_refs: vec![],
+                    exercise_refs: vec![],
+                    evidence_refs: vec!["witness:gateway:agent-sync".to_string()],
+                    blocked_reason: None,
+                    expires_at: None,
+                },
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_READ.to_string(),
+                    plane: AGREEMENT_PLANE_ACCESS_AUTHORITY.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: "event-fabric:logging.default".to_string(),
+                    grant_refs: vec![],
+                    access_group_refs: vec![group.group_id.clone()],
+                    access_epoch_refs: vec![epoch.epoch_id.clone()],
+                    exercise_refs: vec![],
+                    evidence_refs: vec!["proof:caac-open:agent-dev".to_string()],
+                    blocked_reason: None,
+                    expires_at: None,
+                },
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_WRITE_REDUCE.to_string(),
+                    plane: AGREEMENT_PLANE_ACTION_AUTHORITY.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: "contract:logging.default".to_string(),
+                    grant_refs: vec![grant.grant_id.clone()],
+                    access_group_refs: vec![],
+                    access_epoch_refs: vec![],
+                    exercise_refs: vec!["exercise:logging:agent-writer:1".to_string()],
+                    evidence_refs: vec!["event:logging:agent-test".to_string()],
+                    blocked_reason: None,
+                    expires_at: None,
+                },
+                AuthorityProofCheck {
+                    check: AUTHORITY_PROOF_CHECK_REVOKE_EXPIRE.to_string(),
+                    plane: AGREEMENT_PLANE_ACTION_AUTHORITY.to_string(),
+                    state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+                    target_ref: grant.grant_id.clone(),
+                    grant_refs: vec![grant.grant_id.clone()],
+                    access_group_refs: vec![],
+                    access_epoch_refs: vec![],
+                    exercise_refs: vec![],
+                    evidence_refs: vec![revocation.revocation_id.clone()],
+                    blocked_reason: None,
+                    expires_at: Some(1_700_000_610),
+                },
+            ],
+            state: AUTHORITY_PROOF_STATE_PROVED.to_string(),
+            blocked_reasons: vec![],
+            evidence_refs: vec!["proof:multi-identity:agent-dev".to_string()],
+            safe_facts: json!({ "proofClass": "multiIdentityFullAccess" }),
+            issued_at: 1_700_000_090,
+            expires_at: Some(1_700_000_610),
+        };
+        validate_authority_multi_identity_proof(&proof)
+            .expect("valid multi-identity authority proof");
+        let mut missing_sync = proof.clone();
+        missing_sync
+            .checks
+            .retain(|check| check.check != AUTHORITY_PROOF_CHECK_SYNC);
+        assert!(validate_authority_multi_identity_proof(&missing_sync).is_err());
+        let mut wrong_read = proof.clone();
+        wrong_read.checks[1].access_group_refs.clear();
+        assert!(validate_authority_multi_identity_proof(&wrong_read).is_err());
+        let mut wrong_write_plane = proof.clone();
+        wrong_write_plane.checks[2].plane = AGREEMENT_PLANE_ACCESS_AUTHORITY.to_string();
+        assert!(validate_authority_multi_identity_proof(&wrong_write_plane).is_err());
+    }
+
+    #[test]
+    fn validates_service_manager_protected_bootstrap_contracts() {
+        let secret_boundary = ServiceManagerSecretBoundaryRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_SECRET_BOUNDARY.to_string()),
+            boundary_id: "secret-boundary:lab-gateway".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            state: SURFACE_SECRET_BOUNDARY_RESOLVED.to_string(),
+            secret_refs: vec!["secret:gateway-lab".to_string()],
+            access_group_refs: vec!["access:ops:epoch-7".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            evidence_refs: vec!["evidence:secret-resolution".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "posture": "resolved" }),
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_service_manager_secret_boundary(&secret_boundary).expect("valid secret boundary");
+
+        let release_contract = ServiceManagerReleaseContractRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_RELEASE_CONTRACT.to_string()),
+            contract_id: "release-contract:gateway:2026-05-18".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            manager_ref: "member:gateway-manager".to_string(),
+            state: SURFACE_APP_CONTRACT_STATE_READY.to_string(),
+            app_contract_ref: Some("surface-app:gateway-ui@0.1.0".to_string()),
+            version: Some("2026.05.18".to_string()),
+            build_ref: Some("build:gateway:2026-05-18".to_string()),
+            release_ref: Some("release:gateway:2026-05-18".to_string()),
+            rollback_ref: Some("rollback:gateway:previous".to_string()),
+            rollback_required: None,
+            compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            secret_boundary_refs: vec![secret_boundary.boundary_id.clone()],
+            proof_digest_refs: vec![],
+            lab_proof_refs: vec!["lab-proof:gateway:surface-landscape".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "compatibility": "current" }),
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_007_200),
+        };
+        validate_service_manager_release_contract(&release_contract)
+            .expect("valid release contract");
+
+        let lab_proof = ServiceManagerLabProofRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_LAB_PROOF.to_string()),
+            proof_id: "lab-proof:gateway:surface-landscape".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            profile: "surfaceLandscape".to_string(),
+            state: SERVICE_MANAGER_PROOF_STATE_PROVED.to_string(),
+            train_ref: Some("train:surface-bootstrap:2026-05-18".to_string()),
+            release_contract_ref: Some(release_contract.contract_id.clone()),
+            app_contract_ref: Some("surface-app:gateway-ui@0.1.0".to_string()),
+            surface_refs: vec![
+                "surface:account".to_string(),
+                "surface:gateway-ui".to_string(),
+            ],
+            service_refs: vec!["service:gateway".to_string()],
+            environment_refs: vec!["env:lab".to_string()],
+            artifact_refs: vec!["artifact:proof:surface-landscape".to_string()],
+            metrics_refs: vec!["metrics:proof:surface-landscape".to_string()],
+            proof_refs: vec!["proof:surface-landscape:pass".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "profile": "surfaceLandscape", "verdict": "passed" }),
+            started_at: 1_700_000_010,
+            accepted_at: None,
+            completed_at: Some(1_700_000_610),
+            observed_at: Some(1_700_000_620),
+            expires_at: Some(1_700_007_200),
+        };
+        validate_service_manager_lab_proof(&lab_proof).expect("valid lab proof");
+
+        let train_digest = ServiceManagerTrainDigestRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_TRAIN_DIGEST.to_string()),
+            train_id: "train:surface-bootstrap:2026-05-18".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            state: SERVICE_MANAGER_PROOF_STATE_PROVED.to_string(),
+            repo_refs: vec!["repo:constitute-gateway-ui".to_string()],
+            commit_refs: vec!["git:gateway-ui:275e05b".to_string()],
+            app_contract_refs: vec!["surface-app:gateway-ui@0.1.0".to_string()],
+            release_contract_refs: vec![release_contract.contract_id.clone()],
+            operation_refs: vec![],
+            proof_digest_refs: vec![],
+            lab_proof_refs: vec![lab_proof.proof_id.clone()],
+            metrics_refs: vec!["metrics:spine:service-bootstrap".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at: 1_700_000_630,
+            expires_at: Some(1_700_007_200),
+        };
+        validate_service_manager_train_digest(&train_digest).expect("valid train digest");
+
+        let bootstrap_contract = SurfaceAppBootstrapContractRecord {
+            kind: Some(RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT.to_string()),
+            bootstrap_contract_id: "bootstrap-contract:gateway-ui".to_string(),
+            app_contract_ref: "surface-app:gateway-ui@0.1.0".to_string(),
+            app_id: "constitute-gateway-ui".to_string(),
+            state: SURFACE_APP_CONTRACT_STATE_READY.to_string(),
+            source_mode: SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE.to_string(),
+            module_refs: vec![
+                "module:surface-runtime-client@0.1.0".to_string(),
+                "module:gateway-view@0.1.0".to_string(),
+            ],
+            service_manager_ref: Some("manager:lab-gateway".to_string()),
+            release_contract_ref: Some(release_contract.contract_id.clone()),
+            secret_boundary_ref: Some(secret_boundary.boundary_id),
+            train_digest_ref: Some(train_digest.train_id),
+            lab_proof_profile_refs: vec!["surfaceLandscape".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            evidence_refs: vec!["evidence:bootstrap-resolution".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_007_200),
+        };
+        validate_surface_app_bootstrap_contract(&bootstrap_contract)
+            .expect("valid bootstrap contract");
+
+        let mut bad_release = release_contract;
+        bad_release.rollback_ref = None;
+        assert!(validate_service_manager_release_contract(&bad_release).is_err());
+
+        let mut bad_proof = lab_proof;
+        bad_proof.artifact_refs.clear();
+        bad_proof.metrics_refs.clear();
+        bad_proof.proof_refs.clear();
+        assert!(validate_service_manager_lab_proof(&bad_proof).is_err());
+
+        let mut bad_bootstrap = bootstrap_contract;
+        bad_bootstrap.release_contract_ref = None;
+        assert!(validate_surface_app_bootstrap_contract(&bad_bootstrap).is_err());
+    }
+
+    #[test]
+    fn validates_surface_app_manifest_version_pins() {
+        let manifest = SurfaceAppManifestRecord {
+            kind: Some(RECORD_SURFACE_APP_MANIFEST.to_string()),
+            manifest_id: "surface-app-manifest:nvr-ui".to_string(),
+            app_id: "constitute-nvr-ui".to_string(),
+            state: Some(SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string()),
+            current_app_contract_ref: "surface-app:nvr-ui@0.1.0".to_string(),
+            current_version: "0.1.0".to_string(),
+            default_source_mode: Some(SURFACE_FULFILLMENT_MODE_BUNDLED.to_string()),
+            versions: vec![SurfaceAppManifestVersionRecord {
+                app_contract_ref: "surface-app:nvr-ui@0.1.0".to_string(),
+                version: "0.1.0".to_string(),
+                state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
+                source_mode: Some(SURFACE_FULFILLMENT_MODE_BUNDLED.to_string()),
+                module_refs: vec!["module:runtime-client@0.1.0".to_string()],
+                compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+                bootstrap_contract_ref: None,
+                release_contract_ref: None,
+                authority_refs: vec![],
+                evidence_refs: vec![],
+                blocked_reasons: vec![],
+            }],
+            app_contract_refs: vec!["surface-app:nvr-ui@0.1.0".to_string()],
+            compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+            bootstrap_contract_refs: vec![],
+            release_contract_refs: vec![],
+            authority_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_surface_app_manifest(&manifest).expect("valid manifest");
+
+        let mut missing_current = manifest.clone();
+        missing_current.current_version = "0.2.0".to_string();
+        assert!(validate_surface_app_manifest(&missing_current).is_err());
+
+        let mut remote_without_release = manifest;
+        remote_without_release.current_app_contract_ref = "surface-app:nvr-ui@0.2.0".to_string();
+        remote_without_release.current_version = "0.2.0".to_string();
+        remote_without_release.versions = vec![SurfaceAppManifestVersionRecord {
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            version: "0.2.0".to_string(),
+            state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
+            source_mode: Some(SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE.to_string()),
+            module_refs: vec![],
+            compatibility_refs: vec![],
+            bootstrap_contract_ref: None,
+            release_contract_ref: None,
+            authority_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+        }];
+        assert!(validate_surface_app_manifest(&remote_without_release).is_err());
     }
 
     #[test]
