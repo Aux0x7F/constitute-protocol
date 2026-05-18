@@ -114,6 +114,7 @@ pub const RECORD_SERVICE_MANAGER_LAB_PROOF: &str = "service.manager.labProof";
 pub const RECORD_SURFACE_APP_MANIFEST: &str = "surface.app.manifest";
 pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
 pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
+pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
 
 pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
 pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";
@@ -167,6 +168,16 @@ pub const RUNNER_OPERATION_STATE_REJECTED: &str = "rejected";
 pub const RUNNER_OPERATION_STATE_CANCELLED: &str = "cancelled";
 pub const RUNNER_OPERATION_STATE_RELEASED: &str = "released";
 pub const RUNNER_OPERATION_STATE_SUPERSEDED: &str = "superseded";
+pub const RUNNER_FULFILLMENT_STATE_REQUESTED: &str = "requested";
+pub const RUNNER_FULFILLMENT_STATE_ACCEPTED: &str = "accepted";
+pub const RUNNER_FULFILLMENT_STATE_RUNNING: &str = "running";
+pub const RUNNER_FULFILLMENT_STATE_SUCCEEDED: &str = "succeeded";
+pub const RUNNER_FULFILLMENT_STATE_RELEASED: &str = "released";
+pub const RUNNER_FULFILLMENT_STATE_ROLLED_BACK: &str = "rolledBack";
+pub const RUNNER_FULFILLMENT_STATE_BLOCKED: &str = "blocked";
+pub const RUNNER_FULFILLMENT_STATE_FAILED: &str = "failed";
+pub const RUNNER_FULFILLMENT_STATE_REJECTED: &str = "rejected";
+pub const RUNNER_FULFILLMENT_STATE_CANCELLED: &str = "cancelled";
 
 pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
 pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
@@ -2613,6 +2624,73 @@ pub struct RunnerOperationRecord {
     pub completed_at: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AppRunnerFulfillmentReport {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub report_id: String,
+    pub runner_id: String,
+    pub runner_ref: String,
+    pub host_ref: String,
+    pub runner_operation_id: String,
+    pub operation: String,
+    pub state: String,
+    pub requester_ref: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest_ref: Option<String>,
+    pub source_mode: String,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_budget: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture: Option<ResourcePosture>,
+    #[serde(default)]
+    pub secret_boundary: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub rollback_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub operation_posture: Value,
+    #[serde(default)]
+    pub fulfillment_posture: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -6244,6 +6322,219 @@ pub fn validate_runner_operation(record: &RunnerOperationRecord) -> Result<()> {
     Ok(())
 }
 
+pub fn validate_app_runner_fulfillment_report(record: &AppRunnerFulfillmentReport) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_APP_RUNNER_FULFILLMENT_REPORT,
+        "app runner fulfillment report",
+    )?;
+    require_non_empty(
+        &record.report_id,
+        "app runner fulfillment report missing reportId",
+    )?;
+    require_non_empty(
+        &record.runner_id,
+        "app runner fulfillment report missing runnerId",
+    )?;
+    validate_resolved_member_ref(
+        &record.runner_ref,
+        "app runner fulfillment report missing runnerRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "app runner fulfillment report missing hostRef",
+    )?;
+    require_non_empty(
+        &record.runner_operation_id,
+        "app runner fulfillment report missing runnerOperationId",
+    )?;
+    validate_runner_operation_kind(&record.operation)?;
+    validate_runner_fulfillment_state(&record.state)?;
+    require_non_empty(
+        &record.requester_ref,
+        "app runner fulfillment report missing requesterRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "app runner fulfillment report missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "app runner fulfillment report missing contractRef",
+    )?;
+    validate_optional_ref(
+        record.app_contract_ref.as_deref(),
+        "app runner fulfillment report missing appContractRef",
+    )?;
+    validate_optional_ref(
+        record.app_id.as_deref(),
+        "app runner fulfillment report missing appId",
+    )?;
+    validate_optional_ref(
+        record.version.as_deref(),
+        "app runner fulfillment report missing version",
+    )?;
+    validate_optional_ref(
+        record.manifest_ref.as_deref(),
+        "app runner fulfillment report missing manifestRef",
+    )?;
+    validate_surface_fulfillment_mode(&record.source_mode)?;
+    validate_reference_list(
+        &record.source_refs,
+        "app runner fulfillment report missing sourceRefs",
+    )?;
+    require_non_empty_vec(
+        &record.grant_refs,
+        "app runner fulfillment report requires grantRefs",
+    )?;
+    validate_reference_list(
+        &record.capability_refs,
+        "app runner fulfillment report missing capabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "app runner fulfillment report missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "app runner fulfillment report missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "app runner fulfillment report missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "app runner fulfillment report missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "app runner fulfillment report missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "app runner fulfillment report missing blockedReasons",
+    )?;
+    if !record.resource_budget.is_object() {
+        return Err(anyhow!(
+            "app runner fulfillment report resourceBudget must be an object"
+        ));
+    }
+    validate_safe_facts(
+        &record.resource_budget,
+        "app runner fulfillment report resourceBudget",
+    )?;
+    if let Some(resource_posture) = &record.resource_posture {
+        validate_resource_posture(resource_posture)?;
+    }
+    validate_surface_secret_boundary_value(
+        &record.secret_boundary,
+        "app runner fulfillment report secretBoundary",
+    )?;
+    validate_surface_release_posture_value(
+        &record.release_posture,
+        "app runner fulfillment report releasePosture",
+    )?;
+    validate_surface_release_posture_value(
+        &record.rollback_posture,
+        "app runner fulfillment report rollbackPosture",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "app runner fulfillment report missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "app runner fulfillment report missing rollbackRef",
+    )?;
+    validate_runner_posture_object(
+        &record.operation_posture,
+        &record.state,
+        "app runner fulfillment report operationPosture",
+    )?;
+    validate_runner_posture_object(
+        &record.fulfillment_posture,
+        &record.state,
+        "app runner fulfillment report fulfillmentPosture",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        RUNNER_FULFILLMENT_STATE_BLOCKED
+            | RUNNER_FULFILLMENT_STATE_FAILED
+            | RUNNER_FULFILLMENT_STATE_REJECTED
+            | RUNNER_FULFILLMENT_STATE_CANCELLED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked app runner fulfillment requires blockedReasons"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_SUCCEEDED
+        && record.output_refs.is_empty()
+        && record.proof_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "succeeded app runner fulfillment requires outputRefs or proofRefs"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_SUCCEEDED && record.source_refs.is_empty() {
+        return Err(anyhow!(
+            "succeeded app runner fulfillment requires sourceRefs"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_RELEASED
+        && record.release_refs.is_empty()
+        && record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "released app runner fulfillment requires releaseRefs or releaseRef"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_ROLLED_BACK
+        && record
+            .rollback_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "rolledBack app runner fulfillment requires rollbackRef"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "app runner fulfillment report safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "app runner fulfillment report",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "app runner fulfillment report",
+    )?;
+    if record.observed_at == 0 {
+        return Err(anyhow!(
+            "app runner fulfillment report missing observedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "app runner fulfillment report expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
 fn validate_frame_body(frame: &SwarmFrame) -> Result<()> {
     match frame.body.encoding.as_str() {
         "caac" => {
@@ -6524,6 +6815,43 @@ fn validate_runner_operation_state(state: &str) -> Result<()> {
     } else {
         Err(anyhow!("invalid runner operation state"))
     }
+}
+
+fn validate_runner_fulfillment_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        RUNNER_FULFILLMENT_STATE_REQUESTED
+            | RUNNER_FULFILLMENT_STATE_ACCEPTED
+            | RUNNER_FULFILLMENT_STATE_RUNNING
+            | RUNNER_FULFILLMENT_STATE_SUCCEEDED
+            | RUNNER_FULFILLMENT_STATE_RELEASED
+            | RUNNER_FULFILLMENT_STATE_ROLLED_BACK
+            | RUNNER_FULFILLMENT_STATE_BLOCKED
+            | RUNNER_FULFILLMENT_STATE_FAILED
+            | RUNNER_FULFILLMENT_STATE_REJECTED
+            | RUNNER_FULFILLMENT_STATE_CANCELLED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid runner fulfillment state"))
+    }
+}
+
+fn validate_runner_posture_object(value: &Value, state: &str, context: &str) -> Result<()> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow!("{context} must be an object"))?;
+    if object.is_empty() {
+        return Err(anyhow!("{context} must be an object"));
+    }
+    if let Some(posture_state) = object.get("state").and_then(Value::as_str) {
+        if posture_state != state {
+            return Err(anyhow!("{context} state must match state"));
+        }
+    }
+    validate_safe_facts(value, context)?;
+    reject_private_content_fields(value, context)?;
+    Ok(())
 }
 
 fn validate_surface_secret_boundary_value(value: &Value, context: &str) -> Result<()> {
@@ -8944,6 +9272,117 @@ mod tests {
             expires_at: Some(1_700_003_600),
         };
         validate_runner_operation(&runner_operation).expect("valid runner operation");
+
+        let fulfillment_report = AppRunnerFulfillmentReport {
+            kind: Some(RECORD_APP_RUNNER_FULFILLMENT_REPORT.to_string()),
+            report_id: "app-runner:runner:app-proof:runner-operation:app-proof:execute:1"
+                .to_string(),
+            runner_id: "runner:lab-gateway:app-proof".to_string(),
+            runner_ref: runner_ref.clone(),
+            host_ref: "host:lab-gateway".to_string(),
+            runner_operation_id: "runner-operation:app-proof:execute:1".to_string(),
+            operation: RUNNER_OPERATION_EXECUTE.to_string(),
+            state: RUNNER_FULFILLMENT_STATE_SUCCEEDED.to_string(),
+            requester_ref: "identity:aux".to_string(),
+            subject_ref: "app:runner-proof".to_string(),
+            contract_ref: "app:runner-proof".to_string(),
+            app_contract_ref: Some("app:runner-proof".to_string()),
+            app_id: Some("constitute-runner-proof".to_string()),
+            version: Some("0.1.0".to_string()),
+            manifest_ref: Some("manifest:runner-proof".to_string()),
+            source_mode: SURFACE_FULFILLMENT_MODE_BUNDLED.to_string(),
+            source_refs: vec!["bundle:runner-proof@0.1.0".to_string()],
+            grant_refs: vec!["grant:app:runner-proof:run".to_string()],
+            capability_refs: vec![CAPABILITY_APP_RUNNER_PIN.to_string()],
+            input_refs: vec![
+                "manifest:runner-proof".to_string(),
+                "app:runner-proof".to_string(),
+            ],
+            output_refs: vec!["artifact:runner-proof:dist".to_string()],
+            evidence_refs: vec![
+                "evidence:runner:accepted".to_string(),
+                "evidence:runner:completed".to_string(),
+            ],
+            proof_refs: vec!["proof:runner-proof:surface".to_string()],
+            release_refs: vec!["release:runner-proof".to_string()],
+            resource_budget: json!({
+                "profileRef": "resource-profile:operator-dev",
+                "maxMemoryMiB": 256,
+                "maxCpuPct": 25
+            }),
+            resource_posture: Some(ResourcePosture {
+                kind: Some(RECORD_RESOURCE_POSTURE.to_string()),
+                posture_id: "resource-posture:runner:app-proof".to_string(),
+                profile_id: "resource-profile:operator-dev".to_string(),
+                state: "withinBudget".to_string(),
+                counts: json!({ "memoryMiB": 96, "cpuPct": 4 }),
+                budgets: json!({ "memoryMiB": 256, "cpuPct": 25 }),
+                blocked_reasons: vec![],
+                sampled_at: 1_700_000_020,
+            }),
+            secret_boundary: json!({ "state": SURFACE_SECRET_BOUNDARY_NOT_REQUIRED }),
+            release_posture: json!({
+                "state": "rollbackReady",
+                "buildRef": "build:runner-proof",
+                "releaseRef": "release:runner-proof",
+                "rollbackRef": "rollback:runner-proof"
+            }),
+            rollback_posture: Value::Null,
+            release_ref: Some("release:runner-proof".to_string()),
+            rollback_ref: Some("rollback:runner-proof".to_string()),
+            operation_posture: json!({
+                "state": RUNNER_FULFILLMENT_STATE_SUCCEEDED,
+                "accepted": true,
+                "requestedAt": 1_700_000_000u64,
+                "acceptedAt": 1_700_000_001u64,
+                "startedAt": 1_700_000_002u64,
+                "completedAt": 1_700_000_019u64,
+                "observedAt": 1_700_000_020u64
+            }),
+            fulfillment_posture: json!({
+                "state": RUNNER_FULFILLMENT_STATE_SUCCEEDED,
+                "outputRefs": ["artifact:runner-proof:dist"],
+                "releaseRefs": ["release:runner-proof"],
+                "proofRefs": ["proof:runner-proof:surface"],
+                "evidenceRefs": ["evidence:runner:completed"]
+            }),
+            safe_facts: json!({
+                "appId": "constitute-runner-proof",
+                "version": "0.1.0",
+                "sourceMode": SURFACE_FULFILLMENT_MODE_BUNDLED,
+                "outputRefCount": 1,
+                "releaseRefCount": 1,
+                "proofRefCount": 1
+            }),
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_020,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_app_runner_fulfillment_report(&fulfillment_report)
+            .expect("valid app runner fulfillment report");
+
+        let mut missing_output_or_proof = fulfillment_report.clone();
+        missing_output_or_proof.report_id = "app-runner:bad:missing-proof".to_string();
+        missing_output_or_proof.output_refs.clear();
+        missing_output_or_proof.proof_refs.clear();
+        assert!(validate_app_runner_fulfillment_report(&missing_output_or_proof).is_err());
+
+        let mut missing_source_refs = fulfillment_report.clone();
+        missing_source_refs.report_id = "app-runner:bad:missing-source".to_string();
+        missing_source_refs.source_refs.clear();
+        assert!(validate_app_runner_fulfillment_report(&missing_source_refs).is_err());
+
+        let mut blocked_without_reason_report = fulfillment_report.clone();
+        blocked_without_reason_report.report_id = "app-runner:bad:blocked".to_string();
+        blocked_without_reason_report.state = RUNNER_FULFILLMENT_STATE_BLOCKED.to_string();
+        blocked_without_reason_report.operation_posture = json!({ "state": RUNNER_FULFILLMENT_STATE_BLOCKED });
+        blocked_without_reason_report.fulfillment_posture =
+            json!({ "state": RUNNER_FULFILLMENT_STATE_BLOCKED });
+        assert!(validate_app_runner_fulfillment_report(&blocked_without_reason_report).is_err());
+
+        let mut unsafe_report = fulfillment_report;
+        unsafe_report.safe_facts = json!({ "token": "inline-secret" });
+        assert!(validate_app_runner_fulfillment_report(&unsafe_report).is_err());
 
         let mut missing_grant = runner_operation.clone();
         missing_grant.grant_refs.clear();

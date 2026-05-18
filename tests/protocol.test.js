@@ -18,6 +18,7 @@ import {
   applyProjectionDelta,
   assertAppRecipe,
   assertAppRunnerAdvertisement,
+  assertAppRunnerFulfillmentReport,
   assertRunnerOperation,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
@@ -211,6 +212,7 @@ test("event plane classifier separates primitive posture from local diagnostics"
   assert.equal(eventPlaneForRecordKind("projection.repair.request"), SWARM.EVENT_PLANE.PROJECTION_REPAIR);
   assert.equal(eventPlaneForRecordKind("projection.applied"), SWARM.EVENT_PLANE.PROJECTION);
   assert.equal(eventPlaneForRecordKind("stream.session.answer"), SWARM.EVENT_PLANE.ACTIVATION);
+  assert.equal(eventPlaneForRecordKind("app.runner.fulfillment.report"), SWARM.EVENT_PLANE.ACTIVATION);
   assert.equal(eventPlaneForRecordKind("route.observation"), SWARM.EVENT_PLANE.ROUTE);
   assert.equal(eventPlaneForRecordKind("contribution.lifecycle.applied"), SWARM.EVENT_PLANE.CONTRIBUTION);
   assert.equal(eventPlaneForRecordKind("runtime.retention.release.blocked"), SWARM.EVENT_PLANE.RETENTION);
@@ -1293,6 +1295,117 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
   assert.throws(() => assertRunnerOperation({
     ...operation,
     operationId: "runner-operation:bad:secret",
+    safeFacts: { token: "inline-secret" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {
+  const observedAt = 1700000020;
+  const report = assertAppRunnerFulfillmentReport({
+    kind: SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_REPORT,
+    reportId: "app-runner:runner:app-proof:runner-operation:app-proof:execute:1",
+    runnerId: "runner:lab-gateway:app-proof",
+    runnerRef: BROWSER_PK,
+    hostRef: "host:lab-gateway",
+    runnerOperationId: "runner-operation:app-proof:execute:1",
+    operation: RUNNER.OPERATION.EXECUTE,
+    state: RUNNER.FULFILLMENT_STATE.SUCCEEDED,
+    requesterRef: "identity:aux",
+    subjectRef: "app:runner-proof",
+    contractRef: "app:runner-proof",
+    appContractRef: "app:runner-proof",
+    appId: "constitute-runner-proof",
+    version: "0.1.0",
+    manifestRef: "manifest:runner-proof",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    sourceRefs: ["bundle:runner-proof@0.1.0"],
+    grantRefs: ["grant:app:runner-proof:run"],
+    capabilityRefs: ["app.runner.pin"],
+    inputRefs: ["manifest:runner-proof", "app:runner-proof"],
+    outputRefs: ["artifact:runner-proof:dist"],
+    evidenceRefs: ["evidence:runner:accepted", "evidence:runner:completed"],
+    proofRefs: ["proof:runner-proof:surface"],
+    releaseRefs: ["release:runner-proof"],
+    resourceBudget: {
+      profileRef: "resource-profile:operator-dev",
+      maxMemoryMiB: 256,
+      maxCpuPct: 25,
+    },
+    resourcePosture: {
+      kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+      postureId: "resource-posture:runner:app-proof",
+      profileId: "resource-profile:operator-dev",
+      state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+      counts: { memoryMiB: 96, cpuPct: 4 },
+      budgets: { memoryMiB: 256, cpuPct: 25 },
+      sampledAt: observedAt,
+    },
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:runner-proof",
+      releaseRef: "release:runner-proof",
+      rollbackRef: "rollback:runner-proof",
+    },
+    rollbackPosture: null,
+    releaseRef: "release:runner-proof",
+    rollbackRef: "rollback:runner-proof",
+    operationPosture: {
+      state: RUNNER.FULFILLMENT_STATE.SUCCEEDED,
+      accepted: true,
+      requestedAt: observedAt - 20,
+      acceptedAt: observedAt - 18,
+      startedAt: observedAt - 15,
+      completedAt: observedAt - 1,
+      observedAt,
+    },
+    fulfillmentPosture: {
+      state: RUNNER.FULFILLMENT_STATE.SUCCEEDED,
+      outputRefs: ["artifact:runner-proof:dist"],
+      releaseRefs: ["release:runner-proof"],
+      proofRefs: ["proof:runner-proof:surface"],
+      evidenceRefs: ["evidence:runner:completed"],
+    },
+    safeFacts: {
+      appId: "constitute-runner-proof",
+      version: "0.1.0",
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+      outputRefCount: 1,
+      releaseRefCount: 1,
+      proofRefCount: 1,
+    },
+    blockedReasons: [],
+    observedAt,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(report.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
+  assert.equal(report.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:missing-proof",
+    outputRefs: [],
+    proofRefs: [],
+  }), /succeeded app runner fulfillment requires outputRefs or proofRefs/);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:missing-source",
+    sourceRefs: [],
+  }), /succeeded app runner fulfillment requires sourceRefs/);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:blocked",
+    state: RUNNER.FULFILLMENT_STATE.BLOCKED,
+    operationPosture: { ...report.operationPosture, state: RUNNER.FULFILLMENT_STATE.BLOCKED },
+    fulfillmentPosture: { ...report.fulfillmentPosture, state: RUNNER.FULFILLMENT_STATE.BLOCKED },
+    blockedReasons: [],
+  }), /blocked app runner fulfillment requires blockedReasons/);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:secret",
     safeFacts: { token: "inline-secret" },
   }), /unsafe safe fact key|forbidden protocol field/);
 });

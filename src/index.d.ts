@@ -1792,6 +1792,17 @@ export type RunnerOperationState =
   | "cancelled"
   | "released"
   | "superseded";
+export type AppRunnerFulfillmentState =
+  | "requested"
+  | "accepted"
+  | "running"
+  | "succeeded"
+  | "released"
+  | "rolledBack"
+  | "blocked"
+  | "failed"
+  | "rejected"
+  | "cancelled";
 
 export type SurfaceModuleClaim = {
   moduleRef: string;
@@ -2351,6 +2362,46 @@ export type RunnerOperationRecord = {
   expiresAt?: number;
 };
 
+export type AppRunnerFulfillmentReport = {
+  kind?: "app.runner.fulfillment.report";
+  reportId: string;
+  runnerId: string;
+  runnerRef: string;
+  hostRef: string;
+  runnerOperationId: string;
+  operation: RunnerOperation;
+  state: AppRunnerFulfillmentState;
+  requesterRef: string;
+  subjectRef: string;
+  contractRef: string;
+  appContractRef?: string;
+  appId?: string;
+  version?: string;
+  manifestRef?: string;
+  sourceMode: SurfaceModuleFulfillmentMode;
+  sourceRefs?: string[];
+  grantRefs: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  releaseRefs?: string[];
+  resourceBudget: Record<string, unknown>;
+  resourcePosture?: ResourcePosture | null;
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture | null;
+  rollbackPosture?: SurfaceReleasePosture | null;
+  releaseRef?: string;
+  rollbackRef?: string;
+  operationPosture: Record<string, unknown>;
+  fulfillmentPosture: Record<string, unknown>;
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export function bytesToHex(bytes: Uint8Array): string;
 export function hexToBytes(hex: string): Uint8Array;
 export function utf8ToBytes(value: string): Uint8Array;
@@ -2555,3 +2606,4 @@ export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBoo
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
 export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
+export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;

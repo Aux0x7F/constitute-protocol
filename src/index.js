@@ -175,6 +175,18 @@ export const RUNNER = Object.freeze({
     RELEASED: "released",
     SUPERSEDED: "superseded",
   }),
+  FULFILLMENT_STATE: Object.freeze({
+    REQUESTED: "requested",
+    ACCEPTED: "accepted",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    RELEASED: "released",
+    ROLLED_BACK: "rolledBack",
+    BLOCKED: "blocked",
+    FAILED: "failed",
+    REJECTED: "rejected",
+    CANCELLED: "cancelled",
+  }),
 });
 
 export const AGREEMENT = Object.freeze({
@@ -1312,6 +1324,7 @@ export const SWARM = Object.freeze({
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     RUNNER_OPERATION: "runner.operation",
+    APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1382,6 +1395,7 @@ export const SWARM = Object.freeze({
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     RUNNER_OPERATION: "runner.operation",
+    APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -2895,7 +2909,7 @@ const EVENT_PLANE_KIND_RULES = Object.freeze([
   [SWARM.EVENT_PLANE.PROJECTION_REPAIR, /^projection\.repair/],
   [SWARM.EVENT_PLANE.PROJECTION, /^projection\./],
   [SWARM.EVENT_PLANE.CONTRIBUTION, /^contribution\./],
-  [SWARM.EVENT_PLANE.ACTIVATION, /^(service|stream|interaction|media)\./],
+  [SWARM.EVENT_PLANE.ACTIVATION, /^(service|stream|interaction|media|runner|app\.runner)\./],
   [SWARM.EVENT_PLANE.ROUTE, /^(route|frame|adapter\.edge|runtime\.directory)\./],
   [SWARM.EVENT_PLANE.RETENTION, /^(retention|runtime\.retention)\./],
 ]);
@@ -5351,4 +5365,93 @@ export function assertRunnerOperation(record) {
   assertSurfaceManagerSensitiveBoundary(record, "runner operation");
   assertSurfaceOperationTimeline(record, "runner operation", "requestedAt");
   return record;
+}
+
+function assertRunnerFulfillmentState(value, context = "runner fulfillment state") {
+  const state = requireString(value, context);
+  if (!Object.values(RUNNER.FULFILLMENT_STATE).includes(state)) throw new Error("invalid runner fulfillment state");
+  return state;
+}
+
+export function assertAppRunnerFulfillmentReport(record) {
+  if (!isObject(record)) throw new Error("app runner fulfillment report must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_REPORT, "app runner fulfillment report");
+  requireString(record.reportId, "app runner fulfillment report reportId");
+  requireString(record.runnerId, "app runner fulfillment report runnerId");
+  assertResolvedMemberRef(record.runnerRef, "app runner fulfillment report runnerRef");
+  requireString(record.hostRef, "app runner fulfillment report hostRef");
+  requireString(record.runnerOperationId, "app runner fulfillment report runnerOperationId");
+  const operation = requireString(record.operation, "app runner fulfillment report operation");
+  if (!Object.values(RUNNER.OPERATION).includes(operation)) throw new Error("invalid app runner fulfillment operation");
+  const state = assertRunnerFulfillmentState(record.state, "app runner fulfillment report state");
+  requireString(record.requesterRef, "app runner fulfillment report requesterRef");
+  requireString(record.subjectRef, "app runner fulfillment report subjectRef");
+  requireString(record.contractRef, "app runner fulfillment report contractRef");
+  if (record.appContractRef !== undefined) requireString(record.appContractRef, "app runner fulfillment report appContractRef");
+  if (record.appId !== undefined) requireString(record.appId, "app runner fulfillment report appId");
+  if (record.version !== undefined) requireString(record.version, "app runner fulfillment report version");
+  if (record.manifestRef !== undefined) requireString(record.manifestRef, "app runner fulfillment report manifestRef");
+  const sourceMode = requireString(record.sourceMode, "app runner fulfillment report sourceMode");
+  if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid app runner fulfillment sourceMode");
+  const sourceRefs = assertOptionalReferenceList(record.sourceRefs, "app runner fulfillment report sourceRefs");
+  assertReferenceList(record.grantRefs, "app runner fulfillment report grantRefs");
+  const capabilityRefs = assertOptionalReferenceList(record.capabilityRefs, "app runner fulfillment report capabilityRefs");
+  const inputRefs = assertOptionalReferenceList(record.inputRefs, "app runner fulfillment report inputRefs");
+  const outputRefs = assertOptionalReferenceList(record.outputRefs, "app runner fulfillment report outputRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "app runner fulfillment report evidenceRefs");
+  const proofRefs = assertOptionalReferenceList(record.proofRefs, "app runner fulfillment report proofRefs");
+  const releaseRefs = assertOptionalReferenceList(record.releaseRefs, "app runner fulfillment report releaseRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app runner fulfillment report blockedReasons");
+  if (!isObject(record.resourceBudget)) throw new Error("app runner fulfillment report resourceBudget must be an object");
+  assertSafeObject(record.resourceBudget, "app runner fulfillment report resourceBudget");
+  if (record.resourcePosture !== undefined && record.resourcePosture !== null) assertResourcePosture(record.resourcePosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment report secretBoundary");
+  if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment report releasePosture");
+  if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment report rollbackPosture");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment report releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment report rollbackRef");
+  const operationPosture = assertOptionalObject(record.operationPosture, "app runner fulfillment report operationPosture");
+  const fulfillmentPosture = assertOptionalObject(record.fulfillmentPosture, "app runner fulfillment report fulfillmentPosture");
+  if (!Object.keys(operationPosture).length) throw new Error("app runner fulfillment report operationPosture must be an object");
+  if (!Object.keys(fulfillmentPosture).length) throw new Error("app runner fulfillment report fulfillmentPosture must be an object");
+  if (operationPosture.state !== undefined && String(operationPosture.state) !== state) {
+    throw new Error("app runner fulfillment report operationPosture state must match state");
+  }
+  if (fulfillmentPosture.state !== undefined && String(fulfillmentPosture.state) !== state) {
+    throw new Error("app runner fulfillment report fulfillmentPosture state must match state");
+  }
+  assertSafeObject(operationPosture, "app runner fulfillment report operationPosture");
+  assertSafeObject(fulfillmentPosture, "app runner fulfillment report fulfillmentPosture");
+  if ([RUNNER.FULFILLMENT_STATE.BLOCKED, RUNNER.FULFILLMENT_STATE.FAILED, RUNNER.FULFILLMENT_STATE.REJECTED, RUNNER.FULFILLMENT_STATE.CANCELLED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked app runner fulfillment requires blockedReasons");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.SUCCEEDED && outputRefs.length === 0 && proofRefs.length === 0) {
+    throw new Error("succeeded app runner fulfillment requires outputRefs or proofRefs");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.SUCCEEDED && sourceRefs.length === 0) {
+    throw new Error("succeeded app runner fulfillment requires sourceRefs");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.RELEASED && releaseRefs.length === 0 && !String(record.releaseRef || "").trim()) {
+    throw new Error("released app runner fulfillment requires releaseRefs or releaseRef");
+  }
+  if (state === RUNNER.FULFILLMENT_STATE.ROLLED_BACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("rolledBack app runner fulfillment requires rollbackRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "app runner fulfillment report safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "app runner fulfillment report");
+  if (!Number(record.observedAt || 0)) throw new Error("app runner fulfillment report missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("app runner fulfillment report expiresAt must be after observedAt");
+  }
+  return {
+    ...record,
+    capabilityRefs,
+    sourceRefs,
+    inputRefs,
+    outputRefs,
+    evidenceRefs,
+    proofRefs,
+    releaseRefs,
+    blockedReasons,
+  };
 }
