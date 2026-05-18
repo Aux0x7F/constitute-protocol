@@ -462,6 +462,10 @@ pub struct RetentionReleasePosture {
     pub effective_retention: String,
     pub state: String,
     #[serde(default)]
+    pub policy_refs: Vec<String>,
+    #[serde(default)]
+    pub overlay_refs: Vec<String>,
+    #[serde(default)]
     pub owner_refs: Vec<String>,
     #[serde(default)]
     pub holder_refs: Vec<String>,
@@ -470,7 +474,19 @@ pub struct RetentionReleasePosture {
     #[serde(default)]
     pub residency_layers: Vec<String>,
     #[serde(default)]
+    pub witness_refs: Vec<String>,
+    #[serde(default)]
+    pub supersession_refs: Vec<String>,
+    #[serde(default)]
+    pub retraction_refs: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
     pub blockers: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub valid_until: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_after: Option<u64>,
     pub evaluated_at: u64,
 }
 
@@ -6070,11 +6086,19 @@ pub fn validate_retention_release_posture(record: &RetentionReleasePosture) -> R
         "retention release missing effectiveRetention",
     )?;
     validate_retention_release_state(&record.state)?;
+    validate_reference_list(&record.policy_refs, "retention release policyRefs")?;
+    validate_reference_list(&record.overlay_refs, "retention release overlayRefs")?;
     require_non_empty_vec(&record.owner_refs, "retention release missing ownerRefs")?;
+    validate_reference_list(&record.holder_refs, "retention release holderRefs")?;
+    validate_reference_list(&record.fulfillment_refs, "retention release fulfillmentRefs")?;
     require_non_empty_vec(
         &record.residency_layers,
         "retention release missing residencyLayers",
     )?;
+    validate_reference_list(&record.witness_refs, "retention release witnessRefs")?;
+    validate_reference_list(&record.supersession_refs, "retention release supersessionRefs")?;
+    validate_reference_list(&record.retraction_refs, "retention release retractionRefs")?;
+    validate_reference_list(&record.revocation_refs, "retention release revocationRefs")?;
     if record.state == "releaseBlocked" && record.blockers.is_empty() {
         return Err(anyhow!(
             "releaseBlocked retention posture requires blockers"
@@ -6085,6 +6109,13 @@ pub fn validate_retention_release_posture(record: &RetentionReleasePosture) -> R
     }
     if record.evaluated_at == 0 {
         return Err(anyhow!("retention release missing evaluatedAt"));
+    }
+    if let (Some(valid_until), Some(release_after)) = (record.valid_until, record.release_after) {
+        if release_after < valid_until {
+            return Err(anyhow!(
+                "retention release releaseAfter must not be before validUntil"
+            ));
+        }
     }
     Ok(())
 }
@@ -7323,11 +7354,19 @@ mod tests {
             subject_ref: "nvr:chunk:front:0".to_string(),
             effective_retention: "durable".to_string(),
             state: "releaseBlocked".to_string(),
+            policy_refs: vec!["policy:nvr-media-retention".to_string()],
+            overlay_refs: vec!["overlay:operator-hold".to_string()],
             owner_refs: vec!["identity:operator".to_string()],
             holder_refs: vec![participant_ref.clone()],
             fulfillment_refs: vec![],
             residency_layers: vec!["browserHotCache".to_string()],
+            witness_refs: vec!["witness:runtime:observed".to_string()],
+            supersession_refs: vec![],
+            retraction_refs: vec![],
+            revocation_refs: vec![],
             blockers: vec![json!({ "code": "missingFulfillment" })],
+            valid_until: Some(1_700_000_010),
+            release_after: Some(1_700_000_010),
             evaluated_at: 1_700_000_006,
         })
         .expect("valid retention release posture");

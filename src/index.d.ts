@@ -979,11 +979,19 @@ export type RetentionReleasePosture = {
   subjectRef: string;
   effectiveRetention: string;
   state: RetentionReleaseState;
+  policyRefs?: string[];
+  overlayRefs?: string[];
   ownerRefs: string[];
   holderRefs?: string[];
   fulfillmentRefs?: string[];
   residencyLayers: string[];
+  witnessRefs?: string[];
+  supersessionRefs?: string[];
+  retractionRefs?: string[];
+  revocationRefs?: string[];
   blockers?: Array<string | Record<string, unknown>>;
+  validUntil?: number;
+  releaseAfter?: number;
   evaluatedAt: number;
 };
 

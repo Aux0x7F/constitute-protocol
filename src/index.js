@@ -3418,10 +3418,16 @@ export function assertRetentionReleasePosture(record) {
   requireString(record.subjectRef, "retention release subjectRef");
   requireString(record.effectiveRetention, "retention release effectiveRetention");
   const state = assertRetentionReleaseState(record.state);
+  assertOptionalReferenceList(record.policyRefs, "retention release policyRefs");
+  assertOptionalReferenceList(record.overlayRefs, "retention release overlayRefs");
   assertReferenceList(record.ownerRefs, "retention release ownerRefs");
   assertOptionalReferenceList(record.holderRefs, "retention release holderRefs");
   assertOptionalReferenceList(record.fulfillmentRefs, "retention release fulfillmentRefs");
   const residencyLayers = requireNonEmptyArray(record.residencyLayers, "retention release residencyLayers").map((entry) => requireString(entry, "retention release residencyLayer"));
+  assertOptionalReferenceList(record.witnessRefs, "retention release witnessRefs");
+  assertOptionalReferenceList(record.supersessionRefs, "retention release supersessionRefs");
+  assertOptionalReferenceList(record.retractionRefs, "retention release retractionRefs");
+  assertOptionalReferenceList(record.revocationRefs, "retention release revocationRefs");
   const blockers = requireArray(record.blockers || [], "retention release blockers");
   for (const blocker of blockers) {
     if (typeof blocker === "string") requireString(blocker, "retention release blocker");
@@ -3439,6 +3445,11 @@ export function assertRetentionReleasePosture(record) {
     throw new Error("freeable retention posture cannot carry blockers");
   }
   if (!residencyLayers.length) throw new Error("retention release residencyLayers must not be empty");
+  const validUntil = assertOptionalTimeField(record.validUntil, "retention release validUntil");
+  const releaseAfter = assertOptionalTimeField(record.releaseAfter, "retention release releaseAfter");
+  if (validUntil !== undefined && releaseAfter !== undefined && releaseAfter < validUntil) {
+    throw new Error("retention release releaseAfter must not be before validUntil");
+  }
   if (!Number(record.evaluatedAt || 0)) throw new Error("retention release missing evaluatedAt");
   return record;
 }
