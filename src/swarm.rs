@@ -113,6 +113,12 @@ pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.dig
 pub const RECORD_SERVICE_MANAGER_LAB_PROOF: &str = "service.manager.labProof";
 pub const RECORD_SURFACE_APP_MANIFEST: &str = "surface.app.manifest";
 pub const RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT: &str = "surface.app.bootstrap.contract";
+pub const RECORD_SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: &str =
+    "surface.app.fulfillment.identity.posture";
+pub const RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE: &str =
+    "surface.app.authority.access.posture";
+pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
+pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
 
 pub const SURFACE_APP_CONTRACT_STATE_DRAFT: &str = "draft";
 pub const SURFACE_APP_CONTRACT_STATE_READY: &str = "ready";
@@ -126,6 +132,24 @@ pub const SURFACE_APP_MANIFEST_VERSION_UPDATE_AVAILABLE: &str = "updateAvailable
 pub const SURFACE_APP_MANIFEST_VERSION_BLOCKED: &str = "blocked";
 pub const SURFACE_APP_MANIFEST_VERSION_SUPERSEDED: &str = "superseded";
 
+pub const SURFACE_APP_DISTRIBUTION_PENDING: &str = "pending";
+pub const SURFACE_APP_DISTRIBUTION_RETAINED: &str = "retained";
+pub const SURFACE_APP_DISTRIBUTION_DEGRADED: &str = "degraded";
+pub const SURFACE_APP_DISTRIBUTION_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_DISTRIBUTION_SUPERSEDED: &str = "superseded";
+pub const SURFACE_APP_DISTRIBUTION_IGNORED: &str = "ignored";
+
+pub const SURFACE_APP_SCHEMA_COMPATIBLE: &str = "compatible";
+pub const SURFACE_APP_SCHEMA_MIGRATION_REQUIRED: &str = "migrationRequired";
+pub const SURFACE_APP_SCHEMA_IGNORE: &str = "ignore";
+pub const SURFACE_APP_SCHEMA_BLOCKED: &str = "blocked";
+
+pub const SURFACE_APP_FULFILLMENT_IDENTITY_READY: &str = "ready";
+pub const SURFACE_APP_FULFILLMENT_IDENTITY_DEGRADED: &str = "degraded";
+pub const SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED: &str = "blocked";
+pub const SURFACE_APP_FULFILLMENT_IDENTITY_UNKNOWN: &str = "unknown";
+pub const SURFACE_APP_FULFILLMENT_IDENTITY_UNCHECKED: &str = "unchecked";
+
 pub const SURFACE_SECRET_BOUNDARY_NOT_REQUIRED: &str = "notRequired";
 pub const SURFACE_SECRET_BOUNDARY_RESOLVED: &str = "resolved";
 pub const SURFACE_SECRET_BOUNDARY_BLOCKED: &str = "blocked";
@@ -137,11 +161,47 @@ pub const SERVICE_MANAGER_PROOF_STATE_FAILED: &str = "failed";
 pub const SERVICE_MANAGER_PROOF_STATE_BLOCKED: &str = "blocked";
 pub const SERVICE_MANAGER_PROOF_STATE_EXPIRED: &str = "expired";
 
+pub const RUNNER_OPERATION_PREPARE: &str = "prepare";
+pub const RUNNER_OPERATION_EXECUTE: &str = "execute";
+pub const RUNNER_OPERATION_HEALTH_CHECK: &str = "healthCheck";
+pub const RUNNER_OPERATION_RELEASE: &str = "release";
+pub const RUNNER_OPERATION_ROLLBACK: &str = "rollback";
+pub const RUNNER_OPERATION_CANCEL: &str = "cancel";
+
+pub const RUNNER_OPERATION_STATE_REQUESTED: &str = "requested";
+pub const RUNNER_OPERATION_STATE_ACCEPTED: &str = "accepted";
+pub const RUNNER_OPERATION_STATE_RUNNING: &str = "running";
+pub const RUNNER_OPERATION_STATE_SUCCEEDED: &str = "succeeded";
+pub const RUNNER_OPERATION_STATE_FAILED: &str = "failed";
+pub const RUNNER_OPERATION_STATE_BLOCKED: &str = "blocked";
+pub const RUNNER_OPERATION_STATE_REJECTED: &str = "rejected";
+pub const RUNNER_OPERATION_STATE_CANCELLED: &str = "cancelled";
+pub const RUNNER_OPERATION_STATE_RELEASED: &str = "released";
+pub const RUNNER_OPERATION_STATE_SUPERSEDED: &str = "superseded";
+pub const RUNNER_FULFILLMENT_STATE_REQUESTED: &str = "requested";
+pub const RUNNER_FULFILLMENT_STATE_ACCEPTED: &str = "accepted";
+pub const RUNNER_FULFILLMENT_STATE_RUNNING: &str = "running";
+pub const RUNNER_FULFILLMENT_STATE_SUCCEEDED: &str = "succeeded";
+pub const RUNNER_FULFILLMENT_STATE_RELEASED: &str = "released";
+pub const RUNNER_FULFILLMENT_STATE_ROLLED_BACK: &str = "rolledBack";
+pub const RUNNER_FULFILLMENT_STATE_BLOCKED: &str = "blocked";
+pub const RUNNER_FULFILLMENT_STATE_FAILED: &str = "failed";
+pub const RUNNER_FULFILLMENT_STATE_REJECTED: &str = "rejected";
+pub const RUNNER_FULFILLMENT_STATE_CANCELLED: &str = "cancelled";
+
 pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
 pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
 pub const SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT: &str = "storageObject";
 pub const SURFACE_FULFILLMENT_MODE_NATIVE_INSTALLED: &str = "nativeInstalled";
 pub const SURFACE_FULFILLMENT_MODE_DEV_OVERLAY: &str = "devOverlay";
+
+pub const SURFACE_MODULE_ROLE_RUNTIME_CLIENT: &str = "runtimeClient";
+pub const SURFACE_MODULE_ROLE_PROJECTION_MODEL: &str = "projectionModel";
+pub const SURFACE_MODULE_ROLE_PLATFORM_ADAPTER: &str = "platformAdapter";
+pub const SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER: &str = "serviceSurfaceAdapter";
+pub const SURFACE_MODULE_ROLE_PRODUCT_VIEW: &str = "productView";
+pub const SURFACE_MODULE_ROLE_OPERATOR_HELPER: &str = "operatorHelper";
+pub const SURFACE_MODULE_ROLE_RELEASE_HELPER: &str = "releaseHelper";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -732,6 +792,8 @@ pub enum SwarmFrameKind {
     NodeCapability,
     #[serde(rename = "runtime.activation.request")]
     RuntimeActivationRequest,
+    #[serde(rename = "runner.operation")]
+    RunnerOperation,
     #[serde(rename = "route.promise")]
     RoutePromise,
     #[serde(rename = "route.observation")]
@@ -1987,12 +2049,91 @@ pub struct SurfaceAppBootstrapContractRecord {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct SurfaceAppCompatibilityWindowRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protocol_ref: Option<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub schema_refs: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppSchemaPostureRecord {
+    pub state: String,
+    #[serde(default)]
+    pub schema_refs: Vec<String>,
+    #[serde(default)]
+    pub migration_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub ignored_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppDistributionPostureRecord {
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_mode: Option<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_intent_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_projection_refs: Vec<String>,
+    #[serde(default)]
+    pub release_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retention_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub schema_posture: Option<SurfaceAppSchemaPostureRecord>,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct SurfaceAppManifestVersionRecord {
     pub app_contract_ref: String,
     pub version: String,
     pub state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_mode: Option<String>,
+    #[serde(default)]
+    pub required_module_roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatibility_window: Option<SurfaceAppCompatibilityWindowRecord>,
+    #[serde(default)]
+    pub bundled_source_refs: Vec<String>,
+    #[serde(default)]
+    pub remote_source_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub runner_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub service_manager_requirement_refs: Vec<String>,
     #[serde(default)]
     pub module_refs: Vec<String>,
     #[serde(default)]
@@ -2007,6 +2148,8 @@ pub struct SurfaceAppManifestVersionRecord {
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub distribution_posture: Option<SurfaceAppDistributionPostureRecord>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -2026,6 +2169,20 @@ pub struct SurfaceAppManifestRecord {
     #[serde(default)]
     pub app_contract_refs: Vec<String>,
     #[serde(default)]
+    pub required_module_roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compatibility_window: Option<SurfaceAppCompatibilityWindowRecord>,
+    #[serde(default)]
+    pub bundled_source_refs: Vec<String>,
+    #[serde(default)]
+    pub remote_source_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub runner_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub service_manager_requirement_refs: Vec<String>,
+    #[serde(default)]
     pub compatibility_refs: Vec<String>,
     #[serde(default)]
     pub bootstrap_contract_refs: Vec<String>,
@@ -2037,8 +2194,110 @@ pub struct SurfaceAppManifestRecord {
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub distribution_posture: Option<SurfaceAppDistributionPostureRecord>,
     #[serde(default)]
     pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppFulfillmentIdentityPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub identity_id: String,
+    pub state: String,
+    pub app_contract_ref: String,
+    pub app_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub surface_ref: Option<String>,
+    #[serde(default)]
+    pub service_required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_ref: Option<String>,
+    #[serde(default)]
+    pub service_route_refs: Vec<String>,
+    #[serde(default)]
+    pub route_refs: Vec<String>,
+    #[serde(default)]
+    pub host_refs: Vec<String>,
+    #[serde(default)]
+    pub manager_refs: Vec<String>,
+    #[serde(default)]
+    pub runner_refs: Vec<String>,
+    #[serde(default)]
+    pub member_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub identity_posture: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SurfaceAppAuthorityAccessPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub state: String,
+    pub app_contract_ref: String,
+    pub app_id: String,
+    #[serde(default)]
+    pub action_required: bool,
+    #[serde(default)]
+    pub access_required: bool,
+    #[serde(default)]
+    pub root_refs: Vec<String>,
+    #[serde(default)]
+    pub device_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub required_content_classes: Vec<String>,
+    #[serde(default)]
+    pub revocation_refs: Vec<String>,
+    #[serde(default)]
+    pub exercise_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub action_posture: Value,
+    #[serde(default)]
+    pub access_posture: Value,
+    #[serde(default)]
+    pub revocation_posture: Value,
+    #[serde(default)]
+    pub expiry_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revocation_state: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
@@ -2418,6 +2677,132 @@ pub struct AppRunnerAttestation {
     pub recipe_id: String,
     pub status: String,
     pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RunnerOperationRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub operation_id: String,
+    pub runner_id: String,
+    pub runner_ref: String,
+    pub host_ref: String,
+    pub requester_ref: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    pub operation: String,
+    pub state: String,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_budget: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture: Option<ResourcePosture>,
+    #[serde(default)]
+    pub secret_boundary: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub rollback_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub requested_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accepted_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AppRunnerFulfillmentReport {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub report_id: String,
+    pub runner_id: String,
+    pub runner_ref: String,
+    pub host_ref: String,
+    pub runner_operation_id: String,
+    pub operation: String,
+    pub state: String,
+    pub requester_ref: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_contract_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manifest_ref: Option<String>,
+    pub source_mode: String,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_budget: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture: Option<ResourcePosture>,
+    #[serde(default)]
+    pub secret_boundary: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub rollback_posture: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub operation_posture: Value,
+    #[serde(default)]
+    pub fulfillment_posture: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 pub fn validate_swarm_frame(frame: &SwarmFrame, now: u64) -> Result<()> {
@@ -4746,6 +5131,488 @@ pub fn validate_surface_app_bootstrap_contract(
     Ok(())
 }
 
+fn validate_surface_module_role(role: &str) -> Result<()> {
+    if matches!(
+        role,
+        SURFACE_MODULE_ROLE_RUNTIME_CLIENT
+            | SURFACE_MODULE_ROLE_PROJECTION_MODEL
+            | SURFACE_MODULE_ROLE_PLATFORM_ADAPTER
+            | SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER
+            | SURFACE_MODULE_ROLE_PRODUCT_VIEW
+            | SURFACE_MODULE_ROLE_OPERATOR_HELPER
+            | SURFACE_MODULE_ROLE_RELEASE_HELPER
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface module role"))
+    }
+}
+
+fn validate_surface_module_roles(roles: &[String], context: &str) -> Result<()> {
+    validate_reference_list(roles, context)?;
+    for role in roles {
+        validate_surface_module_role(role)?;
+    }
+    Ok(())
+}
+
+fn validate_surface_app_fulfillment_identity_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_FULFILLMENT_IDENTITY_READY
+            | SURFACE_APP_FULFILLMENT_IDENTITY_DEGRADED
+            | SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+            | SURFACE_APP_FULFILLMENT_IDENTITY_UNKNOWN
+            | SURFACE_APP_FULFILLMENT_IDENTITY_UNCHECKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported surface app fulfillment identity posture state"
+        ))
+    }
+}
+
+fn validate_resolved_member_ref_list(values: &[String], context: &str) -> Result<()> {
+    for value in values {
+        validate_resolved_member_ref(value, context)?;
+    }
+    Ok(())
+}
+
+pub fn validate_surface_app_fulfillment_identity_posture(
+    record: &SurfaceAppFulfillmentIdentityPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE,
+        "surface app fulfillment identity posture",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "surface app fulfillment identity posture",
+    )?;
+    require_non_empty(
+        &record.identity_id,
+        "surface app fulfillment identity posture missing identityId",
+    )?;
+    validate_surface_app_fulfillment_identity_state(&record.state)?;
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app fulfillment identity posture missing appContractRef",
+    )?;
+    require_non_empty(
+        &record.app_id,
+        "surface app fulfillment identity posture missing appId",
+    )?;
+    if let Some(version) = record.version.as_deref() {
+        require_non_empty(
+            version,
+            "surface app fulfillment identity posture missing version",
+        )?;
+    }
+    validate_optional_ref(
+        record.surface_ref.as_deref(),
+        "surface app fulfillment identity posture missing surfaceRef",
+    )?;
+    validate_optional_ref(
+        record.service_contract_ref.as_deref(),
+        "surface app fulfillment identity posture missing serviceContractRef",
+    )?;
+    validate_optional_ref(
+        record.service_ref.as_deref(),
+        "surface app fulfillment identity posture missing serviceRef",
+    )?;
+    let service_contract_ref = record
+        .service_contract_ref
+        .as_deref()
+        .unwrap_or_default()
+        .trim();
+    let service_ref = record.service_ref.as_deref().unwrap_or_default().trim();
+    if !service_contract_ref.is_empty()
+        && !service_ref.is_empty()
+        && service_contract_ref != service_ref
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app fulfillment identity posture serviceRef must not differ from serviceContractRef unless blocked"
+        ));
+    }
+    if record.service_required
+        && service_contract_ref.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app fulfillment identity posture ready service requires serviceContractRef"
+        ));
+    }
+    validate_reference_list(
+        &record.service_route_refs,
+        "surface app fulfillment identity posture missing serviceRouteRefs",
+    )?;
+    validate_reference_list(
+        &record.route_refs,
+        "surface app fulfillment identity posture missing routeRefs",
+    )?;
+    validate_reference_list(
+        &record.host_refs,
+        "surface app fulfillment identity posture missing hostRefs",
+    )?;
+    validate_reference_list(
+        &record.manager_refs,
+        "surface app fulfillment identity posture missing managerRefs",
+    )?;
+    validate_resolved_member_ref_list(
+        &record.runner_refs,
+        "surface app fulfillment identity posture runnerRefs",
+    )?;
+    validate_resolved_member_ref_list(
+        &record.member_refs,
+        "surface app fulfillment identity posture memberRefs",
+    )?;
+    validate_capability_names(&record.capability_refs)?;
+    validate_reference_list(
+        &record.grant_refs,
+        "surface app fulfillment identity posture missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app fulfillment identity posture missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app fulfillment identity posture missing evidenceRefs",
+    )?;
+    validate_safe_facts(
+        &record.identity_posture,
+        "surface app fulfillment identity posture identityPosture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "surface app fulfillment identity posture safeFacts",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app fulfillment identity posture missing blockedReasons",
+    )?;
+    if record.state == SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "surface app blocked fulfillment identity posture requires blockedReasons"
+        ));
+    }
+    if record.issued_at == 0 {
+        return Err(anyhow!(
+            "surface app fulfillment identity posture missing issuedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app fulfillment identity posture expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_surface_app_authority_access_posture(
+    record: &SurfaceAppAuthorityAccessPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE,
+        "surface app authority access posture",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "surface app authority access posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "surface app authority access posture missing postureId",
+    )?;
+    validate_surface_app_fulfillment_identity_state(&record.state)?;
+    require_non_empty(
+        &record.app_contract_ref,
+        "surface app authority access posture missing appContractRef",
+    )?;
+    require_non_empty(
+        &record.app_id,
+        "surface app authority access posture missing appId",
+    )?;
+    validate_reference_list(
+        &record.root_refs,
+        "surface app authority access posture missing rootRefs",
+    )?;
+    validate_reference_list(
+        &record.device_refs,
+        "surface app authority access posture missing deviceRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "surface app authority access posture missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "surface app authority access posture missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "surface app authority access posture missing accessGroupRefs",
+    )?;
+    for content_class in &record.required_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.revocation_refs,
+        "surface app authority access posture missing revocationRefs",
+    )?;
+    validate_reference_list(
+        &record.exercise_refs,
+        "surface app authority access posture missing exerciseRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "surface app authority access posture missing evidenceRefs",
+    )?;
+    validate_safe_facts(
+        &record.action_posture,
+        "surface app authority access posture actionPosture",
+    )?;
+    validate_safe_facts(
+        &record.access_posture,
+        "surface app authority access posture accessPosture",
+    )?;
+    validate_safe_facts(
+        &record.revocation_posture,
+        "surface app authority access posture revocationPosture",
+    )?;
+    validate_safe_facts(
+        &record.expiry_posture,
+        "surface app authority access posture expiryPosture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "surface app authority access posture safeFacts",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "surface app authority access posture missing blockedReasons",
+    )?;
+    if record.action_required
+        && record.grant_refs.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture action requires grantRefs"
+        ));
+    }
+    if record.access_required
+        && record.access_group_refs.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture access requires accessGroupRefs"
+        ));
+    }
+    if record.access_required
+        && record.required_content_classes.is_empty()
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture access requires requiredContentClasses"
+        ));
+    }
+    if record.state == SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "surface app blocked authority access posture requires blockedReasons"
+        ));
+    }
+    if record.revocation_state.as_deref() == Some("revoked")
+        && record.state != SURFACE_APP_FULFILLMENT_IDENTITY_BLOCKED
+    {
+        return Err(anyhow!(
+            "surface app authority access posture revoked state must be blocked"
+        ));
+    }
+    if record.issued_at == 0 {
+        return Err(anyhow!(
+            "surface app authority access posture missing issuedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "surface app authority access posture expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_surface_app_compatibility_window(
+    record: &SurfaceAppCompatibilityWindowRecord,
+    context: &str,
+) -> Result<()> {
+    validate_optional_ref(
+        record.protocol_ref.as_deref(),
+        &format!("{context} missing protocolRef"),
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        &format!("{context} missing compatibilityRefs"),
+    )?;
+    validate_reference_list(
+        &record.schema_refs,
+        &format!("{context} missing schemaRefs"),
+    )?;
+    if record
+        .min_version
+        .as_deref()
+        .is_some_and(|version| version.trim().is_empty())
+    {
+        return Err(anyhow!("{context} missing minVersion"));
+    }
+    if record
+        .max_version
+        .as_deref()
+        .is_some_and(|version| version.trim().is_empty())
+    {
+        return Err(anyhow!("{context} missing maxVersion"));
+    }
+    Ok(())
+}
+
+fn validate_surface_app_schema_posture(
+    record: &SurfaceAppSchemaPostureRecord,
+    context: &str,
+) -> Result<()> {
+    validate_surface_app_schema_posture_state(&record.state)?;
+    validate_reference_list(
+        &record.schema_refs,
+        &format!("{context} missing schemaRefs"),
+    )?;
+    validate_reference_list(
+        &record.migration_refs,
+        &format!("{context} missing migrationRefs"),
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        &format!("{context} missing compatibilityRefs"),
+    )?;
+    validate_reference_list(
+        &record.ignored_refs,
+        &format!("{context} missing ignoredRefs"),
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        &format!("{context} missing blockedReasons"),
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SURFACE_APP_SCHEMA_IGNORE | SURFACE_APP_SCHEMA_BLOCKED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "{context} ignored or blocked state requires blockedReasons"
+        ));
+    }
+    if record.state == SURFACE_APP_SCHEMA_MIGRATION_REQUIRED
+        && record.migration_refs.is_empty()
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "{context} migrationRequired state requires migrationRefs or blockedReasons"
+        ));
+    }
+    reject_private_content_fields(&serde_json::to_value(record)?, context)?;
+    validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))?;
+    Ok(())
+}
+
+fn validate_surface_app_distribution_posture(
+    record: &SurfaceAppDistributionPostureRecord,
+    context: &str,
+) -> Result<()> {
+    validate_surface_app_distribution_posture_state(&record.state)?;
+    if let Some(source_mode) = record.source_mode.as_deref() {
+        validate_surface_fulfillment_mode(source_mode)?;
+    }
+    validate_reference_list(
+        &record.source_refs,
+        &format!("{context} missing sourceRefs"),
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        &format!("{context} missing storageRefs"),
+    )?;
+    validate_reference_list(
+        &record.pin_intent_refs,
+        &format!("{context} missing pinIntentRefs"),
+    )?;
+    validate_reference_list(
+        &record.pin_projection_refs,
+        &format!("{context} missing pinProjectionRefs"),
+    )?;
+    validate_reference_list(
+        &record.release_contract_refs,
+        &format!("{context} missing releaseContractRefs"),
+    )?;
+    validate_reference_list(
+        &record.retention_refs,
+        &format!("{context} missing retentionRefs"),
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        &format!("{context} missing evidenceRefs"),
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        &format!("{context} missing blockedReasons"),
+    )?;
+    validate_optional_ref(
+        record.retention_class.as_deref(),
+        &format!("{context} missing retentionClass"),
+    )?;
+    if let Some(schema_posture) = record.schema_posture.as_ref() {
+        validate_surface_app_schema_posture(schema_posture, &format!("{context} schemaPosture"))?;
+    }
+    if !record.release_posture.is_null() {
+        validate_surface_release_posture_value(
+            &record.release_posture,
+            &format!("{context} releasePosture"),
+        )?;
+    }
+    if record.state == SURFACE_APP_DISTRIBUTION_RETAINED {
+        if record.source_refs.is_empty() && record.storage_refs.is_empty() {
+            return Err(anyhow!(
+                "{context} retained state requires sourceRefs or storageRefs"
+            ));
+        }
+        if record.pin_intent_refs.is_empty() && record.pin_projection_refs.is_empty() {
+            return Err(anyhow!(
+                "{context} retained state requires pinIntentRefs or pinProjectionRefs"
+            ));
+        }
+    }
+    if matches!(
+        record.state.as_str(),
+        SURFACE_APP_DISTRIBUTION_BLOCKED | SURFACE_APP_DISTRIBUTION_IGNORED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "{context} blocked or ignored state requires blockedReasons"
+        ));
+    }
+    reject_private_content_fields(&serde_json::to_value(record)?, context)?;
+    validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))?;
+    Ok(())
+}
+
 fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecord) -> Result<()> {
     require_non_empty(
         &record.app_contract_ref,
@@ -4780,6 +5647,36 @@ fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecor
             ));
         }
     }
+    validate_surface_module_roles(
+        &record.required_module_roles,
+        "surface app manifest version missing requiredModuleRoles",
+    )?;
+    if let Some(window) = record.compatibility_window.as_ref() {
+        validate_surface_app_compatibility_window(
+            window,
+            "surface app manifest version compatibilityWindow",
+        )?;
+    }
+    validate_reference_list(
+        &record.bundled_source_refs,
+        "surface app manifest version missing bundledSourceRefs",
+    )?;
+    validate_reference_list(
+        &record.remote_source_refs,
+        "surface app manifest version missing remoteSourceRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "surface app manifest version missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.runner_requirement_refs,
+        "surface app manifest version missing runnerRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.service_manager_requirement_refs,
+        "surface app manifest version missing serviceManagerRequirementRefs",
+    )?;
     validate_reference_list(
         &record.module_refs,
         "surface app manifest version missing moduleRefs",
@@ -4813,6 +5710,12 @@ fn validate_surface_app_manifest_version(record: &SurfaceAppManifestVersionRecor
         &record.blocked_reasons,
         "surface app manifest version missing blockedReasons",
     )?;
+    if let Some(distribution_posture) = record.distribution_posture.as_ref() {
+        validate_surface_app_distribution_posture(
+            distribution_posture,
+            "surface app manifest version distributionPosture",
+        )?;
+    }
     Ok(())
 }
 
@@ -4856,9 +5759,36 @@ pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Resul
             "surface app manifest missing current version claim"
         ));
     }
+    validate_surface_module_roles(
+        &record.required_module_roles,
+        "surface app manifest missing requiredModuleRoles",
+    )?;
+    if let Some(window) = record.compatibility_window.as_ref() {
+        validate_surface_app_compatibility_window(
+            window,
+            "surface app manifest compatibilityWindow",
+        )?;
+    }
     validate_reference_list(
         &record.app_contract_refs,
         "surface app manifest missing appContractRefs",
+    )?;
+    validate_reference_list(
+        &record.bundled_source_refs,
+        "surface app manifest missing bundledSourceRefs",
+    )?;
+    validate_reference_list(
+        &record.remote_source_refs,
+        "surface app manifest missing remoteSourceRefs",
+    )?;
+    validate_reference_list(&record.grant_refs, "surface app manifest missing grantRefs")?;
+    validate_reference_list(
+        &record.runner_requirement_refs,
+        "surface app manifest missing runnerRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.service_manager_requirement_refs,
+        "surface app manifest missing serviceManagerRequirementRefs",
     )?;
     validate_reference_list(
         &record.compatibility_refs,
@@ -4891,6 +5821,12 @@ pub fn validate_surface_app_manifest(record: &SurfaceAppManifestRecord) -> Resul
         &record.blocked_reasons,
         "surface app manifest missing blockedReasons",
     )?;
+    if let Some(distribution_posture) = record.distribution_posture.as_ref() {
+        validate_surface_app_distribution_posture(
+            distribution_posture,
+            "surface app manifest distributionPosture",
+        )?;
+    }
     validate_safe_facts(&record.safe_facts, "surface app manifest safeFacts")?;
     if record.issued_at == 0 {
         return Err(anyhow!("surface app manifest missing issuedAt"));
@@ -5687,6 +6623,324 @@ pub fn validate_app_runner_attestation(attestation: &AppRunnerAttestation) -> Re
     Ok(())
 }
 
+pub fn validate_runner_operation(record: &RunnerOperationRecord) -> Result<()> {
+    validate_optional_kind(&record.kind, RECORD_RUNNER_OPERATION, "runner operation")?;
+    require_non_empty(&record.operation_id, "runner operation missing operationId")?;
+    require_non_empty(&record.runner_id, "runner operation missing runnerId")?;
+    validate_resolved_member_ref(&record.runner_ref, "runner operation missing runnerRef")?;
+    require_non_empty(&record.host_ref, "runner operation missing hostRef")?;
+    require_non_empty(
+        &record.requester_ref,
+        "runner operation missing requesterRef",
+    )?;
+    require_non_empty(&record.subject_ref, "runner operation missing subjectRef")?;
+    require_non_empty(&record.contract_ref, "runner operation missing contractRef")?;
+    validate_runner_operation_kind(&record.operation)?;
+    validate_runner_operation_state(&record.state)?;
+    require_non_empty_vec(&record.grant_refs, "runner operation requires grantRefs")?;
+    validate_reference_list(
+        &record.capability_refs,
+        "runner operation missing capabilityRefs",
+    )?;
+    validate_reference_list(&record.input_refs, "runner operation missing inputRefs")?;
+    validate_reference_list(&record.output_refs, "runner operation missing outputRefs")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "runner operation missing evidenceRefs",
+    )?;
+    validate_reference_list(&record.proof_refs, "runner operation missing proofRefs")?;
+    validate_reference_list(&record.release_refs, "runner operation missing releaseRefs")?;
+    if !record.resource_budget.is_object() {
+        return Err(anyhow!("runner operation resourceBudget must be an object"));
+    }
+    validate_safe_facts(&record.resource_budget, "runner operation resourceBudget")?;
+    if let Some(resource_posture) = &record.resource_posture {
+        validate_resource_posture(resource_posture)?;
+    }
+    validate_surface_secret_boundary_value(
+        &record.secret_boundary,
+        "runner operation secretBoundary",
+    )?;
+    validate_surface_release_posture_value(
+        &record.release_posture,
+        "runner operation releasePosture",
+    )?;
+    validate_surface_release_posture_value(
+        &record.rollback_posture,
+        "runner operation rollbackPosture",
+    )?;
+    if record.operation == RUNNER_OPERATION_RELEASE
+        && record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!("runner release operation requires releaseRef"));
+    }
+    if record.operation == RUNNER_OPERATION_ROLLBACK
+        && record
+            .rollback_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!("runner rollback operation requires rollbackRef"));
+    }
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "runner operation missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "runner operation missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "runner operation missing blockedReasons",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        RUNNER_OPERATION_STATE_BLOCKED
+            | RUNNER_OPERATION_STATE_FAILED
+            | RUNNER_OPERATION_STATE_REJECTED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "runner blocked, failed, or rejected operation requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "runner operation safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "runner operation safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "runner operation")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "runner operation")?;
+    validate_operation_timeline(
+        record.requested_at,
+        &[
+            record.accepted_at,
+            record.started_at,
+            record.completed_at,
+            record.observed_at,
+        ],
+        record.expires_at,
+        "runner operation",
+    )?;
+    Ok(())
+}
+
+pub fn validate_app_runner_fulfillment_report(record: &AppRunnerFulfillmentReport) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_APP_RUNNER_FULFILLMENT_REPORT,
+        "app runner fulfillment report",
+    )?;
+    require_non_empty(
+        &record.report_id,
+        "app runner fulfillment report missing reportId",
+    )?;
+    require_non_empty(
+        &record.runner_id,
+        "app runner fulfillment report missing runnerId",
+    )?;
+    validate_resolved_member_ref(
+        &record.runner_ref,
+        "app runner fulfillment report missing runnerRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "app runner fulfillment report missing hostRef",
+    )?;
+    require_non_empty(
+        &record.runner_operation_id,
+        "app runner fulfillment report missing runnerOperationId",
+    )?;
+    validate_runner_operation_kind(&record.operation)?;
+    validate_runner_fulfillment_state(&record.state)?;
+    require_non_empty(
+        &record.requester_ref,
+        "app runner fulfillment report missing requesterRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "app runner fulfillment report missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "app runner fulfillment report missing contractRef",
+    )?;
+    validate_optional_ref(
+        record.app_contract_ref.as_deref(),
+        "app runner fulfillment report missing appContractRef",
+    )?;
+    validate_optional_ref(
+        record.app_id.as_deref(),
+        "app runner fulfillment report missing appId",
+    )?;
+    validate_optional_ref(
+        record.version.as_deref(),
+        "app runner fulfillment report missing version",
+    )?;
+    validate_optional_ref(
+        record.manifest_ref.as_deref(),
+        "app runner fulfillment report missing manifestRef",
+    )?;
+    validate_surface_fulfillment_mode(&record.source_mode)?;
+    validate_reference_list(
+        &record.source_refs,
+        "app runner fulfillment report missing sourceRefs",
+    )?;
+    require_non_empty_vec(
+        &record.grant_refs,
+        "app runner fulfillment report requires grantRefs",
+    )?;
+    validate_reference_list(
+        &record.capability_refs,
+        "app runner fulfillment report missing capabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "app runner fulfillment report missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "app runner fulfillment report missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "app runner fulfillment report missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "app runner fulfillment report missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "app runner fulfillment report missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "app runner fulfillment report missing blockedReasons",
+    )?;
+    if !record.resource_budget.is_object() {
+        return Err(anyhow!(
+            "app runner fulfillment report resourceBudget must be an object"
+        ));
+    }
+    validate_safe_facts(
+        &record.resource_budget,
+        "app runner fulfillment report resourceBudget",
+    )?;
+    if let Some(resource_posture) = &record.resource_posture {
+        validate_resource_posture(resource_posture)?;
+    }
+    validate_surface_secret_boundary_value(
+        &record.secret_boundary,
+        "app runner fulfillment report secretBoundary",
+    )?;
+    validate_surface_release_posture_value(
+        &record.release_posture,
+        "app runner fulfillment report releasePosture",
+    )?;
+    validate_surface_release_posture_value(
+        &record.rollback_posture,
+        "app runner fulfillment report rollbackPosture",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "app runner fulfillment report missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "app runner fulfillment report missing rollbackRef",
+    )?;
+    validate_runner_posture_object(
+        &record.operation_posture,
+        &record.state,
+        "app runner fulfillment report operationPosture",
+    )?;
+    validate_runner_posture_object(
+        &record.fulfillment_posture,
+        &record.state,
+        "app runner fulfillment report fulfillmentPosture",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        RUNNER_FULFILLMENT_STATE_BLOCKED
+            | RUNNER_FULFILLMENT_STATE_FAILED
+            | RUNNER_FULFILLMENT_STATE_REJECTED
+            | RUNNER_FULFILLMENT_STATE_CANCELLED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked app runner fulfillment requires blockedReasons"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_SUCCEEDED
+        && record.output_refs.is_empty()
+        && record.proof_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "succeeded app runner fulfillment requires outputRefs or proofRefs"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_SUCCEEDED && record.source_refs.is_empty() {
+        return Err(anyhow!(
+            "succeeded app runner fulfillment requires sourceRefs"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_RELEASED
+        && record.release_refs.is_empty()
+        && record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "released app runner fulfillment requires releaseRefs or releaseRef"
+        ));
+    }
+    if record.state == RUNNER_FULFILLMENT_STATE_ROLLED_BACK
+        && record
+            .rollback_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "rolledBack app runner fulfillment requires rollbackRef"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "app runner fulfillment report safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "app runner fulfillment report",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "app runner fulfillment report",
+    )?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("app runner fulfillment report missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "app runner fulfillment report expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
 fn validate_frame_body(frame: &SwarmFrame) -> Result<()> {
     match frame.body.encoding.as_str() {
         "caac" => {
@@ -5856,6 +7110,38 @@ fn validate_surface_app_manifest_version_state(state: &str) -> Result<()> {
     }
 }
 
+fn validate_surface_app_distribution_posture_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_DISTRIBUTION_PENDING
+            | SURFACE_APP_DISTRIBUTION_RETAINED
+            | SURFACE_APP_DISTRIBUTION_DEGRADED
+            | SURFACE_APP_DISTRIBUTION_BLOCKED
+            | SURFACE_APP_DISTRIBUTION_SUPERSEDED
+            | SURFACE_APP_DISTRIBUTION_IGNORED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported surface app distribution posture state"
+        ))
+    }
+}
+
+fn validate_surface_app_schema_posture_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SURFACE_APP_SCHEMA_COMPATIBLE
+            | SURFACE_APP_SCHEMA_MIGRATION_REQUIRED
+            | SURFACE_APP_SCHEMA_IGNORE
+            | SURFACE_APP_SCHEMA_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported surface app schema posture state"))
+    }
+}
+
 fn validate_surface_secret_boundary_state(state: &str) -> Result<()> {
     if matches!(
         state,
@@ -5899,6 +7185,150 @@ fn validate_service_manager_proof_profile(profile: &str) -> Result<()> {
     } else {
         Err(anyhow!("unsupported service manager proof profile"))
     }
+}
+
+fn validate_runner_operation_kind(operation: &str) -> Result<()> {
+    if matches!(
+        operation,
+        RUNNER_OPERATION_PREPARE
+            | RUNNER_OPERATION_EXECUTE
+            | RUNNER_OPERATION_HEALTH_CHECK
+            | RUNNER_OPERATION_RELEASE
+            | RUNNER_OPERATION_ROLLBACK
+            | RUNNER_OPERATION_CANCEL
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid runner operation"))
+    }
+}
+
+fn validate_runner_operation_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        RUNNER_OPERATION_STATE_REQUESTED
+            | RUNNER_OPERATION_STATE_ACCEPTED
+            | RUNNER_OPERATION_STATE_RUNNING
+            | RUNNER_OPERATION_STATE_SUCCEEDED
+            | RUNNER_OPERATION_STATE_FAILED
+            | RUNNER_OPERATION_STATE_BLOCKED
+            | RUNNER_OPERATION_STATE_REJECTED
+            | RUNNER_OPERATION_STATE_CANCELLED
+            | RUNNER_OPERATION_STATE_RELEASED
+            | RUNNER_OPERATION_STATE_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid runner operation state"))
+    }
+}
+
+fn validate_runner_fulfillment_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        RUNNER_FULFILLMENT_STATE_REQUESTED
+            | RUNNER_FULFILLMENT_STATE_ACCEPTED
+            | RUNNER_FULFILLMENT_STATE_RUNNING
+            | RUNNER_FULFILLMENT_STATE_SUCCEEDED
+            | RUNNER_FULFILLMENT_STATE_RELEASED
+            | RUNNER_FULFILLMENT_STATE_ROLLED_BACK
+            | RUNNER_FULFILLMENT_STATE_BLOCKED
+            | RUNNER_FULFILLMENT_STATE_FAILED
+            | RUNNER_FULFILLMENT_STATE_REJECTED
+            | RUNNER_FULFILLMENT_STATE_CANCELLED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid runner fulfillment state"))
+    }
+}
+
+fn validate_runner_posture_object(value: &Value, state: &str, context: &str) -> Result<()> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow!("{context} must be an object"))?;
+    if object.is_empty() {
+        return Err(anyhow!("{context} must be an object"));
+    }
+    if let Some(posture_state) = object.get("state").and_then(Value::as_str) {
+        if posture_state != state {
+            return Err(anyhow!("{context} state must match state"));
+        }
+    }
+    validate_safe_facts(value, context)?;
+    reject_private_content_fields(value, context)?;
+    Ok(())
+}
+
+fn validate_surface_secret_boundary_value(value: &Value, context: &str) -> Result<()> {
+    if value.is_null() {
+        return Ok(());
+    }
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow!("{context} must be an object"))?;
+    validate_surface_secret_boundary_state(
+        object
+            .get("state")
+            .and_then(Value::as_str)
+            .unwrap_or_default(),
+    )?;
+    reject_private_content_fields(value, context)?;
+    validate_safe_facts(value, context)?;
+    Ok(())
+}
+
+fn validate_surface_release_posture_value(value: &Value, context: &str) -> Result<()> {
+    if value.is_null() {
+        return Ok(());
+    }
+    let object = value
+        .as_object()
+        .ok_or_else(|| anyhow!("{context} must be an object"))?;
+    let state = object
+        .get("state")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if !matches!(
+        state,
+        "static" | "buildReady" | "releaseReady" | "rollbackReady" | "blocked" | "unavailable"
+    ) {
+        return Err(anyhow!("unsupported surface release posture state"));
+    }
+    if state == "blocked"
+        && object
+            .get("blockedReasons")
+            .and_then(Value::as_array)
+            .map(Vec::is_empty)
+            .unwrap_or(true)
+    {
+        return Err(anyhow!("{context} blocked state requires blockedReasons"));
+    }
+    reject_private_content_fields(value, context)?;
+    validate_safe_facts(value, context)?;
+    Ok(())
+}
+
+fn validate_operation_timeline(
+    requested_at: u64,
+    checkpoints: &[Option<u64>],
+    expires_at: Option<u64>,
+    context: &str,
+) -> Result<()> {
+    if requested_at == 0 {
+        return Err(anyhow!("{context} missing requestedAt"));
+    }
+    for checkpoint in checkpoints.iter().flatten() {
+        if *checkpoint < requested_at {
+            return Err(anyhow!(
+                "{context} lifecycle timestamp must not be before requestedAt"
+            ));
+        }
+    }
+    if expires_at.is_some_and(|expires_at| expires_at <= requested_at) {
+        return Err(anyhow!("{context} expiresAt must be after requestedAt"));
+    }
+    Ok(())
 }
 
 fn validate_surface_fulfillment_mode(mode: &str) -> Result<()> {
@@ -7732,6 +9162,7 @@ fn frame_is_propagating(kind: &SwarmFrameKind) -> bool {
             | SwarmFrameKind::StoragePinAttestation
             | SwarmFrameKind::NodeCapability
             | SwarmFrameKind::RuntimeActivationRequest
+            | SwarmFrameKind::RunnerOperation
             | SwarmFrameKind::RoutePromise
             | SwarmFrameKind::RouteObservation
             | SwarmFrameKind::StreamRoutePlan
@@ -8189,6 +9620,193 @@ mod tests {
             expires_at: Some(1_700_000_500),
         };
         validate_app_runner_advertisement(&runner).expect("valid runner");
+
+        let runner_ref = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
+        let runner_operation = RunnerOperationRecord {
+            kind: Some(RECORD_RUNNER_OPERATION.to_string()),
+            operation_id: "runner-operation:security-bootstrap:execute:1".to_string(),
+            runner_id: "runner:lab-gateway:security-bootstrap".to_string(),
+            runner_ref: runner_ref.clone(),
+            host_ref: "host:lab-gateway".to_string(),
+            requester_ref: "identity:aux".to_string(),
+            subject_ref: "security-processor:dev".to_string(),
+            contract_ref: "security-processor:seed@0.1.0".to_string(),
+            operation: RUNNER_OPERATION_EXECUTE.to_string(),
+            state: RUNNER_OPERATION_STATE_SUCCEEDED.to_string(),
+            grant_refs: vec!["authority-grant:runner:security-bootstrap".to_string()],
+            capability_refs: vec![CAPABILITY_APP_RUNNER_PIN.to_string()],
+            input_refs: vec!["event-fabric:security-audit".to_string()],
+            output_refs: vec!["alert-hold:security-bootstrap:1".to_string()],
+            evidence_refs: vec![
+                "evidence:runner:started".to_string(),
+                "evidence:runner:completed".to_string(),
+            ],
+            proof_refs: vec!["proof:runner:security-bootstrap".to_string()],
+            release_refs: vec!["release:runner:security-bootstrap".to_string()],
+            resource_budget: json!({
+                "profileRef": "resource-profile:operator-dev",
+                "maxMemoryMiB": 512,
+                "maxCpuPct": 40
+            }),
+            resource_posture: Some(ResourcePosture {
+                kind: Some(RECORD_RESOURCE_POSTURE.to_string()),
+                posture_id: "resource-posture:runner:security-bootstrap".to_string(),
+                profile_id: "resource-profile:operator-dev".to_string(),
+                state: "withinBudget".to_string(),
+                counts: json!({ "memoryMiB": 120, "cpuPct": 8 }),
+                budgets: json!({ "memoryMiB": 512, "cpuPct": 40 }),
+                blocked_reasons: vec![],
+                sampled_at: 1_700_000_015,
+            }),
+            secret_boundary: json!({ "state": SURFACE_SECRET_BOUNDARY_NOT_REQUIRED }),
+            release_posture: json!({
+                "state": "rollbackReady",
+                "buildRef": "build:runner:security-bootstrap",
+                "releaseRef": "release:runner:security-bootstrap",
+                "rollbackRef": "rollback:runner:security-bootstrap"
+            }),
+            rollback_posture: Value::Null,
+            release_ref: Some("release:runner:security-bootstrap".to_string()),
+            rollback_ref: Some("rollback:runner:security-bootstrap".to_string()),
+            blocked_reasons: vec![],
+            safe_facts: json!({ "role": "securityProcessor", "mode": "operatorDev" }),
+            requested_at: 1_700_000_000,
+            accepted_at: Some(1_700_000_001),
+            started_at: Some(1_700_000_002),
+            completed_at: Some(1_700_000_012),
+            observed_at: Some(1_700_000_015),
+            expires_at: Some(1_700_003_600),
+        };
+        validate_runner_operation(&runner_operation).expect("valid runner operation");
+
+        let fulfillment_report = AppRunnerFulfillmentReport {
+            kind: Some(RECORD_APP_RUNNER_FULFILLMENT_REPORT.to_string()),
+            report_id: "app-runner:runner:app-proof:runner-operation:app-proof:execute:1"
+                .to_string(),
+            runner_id: "runner:lab-gateway:app-proof".to_string(),
+            runner_ref: runner_ref.clone(),
+            host_ref: "host:lab-gateway".to_string(),
+            runner_operation_id: "runner-operation:app-proof:execute:1".to_string(),
+            operation: RUNNER_OPERATION_EXECUTE.to_string(),
+            state: RUNNER_FULFILLMENT_STATE_SUCCEEDED.to_string(),
+            requester_ref: "identity:aux".to_string(),
+            subject_ref: "app:runner-proof".to_string(),
+            contract_ref: "app:runner-proof".to_string(),
+            app_contract_ref: Some("app:runner-proof".to_string()),
+            app_id: Some("constitute-runner-proof".to_string()),
+            version: Some("0.1.0".to_string()),
+            manifest_ref: Some("manifest:runner-proof".to_string()),
+            source_mode: SURFACE_FULFILLMENT_MODE_BUNDLED.to_string(),
+            source_refs: vec!["bundle:runner-proof@0.1.0".to_string()],
+            grant_refs: vec!["grant:app:runner-proof:run".to_string()],
+            capability_refs: vec![CAPABILITY_APP_RUNNER_PIN.to_string()],
+            input_refs: vec![
+                "manifest:runner-proof".to_string(),
+                "app:runner-proof".to_string(),
+            ],
+            output_refs: vec!["artifact:runner-proof:dist".to_string()],
+            evidence_refs: vec![
+                "evidence:runner:accepted".to_string(),
+                "evidence:runner:completed".to_string(),
+            ],
+            proof_refs: vec!["proof:runner-proof:surface".to_string()],
+            release_refs: vec!["release:runner-proof".to_string()],
+            resource_budget: json!({
+                "profileRef": "resource-profile:operator-dev",
+                "maxMemoryMiB": 256,
+                "maxCpuPct": 25
+            }),
+            resource_posture: Some(ResourcePosture {
+                kind: Some(RECORD_RESOURCE_POSTURE.to_string()),
+                posture_id: "resource-posture:runner:app-proof".to_string(),
+                profile_id: "resource-profile:operator-dev".to_string(),
+                state: "withinBudget".to_string(),
+                counts: json!({ "memoryMiB": 96, "cpuPct": 4 }),
+                budgets: json!({ "memoryMiB": 256, "cpuPct": 25 }),
+                blocked_reasons: vec![],
+                sampled_at: 1_700_000_020,
+            }),
+            secret_boundary: json!({ "state": SURFACE_SECRET_BOUNDARY_NOT_REQUIRED }),
+            release_posture: json!({
+                "state": "rollbackReady",
+                "buildRef": "build:runner-proof",
+                "releaseRef": "release:runner-proof",
+                "rollbackRef": "rollback:runner-proof"
+            }),
+            rollback_posture: Value::Null,
+            release_ref: Some("release:runner-proof".to_string()),
+            rollback_ref: Some("rollback:runner-proof".to_string()),
+            operation_posture: json!({
+                "state": RUNNER_FULFILLMENT_STATE_SUCCEEDED,
+                "accepted": true,
+                "requestedAt": 1_700_000_000u64,
+                "acceptedAt": 1_700_000_001u64,
+                "startedAt": 1_700_000_002u64,
+                "completedAt": 1_700_000_019u64,
+                "observedAt": 1_700_000_020u64
+            }),
+            fulfillment_posture: json!({
+                "state": RUNNER_FULFILLMENT_STATE_SUCCEEDED,
+                "outputRefs": ["artifact:runner-proof:dist"],
+                "releaseRefs": ["release:runner-proof"],
+                "proofRefs": ["proof:runner-proof:surface"],
+                "evidenceRefs": ["evidence:runner:completed"]
+            }),
+            safe_facts: json!({
+                "appId": "constitute-runner-proof",
+                "version": "0.1.0",
+                "sourceMode": SURFACE_FULFILLMENT_MODE_BUNDLED,
+                "outputRefCount": 1,
+                "releaseRefCount": 1,
+                "proofRefCount": 1
+            }),
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_020,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_app_runner_fulfillment_report(&fulfillment_report)
+            .expect("valid app runner fulfillment report");
+
+        let mut missing_output_or_proof = fulfillment_report.clone();
+        missing_output_or_proof.report_id = "app-runner:bad:missing-proof".to_string();
+        missing_output_or_proof.output_refs.clear();
+        missing_output_or_proof.proof_refs.clear();
+        assert!(validate_app_runner_fulfillment_report(&missing_output_or_proof).is_err());
+
+        let mut missing_source_refs = fulfillment_report.clone();
+        missing_source_refs.report_id = "app-runner:bad:missing-source".to_string();
+        missing_source_refs.source_refs.clear();
+        assert!(validate_app_runner_fulfillment_report(&missing_source_refs).is_err());
+
+        let mut blocked_without_reason_report = fulfillment_report.clone();
+        blocked_without_reason_report.report_id = "app-runner:bad:blocked".to_string();
+        blocked_without_reason_report.state = RUNNER_FULFILLMENT_STATE_BLOCKED.to_string();
+        blocked_without_reason_report.operation_posture =
+            json!({ "state": RUNNER_FULFILLMENT_STATE_BLOCKED });
+        blocked_without_reason_report.fulfillment_posture =
+            json!({ "state": RUNNER_FULFILLMENT_STATE_BLOCKED });
+        assert!(validate_app_runner_fulfillment_report(&blocked_without_reason_report).is_err());
+
+        let mut unsafe_report = fulfillment_report;
+        unsafe_report.safe_facts = json!({ "token": "inline-secret" });
+        assert!(validate_app_runner_fulfillment_report(&unsafe_report).is_err());
+
+        let mut missing_grant = runner_operation.clone();
+        missing_grant.grant_refs.clear();
+        assert!(validate_runner_operation(&missing_grant).is_err());
+
+        let mut missing_rollback = runner_operation.clone();
+        missing_rollback.operation = RUNNER_OPERATION_ROLLBACK.to_string();
+        missing_rollback.rollback_ref = Some(String::new());
+        assert!(validate_runner_operation(&missing_rollback).is_err());
+
+        let mut blocked_without_reason = runner_operation.clone();
+        blocked_without_reason.state = RUNNER_OPERATION_STATE_BLOCKED.to_string();
+        assert!(validate_runner_operation(&blocked_without_reason).is_err());
+
+        let mut unsafe_fact = runner_operation;
+        unsafe_fact.safe_facts = json!({ "token": "inline-secret" });
+        assert!(validate_runner_operation(&unsafe_fact).is_err());
     }
 
     #[test]
@@ -9398,6 +11016,19 @@ mod tests {
                 version: "0.1.0".to_string(),
                 state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
                 source_mode: Some(SURFACE_FULFILLMENT_MODE_BUNDLED.to_string()),
+                required_module_roles: vec![SURFACE_MODULE_ROLE_RUNTIME_CLIENT.to_string()],
+                compatibility_window: Some(SurfaceAppCompatibilityWindowRecord {
+                    min_version: Some("0.1.0".to_string()),
+                    max_version: Some("0.1.x".to_string()),
+                    protocol_ref: Some("protocol:surface-app:v1".to_string()),
+                    compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+                    schema_refs: vec!["schema:surface-app-contract:v1".to_string()],
+                }),
+                bundled_source_refs: vec!["bundle:constitute-nvr-ui@0.1.0".to_string()],
+                remote_source_refs: vec![],
+                grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+                runner_requirement_refs: vec!["runner:req:nvr-ui".to_string()],
+                service_manager_requirement_refs: vec!["service-manager:req:nvr-ui".to_string()],
                 module_refs: vec!["module:runtime-client@0.1.0".to_string()],
                 compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
                 bootstrap_contract_ref: None,
@@ -9405,14 +11036,29 @@ mod tests {
                 authority_refs: vec![],
                 evidence_refs: vec![],
                 blocked_reasons: vec![],
+                distribution_posture: None,
             }],
             app_contract_refs: vec!["surface-app:nvr-ui@0.1.0".to_string()],
+            required_module_roles: vec![SURFACE_MODULE_ROLE_RUNTIME_CLIENT.to_string()],
+            compatibility_window: Some(SurfaceAppCompatibilityWindowRecord {
+                min_version: Some("0.1.0".to_string()),
+                max_version: Some("0.1.x".to_string()),
+                protocol_ref: Some("protocol:surface-app:v1".to_string()),
+                compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
+                schema_refs: vec!["schema:surface-app-contract:v1".to_string()],
+            }),
+            bundled_source_refs: vec!["bundle:constitute-nvr-ui@0.1.0".to_string()],
+            remote_source_refs: vec![],
+            grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+            runner_requirement_refs: vec!["runner:req:nvr-ui".to_string()],
+            service_manager_requirement_refs: vec!["service-manager:req:nvr-ui".to_string()],
             compatibility_refs: vec!["protocol:surface-app:v1".to_string()],
             bootstrap_contract_refs: vec![],
             release_contract_refs: vec![],
             authority_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
+            distribution_posture: None,
             safe_facts: Value::Null,
             issued_at: 1_700_000_000,
             expires_at: Some(1_700_003_600),
@@ -9423,6 +11069,79 @@ mod tests {
         missing_current.current_version = "0.2.0".to_string();
         assert!(validate_surface_app_manifest(&missing_current).is_err());
 
+        let distribution_posture = SurfaceAppDistributionPostureRecord {
+            state: SURFACE_APP_DISTRIBUTION_RETAINED.to_string(),
+            source_mode: Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string()),
+            source_refs: vec!["surface-app-source:nvr-ui@0.2.0".to_string()],
+            storage_refs: vec!["storage:object:surface-app:nvr-ui@0.2.0".to_string()],
+            pin_intent_refs: vec!["storage.pin.intent:surface-app:nvr-ui@0.2.0".to_string()],
+            pin_projection_refs: vec![
+                "storage.pin.projection:surface-app:nvr-ui@0.2.0".to_string(),
+            ],
+            release_contract_refs: vec!["service.manager.release:nvr-ui@0.2.0".to_string()],
+            retention_refs: vec!["retention:surface-app:nvr-ui@0.2.0".to_string()],
+            retention_class: Some("app-release".to_string()),
+            schema_posture: Some(SurfaceAppSchemaPostureRecord {
+                state: SURFACE_APP_SCHEMA_COMPATIBLE.to_string(),
+                schema_refs: vec!["schema:surface-app-contract:v1".to_string()],
+                migration_refs: vec![],
+                compatibility_refs: vec![],
+                ignored_refs: vec![],
+                blocked_reasons: vec![],
+                safe_facts: Value::Null,
+            }),
+            release_posture: json!({
+                "state": "releaseReady",
+                "buildRef": "build:nvr-ui@0.2.0",
+                "releaseRef": "release:nvr-ui@0.2.0"
+            }),
+            evidence_refs: vec!["proof:nvr-ui@0.2.0".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "retained": true }),
+        };
+        let mut retained_manifest = manifest.clone();
+        retained_manifest.current_app_contract_ref = "surface-app:nvr-ui@0.2.0".to_string();
+        retained_manifest.current_version = "0.2.0".to_string();
+        retained_manifest.default_source_mode =
+            Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string());
+        retained_manifest.distribution_posture = Some(distribution_posture.clone());
+        retained_manifest.remote_source_refs = vec!["surface-app-source:nvr-ui@0.2.0".to_string()];
+        retained_manifest.release_contract_refs =
+            vec!["service.manager.release:nvr-ui@0.2.0".to_string()];
+        retained_manifest.versions = vec![SurfaceAppManifestVersionRecord {
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            version: "0.2.0".to_string(),
+            state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
+            source_mode: Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string()),
+            required_module_roles: vec![],
+            compatibility_window: None,
+            bundled_source_refs: vec![],
+            remote_source_refs: vec!["surface-app-source:nvr-ui@0.2.0".to_string()],
+            grant_refs: vec![],
+            runner_requirement_refs: vec![],
+            service_manager_requirement_refs: vec![],
+            module_refs: vec![],
+            compatibility_refs: vec![],
+            bootstrap_contract_ref: None,
+            release_contract_ref: Some("service.manager.release:nvr-ui@0.2.0".to_string()),
+            authority_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            distribution_posture: Some(distribution_posture.clone()),
+        }];
+        validate_surface_app_manifest(&retained_manifest).expect("retained manifest");
+
+        let mut bad_distribution = distribution_posture;
+        bad_distribution.pin_intent_refs = vec![];
+        bad_distribution.pin_projection_refs = vec![];
+        assert!(
+            validate_surface_app_distribution_posture(
+                &bad_distribution,
+                "surface app manifest distributionPosture"
+            )
+            .is_err()
+        );
+
         let mut remote_without_release = manifest;
         remote_without_release.current_app_contract_ref = "surface-app:nvr-ui@0.2.0".to_string();
         remote_without_release.current_version = "0.2.0".to_string();
@@ -9431,6 +11150,13 @@ mod tests {
             version: "0.2.0".to_string(),
             state: SURFACE_APP_MANIFEST_VERSION_CURRENT.to_string(),
             source_mode: Some(SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE.to_string()),
+            required_module_roles: vec![],
+            compatibility_window: None,
+            bundled_source_refs: vec![],
+            remote_source_refs: vec!["swarm-package:nvr-ui@0.2.0".to_string()],
+            grant_refs: vec![],
+            runner_requirement_refs: vec![],
+            service_manager_requirement_refs: vec![],
             module_refs: vec![],
             compatibility_refs: vec![],
             bootstrap_contract_ref: None,
@@ -9438,8 +11164,133 @@ mod tests {
             authority_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
+            distribution_posture: None,
         }];
         assert!(validate_surface_app_manifest(&remote_without_release).is_err());
+    }
+
+    #[test]
+    fn validates_surface_app_fulfillment_identity_posture() {
+        let browser_member = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
+        let posture = SurfaceAppFulfillmentIdentityPostureRecord {
+            kind: Some(RECORD_SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE.to_string()),
+            identity_id: "identity:surface-app:nvr-ui".to_string(),
+            state: SURFACE_APP_FULFILLMENT_IDENTITY_READY.to_string(),
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            app_id: "constitute-nvr-ui".to_string(),
+            version: Some("0.2.0".to_string()),
+            surface_ref: Some("surface:nvr-ui".to_string()),
+            service_required: true,
+            service_contract_ref: Some("service:nvr".to_string()),
+            service_ref: Some("service:nvr".to_string()),
+            service_route_refs: vec!["service:nvr".to_string(), "route:service:nvr".to_string()],
+            route_refs: vec!["route:service:nvr".to_string()],
+            host_refs: vec!["host:lab-gateway".to_string()],
+            manager_refs: vec!["manager:nvr-ui".to_string()],
+            runner_refs: vec![browser_member.clone()],
+            member_refs: vec![browser_member],
+            capability_refs: vec!["service.manage".to_string()],
+            grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+            authority_refs: vec!["authority:nvr-ui:local".to_string()],
+            evidence_refs: vec!["build:nvr-ui:local".to_string()],
+            identity_posture: json!({
+                "app": "ready",
+                "service": "ready",
+                "route": "ready",
+                "host": "ready"
+            }),
+            safe_facts: json!({
+                "serviceRequired": true,
+                "serviceRouteRefCount": 2,
+                "runnerRefCount": 1
+            }),
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_surface_app_fulfillment_identity_posture(&posture)
+            .expect("valid fulfillment identity posture");
+
+        let mut bad_service = posture.clone();
+        bad_service.identity_id = "identity:surface-app:nvr-ui:bad-service".to_string();
+        bad_service.service_ref = Some("service:nvr-route-only".to_string());
+        assert!(validate_surface_app_fulfillment_identity_posture(&bad_service).is_err());
+
+        let mut bad_runner = posture.clone();
+        bad_runner.identity_id = "identity:surface-app:nvr-ui:bad-runner".to_string();
+        bad_runner.runner_refs = vec!["member:unresolved".to_string()];
+        assert!(validate_surface_app_fulfillment_identity_posture(&bad_runner).is_err());
+
+        let mut missing_service = posture;
+        missing_service.identity_id = "identity:surface-app:nvr-ui:missing-service".to_string();
+        missing_service.service_contract_ref = None;
+        assert!(validate_surface_app_fulfillment_identity_posture(&missing_service).is_err());
+    }
+
+    #[test]
+    fn validates_surface_app_authority_access_posture() {
+        let posture = SurfaceAppAuthorityAccessPostureRecord {
+            kind: Some(RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE.to_string()),
+            posture_id: "authority-access:surface-app:nvr-ui".to_string(),
+            state: SURFACE_APP_FULFILLMENT_IDENTITY_READY.to_string(),
+            app_contract_ref: "surface-app:nvr-ui@0.2.0".to_string(),
+            app_id: "constitute-nvr-ui".to_string(),
+            action_required: true,
+            access_required: true,
+            root_refs: vec!["root:aux".to_string()],
+            device_refs: vec!["device:aux-browser".to_string()],
+            grant_refs: vec!["grant:app:nvr-ui:run".to_string()],
+            authority_refs: vec!["authority:aux-browser".to_string()],
+            access_group_refs: vec!["access-group:nvr-ui:media-preview".to_string()],
+            required_content_classes: vec![
+                "uiProjection".to_string(),
+                "mediaReference".to_string(),
+            ],
+            revocation_refs: vec![],
+            exercise_refs: vec!["exercise:app:nvr-ui:run".to_string()],
+            evidence_refs: vec!["proof:nvr-ui:authority".to_string()],
+            action_posture: json!({
+                "state": "ready",
+                "grantRefCount": 1
+            }),
+            access_posture: json!({
+                "state": "ready",
+                "accessGroupRefCount": 1,
+                "requiredContentClassCount": 2
+            }),
+            revocation_posture: json!({
+                "state": "clear"
+            }),
+            expiry_posture: json!({
+                "state": "fresh"
+            }),
+            revocation_state: None,
+            safe_facts: json!({
+                "actionRequired": true,
+                "accessRequired": true
+            }),
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_surface_app_authority_access_posture(&posture)
+            .expect("valid authority access posture");
+
+        let mut missing_grant = posture.clone();
+        missing_grant.posture_id = "authority-access:surface-app:nvr-ui:missing-grant".to_string();
+        missing_grant.grant_refs = vec![];
+        assert!(validate_surface_app_authority_access_posture(&missing_grant).is_err());
+
+        let mut missing_access_group = posture.clone();
+        missing_access_group.posture_id =
+            "authority-access:surface-app:nvr-ui:missing-access".to_string();
+        missing_access_group.access_group_refs = vec![];
+        assert!(validate_surface_app_authority_access_posture(&missing_access_group).is_err());
+
+        let mut revoked_ready = posture;
+        revoked_ready.posture_id = "authority-access:surface-app:nvr-ui:revoked".to_string();
+        revoked_ready.revocation_state = Some("revoked".to_string());
+        assert!(validate_surface_app_authority_access_posture(&revoked_ready).is_err());
     }
 
     #[test]

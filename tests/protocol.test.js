@@ -7,6 +7,7 @@ import {
   AGREEMENT,
   LOGGING,
   PROJECTION,
+  RUNNER,
   ReplayCache,
   SERVICE_SURFACE,
   SERVICE_REGISTRY,
@@ -17,6 +18,8 @@ import {
   applyProjectionDelta,
   assertAppRecipe,
   assertAppRunnerAdvertisement,
+  assertAppRunnerFulfillmentReport,
+  assertRunnerOperation,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
   assertCapabilityName,
@@ -89,8 +92,18 @@ import {
   assertServiceManagerOperationPosture,
   assertServiceManagerProofDigest,
   assertSurfaceAppManifest,
+  assertSurfaceAppManifestSelection,
+  assertSurfaceAppManifestRunnerPlan,
+  assertSurfaceAppRuntimeSelectionPosture,
+  assertSurfaceAppInstancePosture,
+  assertSurfaceAppFulfillmentIdentityPosture,
+  assertSurfaceAppAuthorityAccessPosture,
+  assertSurfaceAppRunnerPlan,
+  assertSurfaceAppDistributionPosture,
   assertSurfaceAppBootstrapContract,
   assertSurfaceAppBootstrapPosture,
+  assertSurfaceModuleRolePosture,
+  assertSurfaceAppModuleBindingPosture,
   assertSurfaceAppContract,
   assertSurfaceModuleClaim,
   assertAccessEpoch,
@@ -201,6 +214,7 @@ test("event plane classifier separates primitive posture from local diagnostics"
   assert.equal(eventPlaneForRecordKind("projection.repair.request"), SWARM.EVENT_PLANE.PROJECTION_REPAIR);
   assert.equal(eventPlaneForRecordKind("projection.applied"), SWARM.EVENT_PLANE.PROJECTION);
   assert.equal(eventPlaneForRecordKind("stream.session.answer"), SWARM.EVENT_PLANE.ACTIVATION);
+  assert.equal(eventPlaneForRecordKind("app.runner.fulfillment.report"), SWARM.EVENT_PLANE.ACTIVATION);
   assert.equal(eventPlaneForRecordKind("route.observation"), SWARM.EVENT_PLANE.ROUTE);
   assert.equal(eventPlaneForRecordKind("contribution.lifecycle.applied"), SWARM.EVENT_PLANE.CONTRIBUTION);
   assert.equal(eventPlaneForRecordKind("runtime.retention.release.blocked"), SWARM.EVENT_PLANE.RETENTION);
@@ -649,6 +663,108 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
   }), /invalid surface module role/);
 });
 
+test("surface app fulfillment identity posture separates contract, service, host, route, and runner identity", () => {
+  const issuedAt = 1700000000;
+  const posture = assertSurfaceAppFulfillmentIdentityPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE,
+    identityId: "identity:surface-app:nvr-ui",
+    state: "ready",
+    appContractRef: "app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    version: "0.2.0",
+    surfaceRef: "surface:nvr-ui",
+    serviceRequired: true,
+    serviceContractRef: "service:nvr",
+    serviceRef: "service:nvr",
+    serviceRouteRefs: ["service:nvr", "route:service:nvr"],
+    routeRefs: ["route:service:nvr"],
+    hostRefs: ["host:lab-gateway"],
+    managerRefs: ["manager:nvr-ui"],
+    runnerRefs: [BROWSER_PK],
+    memberRefs: [BROWSER_PK],
+    capabilityRefs: ["service.manage"],
+    grantRefs: ["grant:app:nvr-ui:run"],
+    authorityRefs: ["authority:nvr-ui:local"],
+    evidenceRefs: ["build:nvr-ui:local"],
+    identityPosture: {
+      app: "ready",
+      service: "ready",
+      route: "ready",
+      host: "ready",
+    },
+    safeFacts: {
+      serviceRequired: true,
+      serviceRouteRefCount: 2,
+      runnerRefCount: 1,
+    },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(posture.serviceContractRef, "service:nvr");
+  assert.deepEqual(posture.runnerRefs, [BROWSER_PK]);
+
+  assert.throws(() => assertSurfaceAppFulfillmentIdentityPosture({
+    ...posture,
+    identityId: "identity:surface-app:nvr-ui:bad-service",
+    serviceRef: "service:nvr-route-only",
+  }), /serviceRef must not differ from serviceContractRef/);
+
+  assert.throws(() => assertSurfaceAppFulfillmentIdentityPosture({
+    ...posture,
+    identityId: "identity:surface-app:nvr-ui:bad-runner",
+    runnerRefs: ["member:unresolved"],
+  }), /must be a resolved public key/);
+});
+
+test("surface app authority access posture separates action grants from content access", () => {
+  const issuedAt = 1700000000;
+  const posture = assertSurfaceAppAuthorityAccessPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_AUTHORITY_ACCESS_POSTURE,
+    postureId: "authority-access:surface-app:nvr-ui",
+    state: "ready",
+    appContractRef: "app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    actionRequired: true,
+    accessRequired: true,
+    rootRefs: ["root:aux"],
+    deviceRefs: ["device:aux-browser"],
+    grantRefs: ["grant:app:nvr-ui:run"],
+    authorityRefs: ["authority:aux-browser"],
+    accessGroupRefs: ["access-group:nvr-ui:media-preview"],
+    requiredContentClasses: [AGREEMENT.CONTENT_CLASS.UI_PROJECTION, AGREEMENT.CONTENT_CLASS.MEDIA_REFERENCE],
+    exerciseRefs: ["exercise:app:nvr-ui:run"],
+    evidenceRefs: ["proof:nvr-ui:authority"],
+    actionPosture: { state: "ready", grantRefCount: 1 },
+    accessPosture: { state: "ready", accessGroupRefCount: 1 },
+    revocationPosture: { state: "clear" },
+    expiryPosture: { state: "fresh" },
+    safeFacts: { actionRequired: true, accessRequired: true },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(posture.state, "ready");
+  assert.deepEqual(posture.accessGroupRefs, ["access-group:nvr-ui:media-preview"]);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:missing-grant",
+    grantRefs: [],
+  }), /action requires grantRefs/);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:missing-access",
+    accessGroupRefs: [],
+  }), /access requires accessGroupRefs/);
+
+  assert.throws(() => assertSurfaceAppAuthorityAccessPosture({
+    ...posture,
+    postureId: "authority-access:surface-app:nvr-ui:revoked",
+    state: "ready",
+    revocationState: "revoked",
+  }), /revoked state must be blocked/);
+});
+
 test("surface bootstrap contracts gate service manager release and secret posture", () => {
   const issuedAt = 1700000000;
   const serviceManager = assertServiceManagerPosture({
@@ -772,16 +888,88 @@ test("surface app manifests pin versioned app contracts and block unproven remot
         version: "0.1.0",
         state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
         sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+        requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+        compatibilityWindow: {
+          minVersion: "0.1.0",
+          maxVersion: "0.1.x",
+          protocolRef: "protocol:surface-app:v1",
+          schemaRefs: ["schema:surface-app-contract:v1"],
+        },
+        bundledSourceRefs: ["bundle:constitute-nvr-ui@0.1.0"],
+        grantRefs: ["grant:app:nvr-ui:run"],
+        runnerRequirementRefs: ["runner:req:nvr-ui"],
+        serviceManagerRequirementRefs: ["service-manager:req:nvr-ui"],
         moduleRefs: ["constitute-ui/runtime-surface-client@0.1.0"],
         compatibilityRefs: ["protocol:surface-app:v1"],
       },
     ],
     appContractRefs: ["surface-app:nvr-ui@0.1.0"],
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    compatibilityWindow: {
+      minVersion: "0.1.0",
+      maxVersion: "0.1.x",
+      protocolRef: "protocol:surface-app:v1",
+      schemaRefs: ["schema:surface-app-contract:v1"],
+    },
+    bundledSourceRefs: ["bundle:constitute-nvr-ui@0.1.0"],
+    grantRefs: ["grant:app:nvr-ui:run"],
+    runnerRequirementRefs: ["runner:req:nvr-ui"],
+    serviceManagerRequirementRefs: ["service-manager:req:nvr-ui"],
     compatibilityRefs: ["protocol:surface-app:v1"],
     issuedAt,
     expiresAt: issuedAt + 3600,
   });
   assert.equal(manifest.currentAppContractRef, "surface-app:nvr-ui@0.1.0");
+  assert.deepEqual(manifest.requiredModuleRoles, [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT]);
+  assert.equal(manifest.compatibilityWindow.protocolRef, "protocol:surface-app:v1");
+
+  const distributionPosture = assertSurfaceAppDistributionPosture({
+    state: SURFACE_APP.DISTRIBUTION_POSTURE.RETAINED,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+    sourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
+    storageRefs: ["storage:object:surface-app:nvr-ui@0.2.0"],
+    pinIntentRefs: ["storage.pin.intent:surface-app:nvr-ui@0.2.0"],
+    pinProjectionRefs: ["storage.pin.projection:surface-app:nvr-ui@0.2.0"],
+    releaseContractRefs: ["service.manager.release:nvr-ui@0.2.0"],
+    retentionRefs: ["retention:surface-app:nvr-ui@0.2.0"],
+    retentionClass: "app-release",
+    schemaPosture: {
+      state: SURFACE_APP.SCHEMA_POSTURE.COMPATIBLE,
+      schemaRefs: ["schema:surface-app-contract:v1"],
+    },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.RELEASE_READY,
+      buildRef: "build:nvr-ui@0.2.0",
+      releaseRef: "release:nvr-ui@0.2.0",
+    },
+    safeFacts: {
+      retained: true,
+      version: "0.2.0",
+    },
+  });
+  assert.equal(distributionPosture.retentionClass, "app-release");
+
+  const retainedManifest = assertSurfaceAppManifest({
+    ...manifest,
+    currentAppContractRef: "surface-app:nvr-ui@0.2.0",
+    currentVersion: "0.2.0",
+    defaultSourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+    distributionPosture,
+    versions: [
+      {
+        appContractRef: "surface-app:nvr-ui@0.2.0",
+        version: "0.2.0",
+        state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+        sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
+        remoteSourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
+        releaseContractRef: "service.manager.release:nvr-ui@0.2.0",
+        distributionPosture,
+      },
+    ],
+    remoteSourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
+    releaseContractRefs: ["service.manager.release:nvr-ui@0.2.0"],
+  });
+  assert.equal(retainedManifest.distributionPosture.state, SURFACE_APP.DISTRIBUTION_POSTURE.RETAINED);
 
   assert.throws(() => assertSurfaceAppManifest({
     ...manifest,
@@ -796,11 +984,197 @@ test("surface app manifests pin versioned app contracts and block unproven remot
         version: "0.2.0",
         state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
         sourceMode: SURFACE_APP.FULFILLMENT_MODE.SWARM_PACKAGE,
+        remoteSourceRefs: ["swarm-package:nvr-ui@0.2.0"],
       },
     ],
     currentAppContractRef: "surface-app:nvr-ui@0.2.0",
     currentVersion: "0.2.0",
   }), /non-bundled source requires releaseContractRef/);
+
+  assert.throws(() => assertSurfaceAppDistributionPosture({
+    ...distributionPosture,
+    pinIntentRefs: [],
+    pinProjectionRefs: [],
+  }), /retained state requires pinIntentRefs or pinProjectionRefs/);
+
+  assert.throws(() => assertSurfaceAppDistributionPosture({
+    state: SURFACE_APP.DISTRIBUTION_POSTURE.DEGRADED,
+    schemaPosture: {
+      state: SURFACE_APP.SCHEMA_POSTURE.MIGRATION_REQUIRED,
+    },
+  }), /migrationRequired state requires migrationRefs or blockedReasons/);
+});
+
+test("surface app instance grammar validates clean selection and runner posture records", () => {
+  const issuedAt = 1700000000;
+  const moduleClaim = {
+    moduleRef: "constitute-ui/runtime-surface-client@0.1.0",
+    role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    participantSide: SURFACE_APP.PARTICIPANT_SIDE.WINDOW,
+    fulfillmentMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    version: "0.1.0",
+    primitiveRefs: ["runtime.attach"],
+    requiredCapabilities: ["runtime.snapshot.subscribe"],
+    inputs: ["runtime.snapshot"],
+    outputs: ["runtime.intent"],
+    issuedAt,
+  };
+  const modulePosture = assertSurfaceModuleRolePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_MODULE_ROLE_POSTURE,
+    state: "ready",
+    blockedReason: "",
+    role: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    moduleRef: "",
+    primitiveRef: "",
+    moduleCount: 1,
+    modules: [moduleClaim],
+  });
+  const bootstrapContract = assertSurfaceAppBootstrapContract({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_BOOTSTRAP_CONTRACT,
+    bootstrapContractId: "bootstrap:logging-ui@0.1.0",
+    appContractRef: "surface-app:logging-ui@0.1.0",
+    appId: "constitute-logging-ui",
+    state: SURFACE_APP.SERVICE_MANAGER_CONTRACT_STATE.READY,
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    moduleRefs: [moduleClaim.moduleRef],
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    issuedAt,
+  });
+  const runnerPlan = assertSurfaceAppRunnerPlan({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_RUNNER_PLAN,
+    planId: "surface-runner:logging-ui",
+    contractId: "surface-app:logging-ui@0.1.0",
+    appId: "constitute-logging-ui",
+    state: "ready",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    attachContext: {
+      kind: "surface.app.attachContext",
+      contractId: "surface-app:logging-ui@0.1.0",
+      appId: "constitute-logging-ui",
+    },
+    modulePostures: [modulePosture],
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    bootstrapContract,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const manifestSelection = assertSurfaceAppManifestSelection({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_SELECTION,
+    manifestId: "surface-app-manifest:logging-ui",
+    appId: "constitute-logging-ui",
+    state: "ready",
+    appContractRef: "surface-app:logging-ui@0.1.0",
+    version: "0.1.0",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    claimState: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    bundledSourceRefs: ["bundle:logging-ui@0.1.0"],
+    runnerRequirementRefs: ["runner:req:logging-ui"],
+    compatibilityRefs: ["protocol:surface-app:v1"],
+    bundledContractAvailable: true,
+    claim: {
+      appContractRef: "surface-app:logging-ui@0.1.0",
+      version: "0.1.0",
+      state: SURFACE_APP.MANIFEST_VERSION_STATE.CURRENT,
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+      bundledSourceRefs: ["bundle:logging-ui@0.1.0"],
+    },
+    issuedAt,
+  });
+  const manifestRunnerPlan = assertSurfaceAppManifestRunnerPlan({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MANIFEST_RUNNER_PLAN,
+    planId: "surface-runner:logging-ui",
+    state: "ready",
+    manifestSelection,
+    runnerPlan,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const runtimeSelection = assertSurfaceAppRuntimeSelectionPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_RUNTIME_SELECTION_POSTURE,
+    selectionId: "runtime-selection:logging-ui",
+    state: "ready",
+    requestedAppRef: "surface-app:logging-ui@0.1.0",
+    requestedVersion: "0.1.0",
+    manifestId: "surface-app-manifest:logging-ui",
+    appId: "constitute-logging-ui",
+    pinnedAppContractRef: "surface-app:logging-ui@0.1.0",
+    pinnedVersion: "0.1.0",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    compatibilityResult: {
+      kind: "surface.app.runtime.compatibility.result",
+      state: "ready",
+      blockedReasons: [],
+    },
+    sourceTrustResult: {
+      kind: "surface.app.runtime.source.trust.result",
+      state: "ready",
+      blockedReasons: [],
+    },
+    modulePostures: [modulePosture],
+    runnerReadiness: {
+      kind: "surface.app.runtime.runner.readiness",
+      state: "ready",
+      blockedReasons: [],
+    },
+    serviceManagerReadiness: {
+      kind: "surface.app.runtime.service-manager.readiness",
+      state: "unknown",
+      blockedReasons: [],
+    },
+    manifestSelection,
+    manifestRunnerPlan,
+    runnerPlan,
+    blockedReasons: [],
+    issuedAt,
+  });
+  const moduleBindingPosture = assertSurfaceAppModuleBindingPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_MODULE_BINDING_POSTURE,
+    state: "ready",
+    roles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    keys: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    moduleRefs: [moduleClaim.moduleRef],
+    implementationRefs: [moduleClaim.moduleRef],
+    blockedReasons: [],
+  });
+  const instance = assertSurfaceAppInstancePosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_INSTANCE_POSTURE,
+    instanceId: "surface-instance:logging-ui",
+    state: "ready",
+    contractId: "surface-app:logging-ui@0.1.0",
+    appId: "constitute-logging-ui",
+    appRef: "surface-app:logging-ui@0.1.0",
+    surfaceRef: "surface:logging-ui",
+    displayName: "Logging",
+    version: "0.1.0",
+    manifestId: "surface-app-manifest:logging-ui",
+    pinnedAppContractRef: "surface-app:logging-ui@0.1.0",
+    pinnedVersion: "0.1.0",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    requiredModuleRoles: [SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT],
+    moduleRefs: [moduleClaim.moduleRef],
+    modulePostures: [modulePosture],
+    moduleBindingPosture,
+    materializationBudgetRefs: ["logging-ui.event-table"],
+    runtimeSelectionPosture: runtimeSelection,
+    runnerReadiness: runtimeSelection.runnerReadiness,
+    serviceManagerReadiness: runtimeSelection.serviceManagerReadiness,
+    runnerPlanRef: runnerPlan.planId,
+    bootstrapContractRef: bootstrapContract.bootstrapContractId,
+    blockedReasons: [],
+    issuedAt,
+  });
+  assert.equal(instance.state, "ready");
+
+  const leakySelection = {
+    ...manifestSelection,
+    surfaceApp: { contractId: "local-object" },
+  };
+  assert.throws(
+    () => assertSurfaceAppManifestSelection(leakySelection),
+    /must not expose enumerable surfaceApp/,
+  );
 });
 
 test("service manager operations and proof digests validate release train evidence", () => {
@@ -817,7 +1191,30 @@ test("service manager operations and proof digests validate release train eviden
     serviceRefs: ["service:gateway"],
     capabilityRefs: ["service.manage"],
     authorityRefs: ["identity:operator"],
+    grantRefs: ["authority-grant:service-manager:gateway"],
+    runnerOperationRef: "runner-operation:gateway:promote:2026-05-17",
+    runnerRef: BROWSER_PK,
+    hostRef: "host:lab-gateway",
     releaseRef: "release:gateway:2026-05-17",
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:gateway:2026-05-17",
+      releaseRef: "release:gateway:2026-05-17",
+      rollbackRef: "rollback:gateway:previous",
+    },
+    resourceBudget: {
+      profileRef: "resource-profile:service-manager",
+      maxMemoryMiB: 512,
+    },
+    resourcePosture: {
+      kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+      postureId: "resource-posture:service-manager:gateway",
+      profileId: "resource-profile:service-manager",
+      state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+      counts: { memoryMiB: 120 },
+      budgets: { memoryMiB: 512 },
+      sampledAt: requestedAt + 30,
+    },
     evidenceRefs: ["ci:gateway:linux", "ci:gateway:windows"],
     proofRefs: ["proof:gateway:smoke"],
     safeFacts: {
@@ -891,6 +1288,11 @@ test("service manager operations and proof digests validate release train eviden
     state: SURFACE_APP.SERVICE_MANAGER_OPERATION_STATE.BLOCKED,
     requestedAt,
   }), /blocked or failed operation requires blockedReasons/);
+  assert.throws(() => assertServiceManagerOperationPosture({
+    ...operation,
+    operationId: "operation:unresolved-runner",
+    runnerRef: "member:gateway-manager",
+  }), /resolved public key/);
   assert.throws(() => assertServiceManagerProofDigest({
     kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
     digestId: "proof-digest:empty",
@@ -912,6 +1314,203 @@ test("service manager operations and proof digests validate release train eviden
       token: "inline-secret",
     },
     observedAt: requestedAt + 80,
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("runner operations bind host fulfillment to grants, resources, secrets, release, and evidence", () => {
+  const requestedAt = 1700000000;
+  const operation = assertRunnerOperation({
+    kind: SWARM.RECORD_KIND.RUNNER_OPERATION,
+    operationId: "runner-operation:security-bootstrap:execute:1",
+    runnerId: "runner:lab-gateway:security-bootstrap",
+    runnerRef: BROWSER_PK,
+    hostRef: "host:lab-gateway",
+    requesterRef: "identity:aux",
+    subjectRef: "security-processor:dev",
+    contractRef: "security-processor:seed@0.1.0",
+    operation: RUNNER.OPERATION.EXECUTE,
+    state: RUNNER.OPERATION_STATE.SUCCEEDED,
+    grantRefs: ["authority-grant:runner:security-bootstrap"],
+    capabilityRefs: ["app.runner.pin"],
+    inputRefs: ["event-fabric:security-audit"],
+    outputRefs: ["alert-hold:security-bootstrap:1"],
+    evidenceRefs: ["evidence:runner:started", "evidence:runner:completed"],
+    proofRefs: ["proof:runner:security-bootstrap"],
+    releaseRefs: ["release:runner:security-bootstrap"],
+    resourceBudget: {
+      profileRef: "resource-profile:operator-dev",
+      maxMemoryMiB: 512,
+      maxCpuPct: 40,
+    },
+    resourcePosture: {
+      kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+      postureId: "resource-posture:runner:security-bootstrap",
+      profileId: "resource-profile:operator-dev",
+      state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+      counts: { memoryMiB: 120, cpuPct: 8 },
+      budgets: { memoryMiB: 512, cpuPct: 40 },
+      sampledAt: requestedAt + 15,
+    },
+    secretBoundary: {
+      state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED,
+    },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:runner:security-bootstrap",
+      releaseRef: "release:runner:security-bootstrap",
+      rollbackRef: "rollback:runner:security-bootstrap",
+    },
+    releaseRef: "release:runner:security-bootstrap",
+    rollbackRef: "rollback:runner:security-bootstrap",
+    safeFacts: {
+      role: "securityProcessor",
+      mode: "operatorDev",
+    },
+    requestedAt,
+    acceptedAt: requestedAt + 1,
+    startedAt: requestedAt + 2,
+    completedAt: requestedAt + 12,
+    observedAt: requestedAt + 15,
+    expiresAt: requestedAt + 3600,
+  });
+  assert.equal(operation.operation, RUNNER.OPERATION.EXECUTE);
+  assert.equal(operation.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:grantless",
+    grantRefs: [],
+  }), /runner operation grantRefs must not be empty/);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:rollback",
+    operation: RUNNER.OPERATION.ROLLBACK,
+    rollbackRef: "",
+  }), /runner rollback operation requires rollbackRef/);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:blocked",
+    state: RUNNER.OPERATION_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blocked, failed, or rejected operation requires blockedReasons/);
+
+  assert.throws(() => assertRunnerOperation({
+    ...operation,
+    operationId: "runner-operation:bad:secret",
+    safeFacts: { token: "inline-secret" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {
+  const observedAt = 1700000020;
+  const report = assertAppRunnerFulfillmentReport({
+    kind: SWARM.RECORD_KIND.APP_RUNNER_FULFILLMENT_REPORT,
+    reportId: "app-runner:runner:app-proof:runner-operation:app-proof:execute:1",
+    runnerId: "runner:lab-gateway:app-proof",
+    runnerRef: BROWSER_PK,
+    hostRef: "host:lab-gateway",
+    runnerOperationId: "runner-operation:app-proof:execute:1",
+    operation: RUNNER.OPERATION.EXECUTE,
+    state: RUNNER.FULFILLMENT_STATE.SUCCEEDED,
+    requesterRef: "identity:aux",
+    subjectRef: "app:runner-proof",
+    contractRef: "app:runner-proof",
+    appContractRef: "app:runner-proof",
+    appId: "constitute-runner-proof",
+    version: "0.1.0",
+    manifestRef: "manifest:runner-proof",
+    sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+    sourceRefs: ["bundle:runner-proof@0.1.0"],
+    grantRefs: ["grant:app:runner-proof:run"],
+    capabilityRefs: ["app.runner.pin"],
+    inputRefs: ["manifest:runner-proof", "app:runner-proof"],
+    outputRefs: ["artifact:runner-proof:dist"],
+    evidenceRefs: ["evidence:runner:accepted", "evidence:runner:completed"],
+    proofRefs: ["proof:runner-proof:surface"],
+    releaseRefs: ["release:runner-proof"],
+    resourceBudget: {
+      profileRef: "resource-profile:operator-dev",
+      maxMemoryMiB: 256,
+      maxCpuPct: 25,
+    },
+    resourcePosture: {
+      kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
+      postureId: "resource-posture:runner:app-proof",
+      profileId: "resource-profile:operator-dev",
+      state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
+      counts: { memoryMiB: 96, cpuPct: 4 },
+      budgets: { memoryMiB: 256, cpuPct: 25 },
+      sampledAt: observedAt,
+    },
+    secretBoundary: { state: SURFACE_APP.SECRET_BOUNDARY.NOT_REQUIRED },
+    releasePosture: {
+      state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
+      buildRef: "build:runner-proof",
+      releaseRef: "release:runner-proof",
+      rollbackRef: "rollback:runner-proof",
+    },
+    rollbackPosture: null,
+    releaseRef: "release:runner-proof",
+    rollbackRef: "rollback:runner-proof",
+    operationPosture: {
+      state: RUNNER.FULFILLMENT_STATE.SUCCEEDED,
+      accepted: true,
+      requestedAt: observedAt - 20,
+      acceptedAt: observedAt - 18,
+      startedAt: observedAt - 15,
+      completedAt: observedAt - 1,
+      observedAt,
+    },
+    fulfillmentPosture: {
+      state: RUNNER.FULFILLMENT_STATE.SUCCEEDED,
+      outputRefs: ["artifact:runner-proof:dist"],
+      releaseRefs: ["release:runner-proof"],
+      proofRefs: ["proof:runner-proof:surface"],
+      evidenceRefs: ["evidence:runner:completed"],
+    },
+    safeFacts: {
+      appId: "constitute-runner-proof",
+      version: "0.1.0",
+      sourceMode: SURFACE_APP.FULFILLMENT_MODE.BUNDLED,
+      outputRefCount: 1,
+      releaseRefCount: 1,
+      proofRefCount: 1,
+    },
+    blockedReasons: [],
+    observedAt,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(report.state, RUNNER.FULFILLMENT_STATE.SUCCEEDED);
+  assert.equal(report.resourcePosture.state, SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:missing-proof",
+    outputRefs: [],
+    proofRefs: [],
+  }), /succeeded app runner fulfillment requires outputRefs or proofRefs/);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:missing-source",
+    sourceRefs: [],
+  }), /succeeded app runner fulfillment requires sourceRefs/);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:blocked",
+    state: RUNNER.FULFILLMENT_STATE.BLOCKED,
+    operationPosture: { ...report.operationPosture, state: RUNNER.FULFILLMENT_STATE.BLOCKED },
+    fulfillmentPosture: { ...report.fulfillmentPosture, state: RUNNER.FULFILLMENT_STATE.BLOCKED },
+    blockedReasons: [],
+  }), /blocked app runner fulfillment requires blockedReasons/);
+
+  assert.throws(() => assertAppRunnerFulfillmentReport({
+    ...report,
+    reportId: "app-runner:bad:secret",
+    safeFacts: { token: "inline-secret" },
   }), /unsafe safe fact key|forbidden protocol field/);
 });
 
