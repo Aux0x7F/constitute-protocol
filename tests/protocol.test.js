@@ -96,6 +96,7 @@ import {
   assertSurfaceAppManifestRunnerPlan,
   assertSurfaceAppRuntimeSelectionPosture,
   assertSurfaceAppInstancePosture,
+  assertSurfaceAppFulfillmentIdentityPosture,
   assertSurfaceAppRunnerPlan,
   assertSurfaceAppDistributionPosture,
   assertSurfaceAppBootstrapContract,
@@ -659,6 +660,59 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     ...runtimeClient,
     role: "runtimePolicy",
   }), /invalid surface module role/);
+});
+
+test("surface app fulfillment identity posture separates contract, service, host, route, and runner identity", () => {
+  const issuedAt = 1700000000;
+  const posture = assertSurfaceAppFulfillmentIdentityPosture({
+    kind: SWARM.RECORD_KIND.SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE,
+    identityId: "identity:surface-app:nvr-ui",
+    state: "ready",
+    appContractRef: "app:nvr-ui",
+    appId: "constitute-nvr-ui",
+    version: "0.2.0",
+    surfaceRef: "surface:nvr-ui",
+    serviceRequired: true,
+    serviceContractRef: "service:nvr",
+    serviceRef: "service:nvr",
+    serviceRouteRefs: ["service:nvr", "route:service:nvr"],
+    routeRefs: ["route:service:nvr"],
+    hostRefs: ["host:lab-gateway"],
+    managerRefs: ["manager:nvr-ui"],
+    runnerRefs: [BROWSER_PK],
+    memberRefs: [BROWSER_PK],
+    capabilityRefs: ["service.manage"],
+    grantRefs: ["grant:app:nvr-ui:run"],
+    authorityRefs: ["authority:nvr-ui:local"],
+    evidenceRefs: ["build:nvr-ui:local"],
+    identityPosture: {
+      app: "ready",
+      service: "ready",
+      route: "ready",
+      host: "ready",
+    },
+    safeFacts: {
+      serviceRequired: true,
+      serviceRouteRefCount: 2,
+      runnerRefCount: 1,
+    },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(posture.serviceContractRef, "service:nvr");
+  assert.deepEqual(posture.runnerRefs, [BROWSER_PK]);
+
+  assert.throws(() => assertSurfaceAppFulfillmentIdentityPosture({
+    ...posture,
+    identityId: "identity:surface-app:nvr-ui:bad-service",
+    serviceRef: "service:nvr-route-only",
+  }), /serviceRef must not differ from serviceContractRef/);
+
+  assert.throws(() => assertSurfaceAppFulfillmentIdentityPosture({
+    ...posture,
+    identityId: "identity:surface-app:nvr-ui:bad-runner",
+    runnerRefs: ["member:unresolved"],
+  }), /must be a resolved public key/);
 });
 
 test("surface bootstrap contracts gate service manager release and secret posture", () => {
