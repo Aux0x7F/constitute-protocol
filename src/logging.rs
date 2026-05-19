@@ -9,7 +9,7 @@ pub const LOG_SCHEMA_VERSION: u16 = 1;
 pub const LOG_EVENT_ID_PREFIX: &str = "constitute-log-event-v1";
 pub const LOG_EVIDENCE_PROFILE_KIND: &str = "logging.evidence.profile";
 
-pub const LOG_EVIDENCE_PROFILE_EVENT_SECURITY_AUDIT: &str = "securityAudit";
+pub const LOG_EVIDENCE_PROFILE_EVENT_CYBERSEC_AUDIT: &str = "cybersecAudit";
 pub const LOG_EVIDENCE_PROFILE_EVENT_RUNTIME_DIAGNOSTIC: &str = "runtimeDiagnostic";
 pub const LOG_EVIDENCE_PROFILE_EVENT_SERVICE_EVENT: &str = "serviceEvent";
 pub const LOG_EVIDENCE_PROFILE_EVENT_STORAGE_ACCESS: &str = "storageAccess";
@@ -368,7 +368,7 @@ const SENSITIVE_SAFE_FACT_KEY_FRAGMENTS: &[&str] = &[
 ];
 
 const LOG_EVIDENCE_PROFILE_EVENT_CLASSES: &[&str] = &[
-    LOG_EVIDENCE_PROFILE_EVENT_SECURITY_AUDIT,
+    LOG_EVIDENCE_PROFILE_EVENT_CYBERSEC_AUDIT,
     LOG_EVIDENCE_PROFILE_EVENT_RUNTIME_DIAGNOSTIC,
     LOG_EVIDENCE_PROFILE_EVENT_SERVICE_EVENT,
     LOG_EVIDENCE_PROFILE_EVENT_STORAGE_ACCESS,
@@ -487,23 +487,23 @@ mod tests {
     fn validates_log_evidence_profile() {
         let profile = LogEvidenceProfile {
             kind: Some(LOG_EVIDENCE_PROFILE_KIND.to_string()),
-            profile_id: "logging.security.default".to_string(),
-            consumer_ref: "constitute-security".to_string(),
+            profile_id: "logging.cybersec.default".to_string(),
+            consumer_ref: "constitute-cybersec".to_string(),
             event_classes: vec![
-                LOG_EVIDENCE_PROFILE_EVENT_SECURITY_AUDIT.to_string(),
+                LOG_EVIDENCE_PROFILE_EVENT_CYBERSEC_AUDIT.to_string(),
                 LOG_EVIDENCE_PROFILE_EVENT_RUNTIME_DIAGNOSTIC.to_string(),
                 LOG_EVIDENCE_PROFILE_EVENT_SERVICE_EVENT.to_string(),
             ],
             retention_window: "90d".to_string(),
             safe_index_refs: vec![
                 "logging.events.safeIndex".to_string(),
-                "logging.dashboard.securitySummary".to_string(),
+                "logging.dashboard.cybersecSummary".to_string(),
             ],
             detail_custody: LOG_EVIDENCE_DETAIL_CUSTODY_ENCRYPTED_DETAIL_REF.to_string(),
             encrypted_detail_required: true,
-            access_grant_refs: vec!["grant:logging.security.default".to_string()],
+            access_grant_refs: vec!["grant:logging.cybersec.default".to_string()],
             storage_container_refs: vec!["logging-archive".to_string()],
-            materialization_budget_ref: Some("logging.security.default.90d".to_string()),
+            materialization_budget_ref: Some("logging.cybersec.default.90d".to_string()),
             issued_at: 1_700_000_000,
             expires_at: Some(1_707_776_000),
         };

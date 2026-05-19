@@ -94,7 +94,7 @@ pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
 pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
 pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
 pub const RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT: &str = "event.fabric.processor.contract";
-pub const RECORD_SECURITY_PROCESSOR_SEED: &str = "security.processor.seed";
+pub const RECORD_CYBERSEC_PROCESSOR_SEED: &str = "cybersec.processor.seed";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -1853,7 +1853,7 @@ pub struct EventFabricProcessorContractRecord {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct SecurityProcessorSeedRecord {
+pub struct CybersecProcessorSeedRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     pub seed_id: String,
@@ -4576,153 +4576,153 @@ pub fn validate_event_fabric_processor_contract(
     Ok(())
 }
 
-pub fn validate_security_processor_seed(record: &SecurityProcessorSeedRecord) -> Result<()> {
+pub fn validate_cybersec_processor_seed(record: &CybersecProcessorSeedRecord) -> Result<()> {
     validate_optional_kind(
         &record.kind,
-        RECORD_SECURITY_PROCESSOR_SEED,
-        "security processor seed",
+        RECORD_CYBERSEC_PROCESSOR_SEED,
+        "cybersec processor seed",
     )?;
-    require_non_empty(&record.seed_id, "security processor seed missing seedId")?;
+    require_non_empty(&record.seed_id, "cybersec processor seed missing seedId")?;
     require_non_empty(
         &record.fabric_ref,
-        "security processor seed missing fabricRef",
+        "cybersec processor seed missing fabricRef",
     )?;
     require_non_empty(
         &record.processor_ref,
-        "security processor seed missing processorRef",
+        "cybersec processor seed missing processorRef",
     )?;
     require_non_empty(
         &record.processor_role_ref,
-        "security processor seed missing processorRoleRef",
+        "cybersec processor seed missing processorRoleRef",
     )?;
     require_non_empty(
         &record.threat_analysis_role,
-        "security processor seed missing threatAnalysisRole",
+        "cybersec processor seed missing threatAnalysisRole",
     )?;
     if !matches!(
         record.state.as_str(),
         "ready" | "degraded" | "blocked" | "pending" | "expired"
     ) {
-        return Err(anyhow!("invalid security processor seed state"));
+        return Err(anyhow!("invalid cybersec processor seed state"));
     }
     require_non_empty_vec(
         &record.input_access_class_refs,
-        "security processor seed requires inputAccessClassRefs",
+        "cybersec processor seed requires inputAccessClassRefs",
     )?;
     validate_reference_list(
         &record.input_access_class_refs,
-        "security processor seed missing inputAccessClassRefs",
+        "cybersec processor seed missing inputAccessClassRefs",
     )?;
     require_non_empty_vec(
         &record.input_event_classes,
-        "security processor seed requires inputEventClasses",
+        "cybersec processor seed requires inputEventClasses",
     )?;
     validate_reference_list(
         &record.input_event_classes,
-        "security processor seed missing inputEventClasses",
+        "cybersec processor seed missing inputEventClasses",
     )?;
     require_non_empty_vec(
         &record.input_content_classes,
-        "security processor seed requires inputContentClasses",
+        "cybersec processor seed requires inputContentClasses",
     )?;
     for content_class in &record.input_content_classes {
         validate_content_class(content_class)?;
     }
     validate_reference_list(
         &record.access_group_refs,
-        "security processor seed missing accessGroupRefs",
+        "cybersec processor seed missing accessGroupRefs",
     )?;
     validate_reference_list(
         &record.processor_contract_refs,
-        "security processor seed missing processorContractRefs",
+        "cybersec processor seed missing processorContractRefs",
     )?;
     validate_reference_list(
         &record.evidence_profile_refs,
-        "security processor seed missing evidenceProfileRefs",
+        "cybersec processor seed missing evidenceProfileRefs",
     )?;
     validate_reference_list(
         &record.materialization_budget_refs,
-        "security processor seed missing materializationBudgetRefs",
+        "cybersec processor seed missing materializationBudgetRefs",
     )?;
     validate_reference_list(
         &record.storage_refs,
-        "security processor seed missing storageRefs",
+        "cybersec processor seed missing storageRefs",
     )?;
     validate_reference_list(
         &record.detail_refs,
-        "security processor seed missing detailRefs",
+        "cybersec processor seed missing detailRefs",
     )?;
     validate_reference_list(
         &record.alert_output_refs,
-        "security processor seed missing alertOutputRefs",
+        "cybersec processor seed missing alertOutputRefs",
     )?;
     validate_reference_list(
         &record.evidence_hold_refs,
-        "security processor seed missing evidenceHoldRefs",
+        "cybersec processor seed missing evidenceHoldRefs",
     )?;
     validate_reference_list(
         &record.retention_hold_refs,
-        "security processor seed missing retentionHoldRefs",
+        "cybersec processor seed missing retentionHoldRefs",
     )?;
     if let Some(policy) = validate_policy_object(
         &record.encrypted_detail_custody,
-        "security processor seed encryptedDetailCustody",
+        "cybersec processor seed encryptedDetailCustody",
     )? {
         require_policy_string(
             policy,
             "state",
-            "security processor seed encryptedDetailCustody",
+            "cybersec processor seed encryptedDetailCustody",
         )?;
     }
     let Some(boundaries) = validate_policy_object(
         &record.semantic_boundaries,
-        "security processor seed semanticBoundaries",
+        "cybersec processor seed semanticBoundaries",
     )?
     else {
         return Err(anyhow!(
-            "security processor seed requires semanticBoundaries"
+            "cybersec processor seed requires semanticBoundaries"
         ));
     };
     require_policy_string(
         boundaries,
         "logging",
-        "security processor seed semanticBoundaries",
+        "cybersec processor seed semanticBoundaries",
     )?;
     require_policy_string(
         boundaries,
         "storage",
-        "security processor seed semanticBoundaries",
+        "cybersec processor seed semanticBoundaries",
     )?;
     require_policy_string(
         boundaries,
         "eventDomain",
-        "security processor seed semanticBoundaries",
+        "cybersec processor seed semanticBoundaries",
     )?;
     if record.state == "blocked" && record.blocked_reasons.is_empty() {
         return Err(anyhow!(
-            "security processor seed blocked state requires blockedReasons"
+            "cybersec processor seed blocked state requires blockedReasons"
         ));
     }
     validate_reference_list(
         &record.evidence_refs,
-        "security processor seed missing evidenceRefs",
+        "cybersec processor seed missing evidenceRefs",
     )?;
     validate_reference_list(
         &record.blocked_reasons,
-        "security processor seed missing blockedReasons",
+        "cybersec processor seed missing blockedReasons",
     )?;
-    validate_safe_facts(&record.safe_facts, "security processor seed safeFacts")?;
-    reject_private_content_fields(&record.safe_facts, "security processor seed safeFacts")?;
-    reject_media_byte_fields(&serde_json::to_value(record)?, "security processor seed")?;
+    validate_safe_facts(&record.safe_facts, "cybersec processor seed safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "cybersec processor seed safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "cybersec processor seed")?;
     if record.issued_at == 0 {
-        return Err(anyhow!("security processor seed missing issuedAt"));
+        return Err(anyhow!("cybersec processor seed missing issuedAt"));
     }
     if record
         .expires_at
         .is_some_and(|expires_at| expires_at <= record.issued_at)
     {
         return Err(anyhow!(
-            "security processor seed expiresAt must be after issuedAt"
+            "cybersec processor seed expiresAt must be after issuedAt"
         ));
     }
     Ok(())
@@ -9994,25 +9994,25 @@ mod tests {
         let runner_ref = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
         let runner_operation = RunnerOperationRecord {
             kind: Some(RECORD_RUNNER_OPERATION.to_string()),
-            operation_id: "runner-operation:security-bootstrap:execute:1".to_string(),
-            runner_id: "runner:lab-gateway:security-bootstrap".to_string(),
+            operation_id: "runner-operation:cybersec-bootstrap:execute:1".to_string(),
+            runner_id: "runner:lab-gateway:cybersec-bootstrap".to_string(),
             runner_ref: runner_ref.clone(),
             host_ref: "host:lab-gateway".to_string(),
             requester_ref: "identity:aux".to_string(),
-            subject_ref: "security-processor:dev".to_string(),
-            contract_ref: "security-processor:seed@0.1.0".to_string(),
+            subject_ref: "cybersec-processor:dev".to_string(),
+            contract_ref: "cybersec-processor:seed@0.1.0".to_string(),
             operation: RUNNER_OPERATION_EXECUTE.to_string(),
             state: RUNNER_OPERATION_STATE_SUCCEEDED.to_string(),
-            grant_refs: vec!["authority-grant:runner:security-bootstrap".to_string()],
+            grant_refs: vec!["authority-grant:runner:cybersec-bootstrap".to_string()],
             capability_refs: vec![CAPABILITY_APP_RUNNER_PIN.to_string()],
-            input_refs: vec!["event-fabric:security-audit".to_string()],
-            output_refs: vec!["alert-hold:security-bootstrap:1".to_string()],
+            input_refs: vec!["event-fabric:cybersec-audit".to_string()],
+            output_refs: vec!["alert-hold:cybersec-bootstrap:1".to_string()],
             evidence_refs: vec![
                 "evidence:runner:started".to_string(),
                 "evidence:runner:completed".to_string(),
             ],
-            proof_refs: vec!["proof:runner:security-bootstrap".to_string()],
-            release_refs: vec!["release:runner:security-bootstrap".to_string()],
+            proof_refs: vec!["proof:runner:cybersec-bootstrap".to_string()],
+            release_refs: vec!["release:runner:cybersec-bootstrap".to_string()],
             resource_budget: json!({
                 "profileRef": "resource-profile:operator-dev",
                 "maxMemoryMiB": 512,
@@ -10020,7 +10020,7 @@ mod tests {
             }),
             resource_posture: Some(ResourcePosture {
                 kind: Some(RECORD_RESOURCE_POSTURE.to_string()),
-                posture_id: "resource-posture:runner:security-bootstrap".to_string(),
+                posture_id: "resource-posture:runner:cybersec-bootstrap".to_string(),
                 profile_id: "resource-profile:operator-dev".to_string(),
                 state: "withinBudget".to_string(),
                 counts: json!({ "memoryMiB": 120, "cpuPct": 8 }),
@@ -10031,15 +10031,15 @@ mod tests {
             secret_boundary: json!({ "state": SURFACE_SECRET_BOUNDARY_NOT_REQUIRED }),
             release_posture: json!({
                 "state": "rollbackReady",
-                "buildRef": "build:runner:security-bootstrap",
-                "releaseRef": "release:runner:security-bootstrap",
-                "rollbackRef": "rollback:runner:security-bootstrap"
+                "buildRef": "build:runner:cybersec-bootstrap",
+                "releaseRef": "release:runner:cybersec-bootstrap",
+                "rollbackRef": "rollback:runner:cybersec-bootstrap"
             }),
             rollback_posture: Value::Null,
-            release_ref: Some("release:runner:security-bootstrap".to_string()),
-            rollback_ref: Some("rollback:runner:security-bootstrap".to_string()),
+            release_ref: Some("release:runner:cybersec-bootstrap".to_string()),
+            rollback_ref: Some("rollback:runner:cybersec-bootstrap".to_string()),
             blocked_reasons: vec![],
-            safe_facts: json!({ "role": "securityProcessor", "mode": "operatorDev" }),
+            safe_facts: json!({ "role": "cybersecProcessor", "mode": "operatorDev" }),
             requested_at: 1_700_000_000,
             accepted_at: Some(1_700_000_001),
             started_at: Some(1_700_000_002),
@@ -10550,7 +10550,7 @@ mod tests {
             kind: Some(RECORD_MATERIALIZATION_BUDGET.to_string()),
             budget_id: "budget-encrypted-detail-ref".to_string(),
             source_authority: "logging:events".to_string(),
-            consumer_ref: "constitute-security".to_string(),
+            consumer_ref: "constitute-cybersec".to_string(),
             subscriber_ref: None,
             payload_class: "retainedRaw".to_string(),
             copy_role: "referenceOnly".to_string(),
@@ -10994,12 +10994,12 @@ mod tests {
 
         let event_class = EventFabricAccessClassRecord {
             kind: Some(RECORD_EVENT_FABRIC_ACCESS_CLASS.to_string()),
-            class_id: "event-class:security-runtime".to_string(),
+            class_id: "event-class:cybersec-runtime".to_string(),
             content_class: "encryptedDetail".to_string(),
             privacy_tier: "domainEncrypted".to_string(),
-            event_classes: vec!["runtimeDiagnostic".to_string(), "securityAudit".to_string()],
+            event_classes: vec!["runtimeDiagnostic".to_string(), "cybersecAudit".to_string()],
             access_group_refs: vec![group.group_id.clone()],
-            processor_role_refs: vec!["role:logging".to_string(), "role:security".to_string()],
+            processor_role_refs: vec!["role:logging".to_string(), "role:cybersec".to_string()],
             storage_class: "storage:rolling-secure".to_string(),
             retention_class: "rolling".to_string(),
             safe_fact_policy: "indexOnly".to_string(),
@@ -11017,7 +11017,7 @@ mod tests {
             floor_id: "consumer-floor:logging.processor".to_string(),
             consumer_ref: "role:logging.processor".to_string(),
             subscription_id: None,
-            materialization_id: Some("event-fabric:logging-security".to_string()),
+            materialization_id: Some("event-fabric:logging-cybersec".to_string()),
             subject_ref: Some("event-fabric:logging.default".to_string()),
             cursor: None,
             ack_floor: Some("event:9".to_string()),
@@ -11035,7 +11035,7 @@ mod tests {
         };
         let processor = EventFabricProcessorContractRecord {
             kind: Some(RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT.to_string()),
-            processor_contract_id: "processor-contract:logging.security-replay".to_string(),
+            processor_contract_id: "processor-contract:logging.cybersec-replay".to_string(),
             fabric_ref: "event-fabric:logging.default".to_string(),
             processor_ref: "service:logging".to_string(),
             processor_role_ref: "role:logging.processor".to_string(),
@@ -11088,12 +11088,12 @@ mod tests {
         bad_processor.state = "blocked".to_string();
         assert!(validate_event_fabric_processor_contract(&bad_processor).is_err());
 
-        let security_seed = SecurityProcessorSeedRecord {
-            kind: Some(RECORD_SECURITY_PROCESSOR_SEED.to_string()),
-            seed_id: "security-seed:logging.default".to_string(),
+        let cybersec_seed = CybersecProcessorSeedRecord {
+            kind: Some(RECORD_CYBERSEC_PROCESSOR_SEED.to_string()),
+            seed_id: "cybersec-seed:logging.default".to_string(),
             fabric_ref: "event-fabric:logging.default".to_string(),
-            processor_ref: "constitute-security".to_string(),
-            processor_role_ref: "role:security.processor".to_string(),
+            processor_ref: "constitute-cybersec".to_string(),
+            processor_role_ref: "role:cybersec.processor".to_string(),
             state: "ready".to_string(),
             threat_analysis_role: "eventFabricThreatAnalysis".to_string(),
             input_access_class_refs: vec![event_class.class_id.clone()],
@@ -11101,13 +11101,13 @@ mod tests {
             input_content_classes: vec!["encryptedDetail".to_string()],
             access_group_refs: vec![group.group_id.clone()],
             processor_contract_refs: vec![processor.processor_contract_id.clone()],
-            evidence_profile_refs: vec!["logging.security.default".to_string()],
-            materialization_budget_refs: vec!["logging.security.default.90d".to_string()],
+            evidence_profile_refs: vec!["logging.cybersec.default".to_string()],
+            materialization_budget_refs: vec!["logging.cybersec.default.90d".to_string()],
             storage_refs: vec!["storage:logging.archive".to_string()],
             detail_refs: vec!["encrypted-detail:logging.default".to_string()],
-            alert_output_refs: vec!["security:alerts".to_string()],
-            evidence_hold_refs: vec!["security:evidence-hold".to_string()],
-            retention_hold_refs: vec!["retention:security-hold".to_string()],
+            alert_output_refs: vec!["cybersec:alerts".to_string()],
+            evidence_hold_refs: vec!["cybersec:evidence-hold".to_string()],
+            retention_hold_refs: vec!["retention:cybersec-hold".to_string()],
             encrypted_detail_custody: json!({
                 "state": "referenceOnly",
                 "accessGroupRefs": [group.group_id.clone()]
@@ -11118,21 +11118,21 @@ mod tests {
                 "eventDomain": "doesNotOwn"
             }),
             safe_facts: json!({
-                "purpose": "securityThreatAnalysis",
+                "purpose": "cybersecThreatAnalysis",
                 "detailCustody": "encryptedDetailRef"
             }),
-            evidence_refs: vec!["evidence:security-seed".to_string()],
+            evidence_refs: vec!["evidence:cybersec-seed".to_string()],
             blocked_reasons: Vec::new(),
             issued_at: 1_700_000_074,
             expires_at: Some(1_707_776_074),
         };
-        validate_security_processor_seed(&security_seed).expect("valid security processor seed");
-        let mut bad_seed = security_seed.clone();
+        validate_cybersec_processor_seed(&cybersec_seed).expect("valid cybersec processor seed");
+        let mut bad_seed = cybersec_seed.clone();
         bad_seed.state = "blocked".to_string();
-        assert!(validate_security_processor_seed(&bad_seed).is_err());
-        let mut missing_boundary = security_seed;
+        assert!(validate_cybersec_processor_seed(&bad_seed).is_err());
+        let mut missing_boundary = cybersec_seed;
         missing_boundary.semantic_boundaries = json!({ "logging": "mayConsumeMaterializations" });
-        assert!(validate_security_processor_seed(&missing_boundary).is_err());
+        assert!(validate_cybersec_processor_seed(&missing_boundary).is_err());
 
         let revocation = AuthorityGrantRevocationPostureRecord {
             kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),

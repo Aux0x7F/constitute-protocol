@@ -123,7 +123,7 @@ import {
   assertContributionLifecycle,
   assertEventFabricAccessClass,
   assertEventFabricProcessorContract,
-  assertSecurityProcessorSeed,
+  assertCybersecProcessorSeed,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -1524,22 +1524,22 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
   const requestedAt = 1700000000;
   const operation = assertRunnerOperation({
     kind: SWARM.RECORD_KIND.RUNNER_OPERATION,
-    operationId: "runner-operation:security-bootstrap:execute:1",
-    runnerId: "runner:lab-gateway:security-bootstrap",
+    operationId: "runner-operation:cybersec-bootstrap:execute:1",
+    runnerId: "runner:lab-gateway:cybersec-bootstrap",
     runnerRef: BROWSER_PK,
     hostRef: "host:lab-gateway",
     requesterRef: "identity:aux",
-    subjectRef: "security-processor:dev",
-    contractRef: "security-processor:seed@0.1.0",
+    subjectRef: "cybersec-processor:dev",
+    contractRef: "cybersec-processor:seed@0.1.0",
     operation: RUNNER.OPERATION.EXECUTE,
     state: RUNNER.OPERATION_STATE.SUCCEEDED,
-    grantRefs: ["authority-grant:runner:security-bootstrap"],
+    grantRefs: ["authority-grant:runner:cybersec-bootstrap"],
     capabilityRefs: ["app.runner.pin"],
-    inputRefs: ["event-fabric:security-audit"],
-    outputRefs: ["alert-hold:security-bootstrap:1"],
+    inputRefs: ["event-fabric:cybersec-audit"],
+    outputRefs: ["alert-hold:cybersec-bootstrap:1"],
     evidenceRefs: ["evidence:runner:started", "evidence:runner:completed"],
-    proofRefs: ["proof:runner:security-bootstrap"],
-    releaseRefs: ["release:runner:security-bootstrap"],
+    proofRefs: ["proof:runner:cybersec-bootstrap"],
+    releaseRefs: ["release:runner:cybersec-bootstrap"],
     resourceBudget: {
       profileRef: "resource-profile:operator-dev",
       maxMemoryMiB: 512,
@@ -1547,7 +1547,7 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
     },
     resourcePosture: {
       kind: SWARM.RECORD_KIND.RESOURCE_POSTURE,
-      postureId: "resource-posture:runner:security-bootstrap",
+      postureId: "resource-posture:runner:cybersec-bootstrap",
       profileId: "resource-profile:operator-dev",
       state: SWARM.RESOURCE_POSTURE_STATE.WITHIN_BUDGET,
       counts: { memoryMiB: 120, cpuPct: 8 },
@@ -1559,14 +1559,14 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
     },
     releasePosture: {
       state: SURFACE_APP.RELEASE_POSTURE.ROLLBACK_READY,
-      buildRef: "build:runner:security-bootstrap",
-      releaseRef: "release:runner:security-bootstrap",
-      rollbackRef: "rollback:runner:security-bootstrap",
+      buildRef: "build:runner:cybersec-bootstrap",
+      releaseRef: "release:runner:cybersec-bootstrap",
+      rollbackRef: "rollback:runner:cybersec-bootstrap",
     },
-    releaseRef: "release:runner:security-bootstrap",
-    rollbackRef: "rollback:runner:security-bootstrap",
+    releaseRef: "release:runner:cybersec-bootstrap",
+    rollbackRef: "rollback:runner:cybersec-bootstrap",
     safeFacts: {
-      role: "securityProcessor",
+      role: "cybersecProcessor",
       mode: "operatorDev",
     },
     requestedAt,
@@ -1581,7 +1581,7 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
 
   const hostPosture = assertRunnerHostFulfillmentPosture({
     kind: SWARM.RECORD_KIND.RUNNER_HOST_FULFILLMENT_POSTURE,
-    postureId: "runner-host:lab-gateway:security-bootstrap:execute:1",
+    postureId: "runner-host:lab-gateway:cybersec-bootstrap:execute:1",
     runnerId: operation.runnerId,
     runnerRef: operation.runnerRef,
     hostRef: operation.hostRef,
@@ -1591,7 +1591,7 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
     requesterRef: operation.requesterRef,
     subjectRef: operation.subjectRef,
     contractRef: operation.contractRef,
-    serviceRefs: ["service:security-bootstrap"],
+    serviceRefs: ["service:cybersec-bootstrap"],
     contractRefs: [operation.contractRef],
     grantRefs: operation.grantRefs,
     capabilityRefs: operation.capabilityRefs,
@@ -2094,29 +2094,29 @@ test("logging helpers validate safe event envelopes", () => {
   assert.throws(() => assertLogEventEnvelope(badDetail), /encryptedDetailRefs entry missing containerId/);
 });
 
-test("logging evidence profiles declare security custody without raw payload", () => {
+test("logging evidence profiles declare cybersec custody without raw payload", () => {
   const profile = assertLogEvidenceProfile({
     kind: LOGGING.EVIDENCE_PROFILE_RECORD_KIND,
-    profileId: "logging.security.default",
-    consumerRef: "constitute-security",
+    profileId: "logging.cybersec.default",
+    consumerRef: "constitute-cybersec",
     eventClasses: [
-      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.SECURITY_AUDIT,
+      LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.CYBERSEC_AUDIT,
       LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.RUNTIME_DIAGNOSTIC,
       LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.SERVICE_EVENT,
       LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.STORAGE_ACCESS,
       LOGGING.EVIDENCE_PROFILE_EVENT_CLASS.MEDIA_PATH,
     ],
     retentionWindow: "90d",
-    safeIndexRefs: ["logging.events.safeIndex", "logging.dashboard.securitySummary"],
+    safeIndexRefs: ["logging.events.safeIndex", "logging.dashboard.cybersecSummary"],
     detailCustody: LOGGING.EVIDENCE_DETAIL_CUSTODY.ENCRYPTED_DETAIL_REF,
     encryptedDetailRequired: true,
-    accessGrantRefs: ["grant:logging.security.default"],
+    accessGrantRefs: ["grant:logging.cybersec.default"],
     storageContainerRefs: ["logging-archive"],
-    materializationBudgetRef: "logging.security.default.90d",
+    materializationBudgetRef: "logging.cybersec.default.90d",
     issuedAt: 1700000000,
     expiresAt: 1707776000,
   });
-  assert.equal(profile.consumerRef, "constitute-security");
+  assert.equal(profile.consumerRef, "constitute-cybersec");
   assert.equal(profile.detailCustody, LOGGING.EVIDENCE_DETAIL_CUSTODY.ENCRYPTED_DETAIL_REF);
 
   assert.throws(() => assertLogEvidenceProfile({
@@ -2633,7 +2633,7 @@ test("materialization budgets encode copy roles and consumer floors", () => {
     kind: SWARM.RECORD_KIND.MATERIALIZATION_BUDGET,
     budgetId: "budget-encrypted-detail-ref",
     sourceAuthority: "logging:events",
-    consumerRef: "constitute-security",
+    consumerRef: "constitute-cybersec",
     payloadClass: SWARM.MATERIALIZATION_PAYLOAD_CLASS.RETAINED_RAW,
     copyRole: SWARM.MATERIALIZATION_COPY_ROLE.REFERENCE_ONLY,
     transferMode: SWARM.MATERIALIZATION_TRANSFER_MODE.REFERENCE_ONLY,
@@ -3135,12 +3135,12 @@ test("agreement grammar separates action authority, access epochs, private reada
 
   assert.equal(assertEventFabricAccessClass({
     kind: "event.fabric.accessClass",
-    classId: "event-class:security-runtime",
+    classId: "event-class:cybersec-runtime",
     contentClass: AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL,
     privacyTier: AGREEMENT.PRIVACY_TIER.DOMAIN_ENCRYPTED,
-    eventClasses: ["runtimeDiagnostic", "securityAudit"],
+    eventClasses: ["runtimeDiagnostic", "cybersecAudit"],
     accessGroupRefs: [group.groupId],
-    processorRoleRefs: ["role:logging", "role:security"],
+    processorRoleRefs: ["role:logging", "role:cybersec"],
     storageClass: "storage:rolling-secure",
     retentionClass: "rolling",
     safeFactPolicy: AGREEMENT.SAFE_FACT_POLICY.INDEX_ONLY,
@@ -3152,7 +3152,7 @@ test("agreement grammar separates action authority, access epochs, private reada
     classId: "event-class:bad-public",
     contentClass: AGREEMENT.CONTENT_CLASS.ENCRYPTED_RAW,
     privacyTier: AGREEMENT.PRIVACY_TIER.PUBLIC_SAFE,
-    eventClasses: ["securityAudit"],
+    eventClasses: ["cybersecAudit"],
     accessGroupRefs: [group.groupId],
     storageClass: "storage:raw",
     retentionClass: "short",
@@ -3163,7 +3163,7 @@ test("agreement grammar separates action authority, access epochs, private reada
   const floor = assertConsumerFloor({
     kind: SWARM.RECORD_KIND.CONSUMER_FLOOR,
     floorId: "consumer-floor:logging.processor",
-    materializationId: "event-fabric:logging-security",
+    materializationId: "event-fabric:logging-cybersec",
     consumerRef: "role:logging.processor",
     subjectRef: "event-fabric:logging.default",
     ackFloor: "event:9",
@@ -3175,13 +3175,13 @@ test("agreement grammar separates action authority, access epochs, private reada
   });
   const processor = assertEventFabricProcessorContract({
     kind: SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_CONTRACT,
-    processorContractId: "processor-contract:logging.security-replay",
+    processorContractId: "processor-contract:logging.cybersec-replay",
     fabricRef: "event-fabric:logging.default",
     processorRef: "service:logging",
     processorRoleRef: "role:logging.processor",
     state: "ready",
-    inputAccessClassRefs: ["event-class:security-runtime"],
-    inputEventClasses: ["securityAudit", "runtimeDiagnostic"],
+    inputAccessClassRefs: ["event-class:cybersec-runtime"],
+    inputEventClasses: ["cybersecAudit", "runtimeDiagnostic"],
     inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
     outputRefs: ["projection:logging.dashboard", "storage:logging.archive"],
     storageRefs: ["storage:logging.archive"],
@@ -3223,26 +3223,26 @@ test("agreement grammar separates action authority, access epochs, private reada
     blockedReasons: [],
   }), /blocked state requires blockedReasons/);
 
-  const securitySeed = assertSecurityProcessorSeed({
-    kind: SWARM.RECORD_KIND.SECURITY_PROCESSOR_SEED,
-    seedId: "security-seed:logging.default",
+  const cybersecSeed = assertCybersecProcessorSeed({
+    kind: SWARM.RECORD_KIND.CYBERSEC_PROCESSOR_SEED,
+    seedId: "cybersec-seed:logging.default",
     fabricRef: "event-fabric:logging.default",
-    processorRef: "constitute-security",
-    processorRoleRef: "role:security.processor",
+    processorRef: "constitute-cybersec",
+    processorRoleRef: "role:cybersec.processor",
     state: "ready",
     threatAnalysisRole: "eventFabricThreatAnalysis",
-    inputAccessClassRefs: ["event-class:security-runtime"],
-    inputEventClasses: ["securityAudit", "runtimeDiagnostic"],
+    inputAccessClassRefs: ["event-class:cybersec-runtime"],
+    inputEventClasses: ["cybersecAudit", "runtimeDiagnostic"],
     inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
     accessGroupRefs: [group.groupId],
     processorContractRefs: [processor.processorContractId],
-    evidenceProfileRefs: ["logging.security.default"],
-    materializationBudgetRefs: ["logging.security.default.90d"],
+    evidenceProfileRefs: ["logging.cybersec.default"],
+    materializationBudgetRefs: ["logging.cybersec.default.90d"],
     storageRefs: ["storage:logging.archive"],
     detailRefs: ["encrypted-detail:logging.default"],
-    alertOutputRefs: ["security:alerts"],
-    evidenceHoldRefs: ["security:evidence-hold"],
-    retentionHoldRefs: ["retention:security-hold"],
+    alertOutputRefs: ["cybersec:alerts"],
+    evidenceHoldRefs: ["cybersec:evidence-hold"],
+    retentionHoldRefs: ["retention:cybersec-hold"],
     encryptedDetailCustody: {
       state: "referenceOnly",
       accessGroupRefs: [group.groupId],
@@ -3253,23 +3253,23 @@ test("agreement grammar separates action authority, access epochs, private reada
       eventDomain: "doesNotOwn",
     },
     safeFacts: {
-      purpose: "securityThreatAnalysis",
+      purpose: "cybersecThreatAnalysis",
       detailCustody: "encryptedDetailRef",
     },
-    evidenceRefs: ["evidence:security-seed"],
+    evidenceRefs: ["evidence:cybersec-seed"],
     issuedAt: 1700000074,
     expiresAt: 1707776074,
   });
-  assert.equal(securitySeed.plane, AGREEMENT.PLANE.MATERIALIZATION);
-  assert.equal(securitySeed.semanticBoundaries.eventDomain, "doesNotOwn");
-  assert.throws(() => assertSecurityProcessorSeed({
-    ...securitySeed,
-    seedId: "security-seed:blocked",
+  assert.equal(cybersecSeed.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.equal(cybersecSeed.semanticBoundaries.eventDomain, "doesNotOwn");
+  assert.throws(() => assertCybersecProcessorSeed({
+    ...cybersecSeed,
+    seedId: "cybersec-seed:blocked",
     state: "blocked",
     blockedReasons: [],
   }), /blocked state requires blockedReasons/);
-  assert.throws(() => assertSecurityProcessorSeed({
-    ...securitySeed,
+  assert.throws(() => assertCybersecProcessorSeed({
+    ...cybersecSeed,
     semanticBoundaries: { logging: "mayConsumeMaterializations" },
   }), /semanticBoundaries storage/);
 
@@ -3308,8 +3308,8 @@ test("multi-identity authority proof covers sync, read, write/reduce, and revoke
       "grant:logging:agent-writer",
       "grant:nvr:agent-preview",
     ],
-    accessGroupRefs: ["access-group:identity:aux:security-events"],
-    accessEpochRefs: ["access-epoch:identity:aux:security-events:3"],
+    accessGroupRefs: ["access-group:identity:aux:cybersec-events"],
+    accessEpochRefs: ["access-epoch:identity:aux:cybersec-events:3"],
     privateEnvelopeRefs: ["private-envelope:logging-event:sample"],
     revocationRefs: ["revocation:grant:agent-full-access"],
     checks: [
@@ -3326,8 +3326,8 @@ test("multi-identity authority proof covers sync, read, write/reduce, and revoke
         plane: AGREEMENT.PLANE.ACCESS_AUTHORITY,
         state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
         targetRef: "event-fabric:logging.default",
-        accessGroupRefs: ["access-group:identity:aux:security-events"],
-        accessEpochRefs: ["access-epoch:identity:aux:security-events:3"],
+        accessGroupRefs: ["access-group:identity:aux:cybersec-events"],
+        accessEpochRefs: ["access-epoch:identity:aux:cybersec-events:3"],
         evidenceRefs: ["proof:caac-open:agent-dev"],
       },
       {

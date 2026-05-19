@@ -174,7 +174,7 @@ export type LogRedactionClass = "safe" | "redacted" | "encryptedDetail" | "sensi
 export type LogVerbosityClass = "critical" | "normal" | "verbose" | "noise";
 export type LogRetentionClass = "forever" | "long" | "rolling" | "short" | "ephemeral";
 export type LogEvidenceProfileEventClass =
-  | "securityAudit"
+  | "cybersecAudit"
   | "runtimeDiagnostic"
   | "serviceEvent"
   | "storageAccess"
@@ -1386,8 +1386,8 @@ export type EventFabricProcessorContractRecord = {
   expiresAt?: number;
 };
 
-export type SecurityProcessorSeedRecord = {
-  kind?: "security.processor.seed";
+export type CybersecProcessorSeedRecord = {
+  kind?: "cybersec.processor.seed";
   seedId: string;
   fabricRef: string;
   processorRef: string;
@@ -2873,7 +2873,7 @@ export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
 export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
 export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
-export function assertSecurityProcessorSeed(record: unknown): SecurityProcessorSeedRecord;
+export function assertCybersecProcessorSeed(record: unknown): CybersecProcessorSeedRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {
