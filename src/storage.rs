@@ -3,10 +3,17 @@ use serde::{Deserialize, Serialize};
 
 use crate::crypto::sha256_hex;
 
+pub const RECORD_STORAGE_BACKEND_POSTURE: &str = "storage.backend.posture";
+pub const RECORD_STORAGE_BACKEND_SNAPSHOT: &str = "storage.backend.snapshot";
 pub const STORAGE_OBJECT_HASH_ALG: &str = "sha256-ciphertext-v1";
 pub const STORAGE_CHUNK_HASH_ALG: &str = "sha256-ciphertext-v1";
 pub const STORAGE_ENCRYPTION_ALG_XCHACHA20POLY1305: &str = "xchacha20poly1305";
 pub const CAAC_KIND_STORAGE_KEY_GRANT: &str = "storage.key_grant";
+pub const STORAGE_BACKEND_KIND_LOCAL_FS_SQLITE: &str = "localFsSqlite";
+pub const STORAGE_BACKEND_STATE_READY: &str = "ready";
+pub const STORAGE_BACKEND_STATE_DEGRADED: &str = "degraded";
+pub const STORAGE_BACKEND_STATE_BLOCKED: &str = "blocked";
+pub const STORAGE_BACKEND_STATE_UNAVAILABLE: &str = "unavailable";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -140,6 +147,68 @@ pub struct StorageAvailabilityRef {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct StorageBackendPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub backend_id: String,
+    pub storage_member_ref: String,
+    pub backend_kind: String,
+    pub state: String,
+    pub root_ref: String,
+    pub object_count: u64,
+    pub chunk_count: u64,
+    pub stored_bytes: u64,
+    pub index_shard_count: u64,
+    pub key_grant_count: u64,
+    pub pin_lease_count: u64,
+    pub pin_intent_count: u64,
+    pub pin_attestation_count: u64,
+    pub materialized_entry_count: u64,
+    pub logical_deleted_object_count: u64,
+    pub missing_chunk_count: u64,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub sampled_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct StorageBackendSnapshot {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub snapshot_id: String,
+    pub backend_id: String,
+    pub storage_member_ref: String,
+    pub posture_ref: String,
+    pub object_count: u64,
+    pub chunk_count: u64,
+    pub pin_lease_count: u64,
+    pub pin_intent_count: u64,
+    pub pin_attestation_count: u64,
+    pub materialized_entry_count: u64,
+    #[serde(default)]
+    pub object_refs: Vec<String>,
+    #[serde(default)]
+    pub chunk_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_lease_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_intent_refs: Vec<String>,
+    #[serde(default)]
+    pub pin_projection_refs: Vec<String>,
+    pub capped_at: u64,
+    pub captured_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct EncryptedDetailRef {
     pub object_id: String,
     pub container_id: String,
@@ -207,6 +276,113 @@ pub fn validate_storage_manifest(manifest: &StorageObjectManifest) -> Result<()>
     Ok(())
 }
 
+pub fn validate_storage_backend_posture(posture: &StorageBackendPosture) -> Result<()> {
+    validate_optional_kind(
+        posture.kind.as_deref(),
+        RECORD_STORAGE_BACKEND_POSTURE,
+        "storage backend posture",
+    )?;
+    require_non_empty(
+        &posture.posture_id,
+        "storage backend posture missing postureId",
+    )?;
+    require_non_empty(
+        &posture.backend_id,
+        "storage backend posture missing backendId",
+    )?;
+    require_non_empty(
+        &posture.storage_member_ref,
+        "storage backend posture missing storageMemberRef",
+    )?;
+    require_non_empty(&posture.root_ref, "storage backend posture missing rootRef")?;
+    if posture.backend_kind != STORAGE_BACKEND_KIND_LOCAL_FS_SQLITE {
+        return Err(anyhow!("unsupported storage backend kind"));
+    }
+    validate_storage_backend_state(&posture.state)?;
+    if posture.state == STORAGE_BACKEND_STATE_READY && posture.missing_chunk_count > 0 {
+        return Err(anyhow!("ready storage backend cannot have missing chunks"));
+    }
+    if matches!(
+        posture.state.as_str(),
+        STORAGE_BACKEND_STATE_DEGRADED | STORAGE_BACKEND_STATE_BLOCKED
+    ) && posture.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "degraded or blocked storage backend posture requires blockedReasons"
+        ));
+    }
+    validate_ref_list(
+        &posture.evidence_refs,
+        "storage backend posture evidenceRefs",
+    )?;
+    validate_ref_list(
+        &posture.blocked_reasons,
+        "storage backend posture blockedReasons",
+    )?;
+    if posture.sampled_at == 0 {
+        return Err(anyhow!("storage backend posture missing sampledAt"));
+    }
+    if posture
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= posture.sampled_at)
+    {
+        return Err(anyhow!(
+            "storage backend posture expiresAt must be after sampledAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_storage_backend_snapshot(snapshot: &StorageBackendSnapshot) -> Result<()> {
+    validate_optional_kind(
+        snapshot.kind.as_deref(),
+        RECORD_STORAGE_BACKEND_SNAPSHOT,
+        "storage backend snapshot",
+    )?;
+    require_non_empty(
+        &snapshot.snapshot_id,
+        "storage backend snapshot missing snapshotId",
+    )?;
+    require_non_empty(
+        &snapshot.backend_id,
+        "storage backend snapshot missing backendId",
+    )?;
+    require_non_empty(
+        &snapshot.storage_member_ref,
+        "storage backend snapshot missing storageMemberRef",
+    )?;
+    require_non_empty(
+        &snapshot.posture_ref,
+        "storage backend snapshot missing postureRef",
+    )?;
+    validate_ref_list(&snapshot.object_refs, "storage backend snapshot objectRefs")?;
+    validate_ref_list(&snapshot.chunk_refs, "storage backend snapshot chunkRefs")?;
+    validate_ref_list(
+        &snapshot.pin_lease_refs,
+        "storage backend snapshot pinLeaseRefs",
+    )?;
+    validate_ref_list(
+        &snapshot.pin_intent_refs,
+        "storage backend snapshot pinIntentRefs",
+    )?;
+    validate_ref_list(
+        &snapshot.pin_projection_refs,
+        "storage backend snapshot pinProjectionRefs",
+    )?;
+    if snapshot.captured_at == 0 {
+        return Err(anyhow!("storage backend snapshot missing capturedAt"));
+    }
+    if snapshot
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= snapshot.captured_at)
+    {
+        return Err(anyhow!(
+            "storage backend snapshot expiresAt must be after capturedAt"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_storage_index_shard(shard: &StorageIndexShard) -> Result<()> {
     if shard.shard_id.trim().is_empty() {
         return Err(anyhow!("storage index shard missing id"));
@@ -225,6 +401,44 @@ pub fn validate_storage_index_shard(shard: &StorageIndexShard) -> Result<()> {
     }
     if shard.chunks.is_empty() {
         return Err(anyhow!("storage index shard has no chunks"));
+    }
+    Ok(())
+}
+
+fn validate_optional_kind(kind: Option<&str>, expected: &str, context: &str) -> Result<()> {
+    if let Some(kind) = kind {
+        if kind != expected {
+            return Err(anyhow!("{context} kind mismatch"));
+        }
+    }
+    Ok(())
+}
+
+fn validate_storage_backend_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        STORAGE_BACKEND_STATE_READY
+            | STORAGE_BACKEND_STATE_DEGRADED
+            | STORAGE_BACKEND_STATE_BLOCKED
+            | STORAGE_BACKEND_STATE_UNAVAILABLE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported storage backend state"))
+    }
+}
+
+fn require_non_empty(value: &str, message: &str) -> Result<()> {
+    if value.trim().is_empty() {
+        Err(anyhow!(message.to_string()))
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_ref_list(values: &[String], context: &str) -> Result<()> {
+    for value in values {
+        require_non_empty(value, context)?;
     }
     Ok(())
 }
@@ -272,5 +486,62 @@ mod tests {
         let hash = storage_ciphertext_hash(b"abc");
         chunk.hash = hash;
         assert!(validate_storage_chunk_ref(&chunk, b"abc").is_err());
+    }
+
+    #[test]
+    fn validates_storage_backend_posture_and_snapshot() {
+        let posture = StorageBackendPosture {
+            kind: Some(RECORD_STORAGE_BACKEND_POSTURE.to_string()),
+            posture_id: "storage-backend-posture:local:1".to_string(),
+            backend_id: "storage-backend:local".to_string(),
+            storage_member_ref: "service:storage:local".to_string(),
+            backend_kind: STORAGE_BACKEND_KIND_LOCAL_FS_SQLITE.to_string(),
+            state: STORAGE_BACKEND_STATE_READY.to_string(),
+            root_ref: "storage-root:local".to_string(),
+            object_count: 1,
+            chunk_count: 1,
+            stored_bytes: 16,
+            index_shard_count: 0,
+            key_grant_count: 0,
+            pin_lease_count: 1,
+            pin_intent_count: 1,
+            pin_attestation_count: 1,
+            materialized_entry_count: 0,
+            logical_deleted_object_count: 0,
+            missing_chunk_count: 0,
+            evidence_refs: vec!["storage:sqlite:local".to_string()],
+            blocked_reasons: vec![],
+            sampled_at: 1,
+            expires_at: Some(10),
+        };
+        validate_storage_backend_posture(&posture).expect("valid storage posture");
+
+        let snapshot = StorageBackendSnapshot {
+            kind: Some(RECORD_STORAGE_BACKEND_SNAPSHOT.to_string()),
+            snapshot_id: "storage-backend-snapshot:local:1".to_string(),
+            backend_id: posture.backend_id.clone(),
+            storage_member_ref: posture.storage_member_ref.clone(),
+            posture_ref: posture.posture_id.clone(),
+            object_count: posture.object_count,
+            chunk_count: posture.chunk_count,
+            pin_lease_count: posture.pin_lease_count,
+            pin_intent_count: posture.pin_intent_count,
+            pin_attestation_count: posture.pin_attestation_count,
+            materialized_entry_count: posture.materialized_entry_count,
+            object_refs: vec!["storage:object:object-1".to_string()],
+            chunk_refs: vec!["storage:chunk:chunk-1".to_string()],
+            pin_lease_refs: vec!["storage:pin-lease:pin-1".to_string()],
+            pin_intent_refs: vec!["storage:pin-intent:intent-1".to_string()],
+            pin_projection_refs: vec!["storage:pin-projection:intent-1".to_string()],
+            capped_at: 64,
+            captured_at: 1,
+            expires_at: Some(10),
+        };
+        validate_storage_backend_snapshot(&snapshot).expect("valid storage snapshot");
+
+        let mut bad_posture = posture;
+        bad_posture.state = STORAGE_BACKEND_STATE_READY.to_string();
+        bad_posture.missing_chunk_count = 1;
+        assert!(validate_storage_backend_posture(&bad_posture).is_err());
     }
 }
