@@ -109,6 +109,9 @@ pub const RECORD_MEDIA_FULFILLMENT_EVIDENCE: &str = "media.fulfillment.evidence"
 pub const RECORD_MEDIA_TRANSPORT_PATH: &str = "media.transport.path";
 pub const RECORD_MEDIA_TRANSPORT_OBSERVATION: &str = "media.transport.observation";
 pub const RECORD_SERVICE_EDGE_ADAPTER_POSTURE: &str = "service.edge.adapter.posture";
+pub const RECORD_SERVICE_MANAGER_POSTURE: &str = "service.manager.posture";
+pub const RECORD_SERVICE_MANAGER_OPERATION_POSTURE: &str = "service.manager.operation.posture";
+pub const RECORD_SERVICE_MANAGER_PROOF_DIGEST: &str = "service.manager.proof.digest";
 pub const RECORD_SERVICE_MANAGER_RELEASE_CONTRACT: &str = "service.manager.release.contract";
 pub const RECORD_SERVICE_MANAGER_SECRET_BOUNDARY: &str = "service.manager.secretBoundary";
 pub const RECORD_SERVICE_MANAGER_TRAIN_DIGEST: &str = "service.manager.train.digest";
@@ -157,6 +160,32 @@ pub const SURFACE_SECRET_BOUNDARY_NOT_REQUIRED: &str = "notRequired";
 pub const SURFACE_SECRET_BOUNDARY_RESOLVED: &str = "resolved";
 pub const SURFACE_SECRET_BOUNDARY_BLOCKED: &str = "blocked";
 pub const SURFACE_SECRET_BOUNDARY_UNAVAILABLE: &str = "unavailable";
+
+pub const SERVICE_MANAGER_POSTURE_MANUAL: &str = "manual";
+pub const SERVICE_MANAGER_POSTURE_READY: &str = "ready";
+pub const SERVICE_MANAGER_POSTURE_DEGRADED: &str = "degraded";
+pub const SERVICE_MANAGER_POSTURE_BLOCKED: &str = "blocked";
+pub const SERVICE_MANAGER_POSTURE_UNAVAILABLE: &str = "unavailable";
+
+pub const SERVICE_MANAGER_OPERATION_INSTALL: &str = "install";
+pub const SERVICE_MANAGER_OPERATION_UPDATE: &str = "update";
+pub const SERVICE_MANAGER_OPERATION_START: &str = "start";
+pub const SERVICE_MANAGER_OPERATION_STOP: &str = "stop";
+pub const SERVICE_MANAGER_OPERATION_RESTART: &str = "restart";
+pub const SERVICE_MANAGER_OPERATION_ROLLBACK: &str = "rollback";
+pub const SERVICE_MANAGER_OPERATION_RELEASE: &str = "release";
+pub const SERVICE_MANAGER_OPERATION_SECRET_READY: &str = "secretReady";
+pub const SERVICE_MANAGER_OPERATION_HEALTH_CHECK: &str = "healthCheck";
+pub const SERVICE_MANAGER_OPERATION_PROMOTE: &str = "promote";
+
+pub const SERVICE_MANAGER_OPERATION_STATE_REQUESTED: &str = "requested";
+pub const SERVICE_MANAGER_OPERATION_STATE_ACCEPTED: &str = "accepted";
+pub const SERVICE_MANAGER_OPERATION_STATE_RUNNING: &str = "running";
+pub const SERVICE_MANAGER_OPERATION_STATE_SUCCEEDED: &str = "succeeded";
+pub const SERVICE_MANAGER_OPERATION_STATE_FAILED: &str = "failed";
+pub const SERVICE_MANAGER_OPERATION_STATE_BLOCKED: &str = "blocked";
+pub const SERVICE_MANAGER_OPERATION_STATE_CANCELLED: &str = "cancelled";
+pub const SERVICE_MANAGER_OPERATION_STATE_SUPERSEDED: &str = "superseded";
 
 pub const SERVICE_MANAGER_PROOF_STATE_PENDING: &str = "pending";
 pub const SERVICE_MANAGER_PROOF_STATE_PROVED: &str = "proved";
@@ -1897,6 +1926,144 @@ pub struct CybersecProcessorSeedRecord {
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub manager_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub service_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub operation_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_digest_refs: Vec<String>,
+    #[serde(default)]
+    pub secret_boundary: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub rollback_posture: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerOperationPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub operation_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub manager_ref: String,
+    pub requester_ref: String,
+    pub operation: String,
+    pub state: String,
+    #[serde(default)]
+    pub service_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner_operation_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub secret_boundary: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub rollback_posture: Value,
+    #[serde(default)]
+    pub resource_budget: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture: Option<ResourcePosture>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub witness_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_refs: Vec<String>,
+    #[serde(default)]
+    pub release_witness_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub requested_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub accepted_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceManagerProofDigestRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub digest_id: String,
+    pub operation_id: String,
+    pub manager_id: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub train_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub release_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub commit_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub metrics_refs: Vec<String>,
+    #[serde(default)]
+    pub environment_refs: Vec<String>,
+    #[serde(default)]
+    pub service_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -4804,6 +4971,78 @@ pub fn validate_service_manager_secret_boundary(
     Ok(())
 }
 
+pub fn validate_service_manager_posture(record: &ServiceManagerPostureRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_POSTURE,
+        "service manager posture",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "service manager posture")?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager posture missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager posture missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.manager_ref,
+        "service manager posture missing managerRef",
+    )?;
+    validate_service_manager_posture_state(&record.state)?;
+    validate_reference_list(
+        &record.service_refs,
+        "service manager posture missing serviceRefs",
+    )?;
+    validate_capability_names(&record.capability_refs)?;
+    validate_reference_list(
+        &record.operation_refs,
+        "service manager posture missing operationRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_digest_refs,
+        "service manager posture missing proofDigestRefs",
+    )?;
+    validate_surface_secret_boundary_value(
+        &record.secret_boundary,
+        "service manager secretBoundary",
+    )?;
+    validate_surface_release_posture_value(
+        &record.release_posture,
+        "service manager releasePosture",
+    )?;
+    validate_surface_release_posture_value(
+        &record.rollback_posture,
+        "service manager rollbackPosture",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager posture missing evidenceRefs",
+    )?;
+    if record.state == SERVICE_MANAGER_POSTURE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "service manager blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager posture missing blockedReasons",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("service manager posture missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "service manager posture expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
 pub fn validate_service_manager_release_contract(
     record: &ServiceManagerReleaseContractRecord,
 ) -> Result<()> {
@@ -4935,6 +5174,278 @@ pub fn validate_service_manager_release_contract(
     {
         return Err(anyhow!(
             "service manager release contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_operation_posture(
+    record: &ServiceManagerOperationPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_OPERATION_POSTURE,
+        "service manager operation posture",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager operation posture",
+    )?;
+    require_non_empty(
+        &record.operation_id,
+        "service manager operation posture missing operationId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager operation posture missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager operation posture missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.manager_ref,
+        "service manager operation posture missing managerRef",
+    )?;
+    require_non_empty(
+        &record.requester_ref,
+        "service manager operation posture missing requesterRef",
+    )?;
+    validate_service_manager_operation_kind(&record.operation)?;
+    validate_service_manager_operation_state(&record.state)?;
+    validate_reference_list(
+        &record.service_refs,
+        "service manager operation posture missing serviceRefs",
+    )?;
+    validate_capability_names(&record.capability_refs)?;
+    validate_reference_list(
+        &record.authority_refs,
+        "service manager operation posture missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "service manager operation posture missing grantRefs",
+    )?;
+    validate_optional_ref(
+        record.runner_operation_ref.as_deref(),
+        "service manager operation posture missing runnerOperationRef",
+    )?;
+    if let Some(runner_ref) = record.runner_ref.as_deref() {
+        validate_resolved_member_ref(runner_ref, "service manager operation posture runnerRef")?;
+    }
+    validate_optional_ref(
+        record.host_ref.as_deref(),
+        "service manager operation posture missing hostRef",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "service manager operation posture missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "service manager operation posture missing rollbackRef",
+    )?;
+    if record.operation == SERVICE_MANAGER_OPERATION_ROLLBACK
+        && record
+            .rollback_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "service manager rollback operation requires rollbackRef"
+        ));
+    }
+    if record.operation == SERVICE_MANAGER_OPERATION_RELEASE
+        && record
+            .release_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "service manager release operation requires releaseRef"
+        ));
+    }
+    validate_surface_secret_boundary_value(
+        &record.secret_boundary,
+        "service manager operation secretBoundary",
+    )?;
+    validate_surface_release_posture_value(
+        &record.release_posture,
+        "service manager operation releasePosture",
+    )?;
+    validate_surface_release_posture_value(
+        &record.rollback_posture,
+        "service manager operation rollbackPosture",
+    )?;
+    validate_safe_facts(
+        &record.resource_budget,
+        "service manager operation posture resourceBudget",
+    )?;
+    if let Some(resource_posture) = &record.resource_posture {
+        validate_resource_posture(resource_posture)?;
+    }
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager operation posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "service manager operation posture missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.witness_refs,
+        "service manager operation posture missing witnessRefs",
+    )?;
+    validate_reference_list(
+        &record.retention_refs,
+        "service manager operation posture missing retentionRefs",
+    )?;
+    validate_reference_list(
+        &record.release_witness_refs,
+        "service manager operation posture missing releaseWitnessRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SERVICE_MANAGER_OPERATION_STATE_BLOCKED | SERVICE_MANAGER_OPERATION_STATE_FAILED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager blocked or failed operation requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager operation posture missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "service manager operation posture safeFacts",
+    )?;
+    validate_operation_timeline(
+        record.requested_at,
+        &[
+            record.accepted_at,
+            record.started_at,
+            record.completed_at,
+            record.observed_at,
+        ],
+        record.expires_at,
+        "service manager operation posture",
+    )?;
+    if let (Some(started_at), Some(completed_at)) = (record.started_at, record.completed_at) {
+        if completed_at < started_at {
+            return Err(anyhow!(
+                "service manager operation posture completedAt must not be before startedAt"
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn validate_service_manager_proof_digest(
+    record: &ServiceManagerProofDigestRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_PROOF_DIGEST,
+        "service manager proof digest",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager proof digest",
+    )?;
+    require_non_empty(
+        &record.digest_id,
+        "service manager proof digest missing digestId",
+    )?;
+    require_non_empty(
+        &record.operation_id,
+        "service manager proof digest missing operationId",
+    )?;
+    require_non_empty(
+        &record.manager_id,
+        "service manager proof digest missing managerId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager proof digest missing subjectRef",
+    )?;
+    validate_service_manager_proof_state(&record.state)?;
+    validate_optional_ref(
+        record.train_ref.as_deref(),
+        "service manager proof digest missing trainRef",
+    )?;
+    validate_optional_ref(
+        record.release_ref.as_deref(),
+        "service manager proof digest missing releaseRef",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "service manager proof digest missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.commit_refs,
+        "service manager proof digest missing commitRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "service manager proof digest missing artifactRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "service manager proof digest missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.metrics_refs,
+        "service manager proof digest missing metricsRefs",
+    )?;
+    validate_reference_list(
+        &record.environment_refs,
+        "service manager proof digest missing environmentRefs",
+    )?;
+    validate_reference_list(
+        &record.service_refs,
+        "service manager proof digest missing serviceRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager proof digest missing evidenceRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SERVICE_MANAGER_PROOF_STATE_BLOCKED | SERVICE_MANAGER_PROOF_STATE_FAILED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager blocked or failed proof digest requires blockedReasons"
+        ));
+    }
+    if record.state == SERVICE_MANAGER_PROOF_STATE_PROVED
+        && record.artifact_refs.is_empty()
+        && record.proof_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "service manager proved proof digest requires artifactRefs or proofRefs"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager proof digest missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "service manager proof digest safeFacts")?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("service manager proof digest missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "service manager proof digest expiresAt must be after observedAt"
         ));
     }
     Ok(())
@@ -7523,6 +8034,59 @@ fn validate_surface_secret_boundary_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported surface secret boundary state"))
+    }
+}
+
+fn validate_service_manager_posture_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_MANAGER_POSTURE_MANUAL
+            | SERVICE_MANAGER_POSTURE_READY
+            | SERVICE_MANAGER_POSTURE_DEGRADED
+            | SERVICE_MANAGER_POSTURE_BLOCKED
+            | SERVICE_MANAGER_POSTURE_UNAVAILABLE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager posture state"))
+    }
+}
+
+fn validate_service_manager_operation_kind(operation: &str) -> Result<()> {
+    if matches!(
+        operation,
+        SERVICE_MANAGER_OPERATION_INSTALL
+            | SERVICE_MANAGER_OPERATION_UPDATE
+            | SERVICE_MANAGER_OPERATION_START
+            | SERVICE_MANAGER_OPERATION_STOP
+            | SERVICE_MANAGER_OPERATION_RESTART
+            | SERVICE_MANAGER_OPERATION_ROLLBACK
+            | SERVICE_MANAGER_OPERATION_RELEASE
+            | SERVICE_MANAGER_OPERATION_SECRET_READY
+            | SERVICE_MANAGER_OPERATION_HEALTH_CHECK
+            | SERVICE_MANAGER_OPERATION_PROMOTE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager operation"))
+    }
+}
+
+fn validate_service_manager_operation_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        SERVICE_MANAGER_OPERATION_STATE_REQUESTED
+            | SERVICE_MANAGER_OPERATION_STATE_ACCEPTED
+            | SERVICE_MANAGER_OPERATION_STATE_RUNNING
+            | SERVICE_MANAGER_OPERATION_STATE_SUCCEEDED
+            | SERVICE_MANAGER_OPERATION_STATE_FAILED
+            | SERVICE_MANAGER_OPERATION_STATE_BLOCKED
+            | SERVICE_MANAGER_OPERATION_STATE_CANCELLED
+            | SERVICE_MANAGER_OPERATION_STATE_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported service manager operation state"))
     }
 }
 
@@ -11345,6 +11909,108 @@ mod tests {
         };
         validate_service_manager_train_digest(&train_digest).expect("valid train digest");
 
+        let operation = ServiceManagerOperationPostureRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_OPERATION_POSTURE.to_string()),
+            operation_id: "operation:gateway:promote:2026-05-18".to_string(),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            manager_ref: "member:gateway-manager".to_string(),
+            requester_ref: "identity:operator".to_string(),
+            operation: SERVICE_MANAGER_OPERATION_PROMOTE.to_string(),
+            state: SERVICE_MANAGER_OPERATION_STATE_SUCCEEDED.to_string(),
+            service_refs: vec!["service:gateway".to_string()],
+            capability_refs: vec!["service.manage".to_string()],
+            authority_refs: vec!["authority:ops-admin".to_string()],
+            grant_refs: vec!["grant:service-manager:gateway".to_string()],
+            runner_operation_ref: Some("runner-operation:gateway:promote".to_string()),
+            runner_ref: Some(pubkey_from_sk_hex(BROWSER_SK).expect("browser pk")),
+            host_ref: Some("host:lab-gateway".to_string()),
+            release_ref: Some("release:gateway:2026-05-18".to_string()),
+            rollback_ref: Some("rollback:gateway:previous".to_string()),
+            secret_boundary: Value::Null,
+            release_posture: json!({
+                "state": "rollbackReady",
+                "buildRef": "build:gateway:2026-05-18",
+                "releaseRef": "release:gateway:2026-05-18",
+                "rollbackRef": "rollback:gateway:previous"
+            }),
+            rollback_posture: Value::Null,
+            resource_budget: json!({
+                "profileRef": "resource-profile:service-manager",
+                "maxMemoryMiB": 512
+            }),
+            resource_posture: Some(ResourcePosture {
+                kind: Some(RECORD_RESOURCE_POSTURE.to_string()),
+                posture_id: "resource-posture:service-manager:gateway".to_string(),
+                profile_id: "resource-profile:service-manager".to_string(),
+                state: "withinBudget".to_string(),
+                counts: json!({ "memoryMiB": 120 }),
+                budgets: json!({ "memoryMiB": 512 }),
+                blocked_reasons: vec![],
+                sampled_at: 1_700_000_040,
+            }),
+            evidence_refs: vec!["ci:gateway:linux".to_string()],
+            proof_refs: vec!["proof:gateway:smoke".to_string()],
+            witness_refs: vec!["witness:gateway-manager:observed".to_string()],
+            retention_refs: vec!["retention:gateway-release:90d".to_string()],
+            release_witness_refs: vec!["witness:operator:release-ready".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "ci": "passed", "architecture": "surface-bootstrap" }),
+            requested_at: 1_700_000_010,
+            accepted_at: Some(1_700_000_020),
+            started_at: Some(1_700_000_030),
+            completed_at: Some(1_700_000_070),
+            observed_at: Some(1_700_000_080),
+            expires_at: Some(1_700_003_600),
+        };
+        validate_service_manager_operation_posture(&operation)
+            .expect("valid service manager operation posture");
+
+        let proof_digest = ServiceManagerProofDigestRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_PROOF_DIGEST.to_string()),
+            digest_id: "proof-digest:gateway:2026-05-18".to_string(),
+            operation_id: operation.operation_id.clone(),
+            manager_id: operation.manager_id.clone(),
+            subject_ref: operation.subject_ref.clone(),
+            state: SERVICE_MANAGER_PROOF_STATE_PROVED.to_string(),
+            train_ref: Some(train_digest.train_id.clone()),
+            release_ref: operation.release_ref.clone(),
+            rollback_ref: operation.rollback_ref.clone(),
+            commit_refs: vec!["git:gateway:4c9a49c".to_string()],
+            artifact_refs: vec!["artifact:gateway:ci".to_string()],
+            proof_refs: vec!["proof:gateway:linux".to_string()],
+            metrics_refs: vec!["metrics:spine:service-manager".to_string()],
+            environment_refs: vec!["env:github-actions".to_string()],
+            service_refs: vec!["service:gateway".to_string()],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "linux": "passed" }),
+            observed_at: 1_700_000_090,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_service_manager_proof_digest(&proof_digest)
+            .expect("valid service manager proof digest");
+
+        let service_manager = ServiceManagerPostureRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_POSTURE.to_string()),
+            manager_id: "manager:lab-gateway".to_string(),
+            subject_ref: "service:gateway".to_string(),
+            manager_ref: "member:gateway-manager".to_string(),
+            state: SERVICE_MANAGER_POSTURE_READY.to_string(),
+            service_refs: vec!["service:gateway".to_string()],
+            capability_refs: vec!["service.manage".to_string()],
+            operation_refs: vec![operation.operation_id.clone()],
+            proof_digest_refs: vec![proof_digest.digest_id.clone()],
+            secret_boundary: Value::Null,
+            release_posture: Value::Null,
+            rollback_posture: Value::Null,
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_003_600),
+        };
+        validate_service_manager_posture(&service_manager).expect("valid service manager posture");
+
         let bootstrap_contract = SurfaceAppBootstrapContractRecord {
             kind: Some(RECORD_SURFACE_APP_BOOTSTRAP_CONTRACT.to_string()),
             bootstrap_contract_id: "bootstrap-contract:gateway-ui".to_string(),
@@ -11380,6 +12046,30 @@ mod tests {
         bad_proof.metrics_refs.clear();
         bad_proof.proof_refs.clear();
         assert!(validate_service_manager_lab_proof(&bad_proof).is_err());
+
+        let mut bad_operation = operation.clone();
+        bad_operation.operation = SERVICE_MANAGER_OPERATION_ROLLBACK.to_string();
+        bad_operation.rollback_ref = None;
+        assert!(validate_service_manager_operation_posture(&bad_operation).is_err());
+
+        let mut bad_operation_state = operation.clone();
+        bad_operation_state.state = SERVICE_MANAGER_OPERATION_STATE_BLOCKED.to_string();
+        bad_operation_state.blocked_reasons.clear();
+        assert!(validate_service_manager_operation_posture(&bad_operation_state).is_err());
+
+        let mut bad_runner_ref = operation.clone();
+        bad_runner_ref.runner_ref = Some("member:gateway-manager".to_string());
+        assert!(validate_service_manager_operation_posture(&bad_runner_ref).is_err());
+
+        let mut bad_digest = proof_digest.clone();
+        bad_digest.artifact_refs.clear();
+        bad_digest.proof_refs.clear();
+        assert!(validate_service_manager_proof_digest(&bad_digest).is_err());
+
+        let mut bad_posture = service_manager;
+        bad_posture.state = SERVICE_MANAGER_POSTURE_BLOCKED.to_string();
+        bad_posture.blocked_reasons.clear();
+        assert!(validate_service_manager_posture(&bad_posture).is_err());
 
         let mut bad_bootstrap = bootstrap_contract;
         bad_bootstrap.release_contract_ref = None;
