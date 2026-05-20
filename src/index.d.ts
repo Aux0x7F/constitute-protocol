@@ -358,6 +358,8 @@ export type ServiceNodeProjectionRecord = {
   status?: Record<string, unknown>;
   result?: Record<string, unknown>;
   attaches?: ServiceAttachDescriptor[];
+  materializationBudgetRefs?: string[];
+  consumerFloorRefs?: string[];
   safeFacts?: Record<string, unknown>;
   diagnostics?: unknown[];
 };
@@ -377,6 +379,8 @@ export type ProjectionRecord = {
   cursor?: ProjectionCursor;
   freshness: ProjectionFreshness;
   scope?: Record<string, unknown>;
+  materializationBudgetRef?: string;
+  consumerFloorRef?: string;
   payloadSchema?: string;
   payload: Record<string, unknown>;
   safeFacts?: Record<string, unknown>;

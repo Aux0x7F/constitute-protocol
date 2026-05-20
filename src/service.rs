@@ -149,6 +149,10 @@ pub struct ServiceNodeProjectionRecord {
     #[serde(default)]
     pub attaches: Vec<ServiceAttachDescriptor>,
     #[serde(default)]
+    pub materialization_budget_refs: Vec<String>,
+    #[serde(default)]
+    pub consumer_floor_refs: Vec<String>,
+    #[serde(default)]
     pub safe_facts: Value,
     #[serde(default)]
     pub diagnostics: Vec<Value>,
@@ -327,6 +331,18 @@ pub fn validate_service_node_projection_record(
     }
     for attach in &record.attaches {
         validate_service_attach_descriptor(attach)?;
+    }
+    for budget_ref in &record.materialization_budget_refs {
+        if budget_ref.trim().is_empty() {
+            return Err(anyhow!(
+                "service node projection materializationBudgetRef is empty"
+            ));
+        }
+    }
+    for floor_ref in &record.consumer_floor_refs {
+        if floor_ref.trim().is_empty() {
+            return Err(anyhow!("service node projection consumerFloorRef is empty"));
+        }
     }
     reject_unsafe_safe_facts(&record.safe_facts)?;
     Ok(())
@@ -556,6 +572,8 @@ mod tests {
             status: json!({ "state": "ok" }),
             result: json!({}),
             attaches: vec![],
+            materialization_budget_refs: vec!["logging.health.node.summary".to_string()],
+            consumer_floor_refs: vec!["logging-ui.health.floor".to_string()],
             safe_facts: json!({ "status": "ok" }),
             diagnostics: vec![],
         };

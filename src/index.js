@@ -1022,6 +1022,10 @@ export function assertServiceNodeProjectionRecord(record, surface) {
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`service node projection ${field} must be an object`);
   }
   for (const attach of record.attaches || []) assertServiceAttachDescriptor(attach);
+  requireArray(record.materializationBudgetRefs || [], "service node projection materializationBudgetRefs")
+    .forEach((entry) => requireString(entry, "service node projection materializationBudgetRef"));
+  requireArray(record.consumerFloorRefs || [], "service node projection consumerFloorRefs")
+    .forEach((entry) => requireString(entry, "service node projection consumerFloorRef"));
   rejectUnsafeSafeFacts(record.safeFacts ?? {});
   return record;
 }
@@ -1214,6 +1218,8 @@ export function assertProjectionRecord(result, descriptor) {
   assertProjectionChannelId(result.channelId, descriptor);
   if (!String(result.service || "").trim()) throw new Error("projection record missing service");
   if (!String(result.servicePk || "").trim()) throw new Error("projection record missing servicePk");
+  if (result.materializationBudgetRef !== undefined) requireString(result.materializationBudgetRef, "projection record materializationBudgetRef");
+  if (result.consumerFloorRef !== undefined) requireString(result.consumerFloorRef, "projection record consumerFloorRef");
   assertProjectionFreshness(result.freshness);
   const payload = result.payload ?? {};
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -1231,6 +1237,8 @@ export function makeProjectionRecord({
   cursor,
   freshness,
   scope = {},
+  materializationBudgetRef,
+  consumerFloorRef,
   payloadSchema,
   payload = {},
   safeFacts = {},
@@ -1245,6 +1253,8 @@ export function makeProjectionRecord({
     ...(cursor ? { cursor } : {}),
     freshness,
     scope,
+    ...(materializationBudgetRef ? { materializationBudgetRef } : {}),
+    ...(consumerFloorRef ? { consumerFloorRef } : {}),
     ...(payloadSchema ? { payloadSchema } : {}),
     payload,
     safeFacts,

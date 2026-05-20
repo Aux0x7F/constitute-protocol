@@ -11629,9 +11629,7 @@ mod tests {
             authority_refs: vec!["authority:aux-browser".to_string()],
             access_group_refs: vec!["access-group:nvr-ui:media-preview".to_string()],
             access_epoch_refs: vec!["access-epoch:nvr-ui:media-preview:7".to_string()],
-            private_envelope_refs: vec![
-                "private-envelope:nvr-ui:media-preview:latest".to_string(),
-            ],
+            private_envelope_refs: vec!["private-envelope:nvr-ui:media-preview:latest".to_string()],
             sync_refs: vec!["witness:nvr-ui:manifest:observed".to_string()],
             required_content_classes: vec![
                 "uiProjection".to_string(),
