@@ -6,6 +6,7 @@ mod nostr;
 pub mod projection;
 pub mod records;
 pub mod service;
+pub mod source;
 pub mod storage;
 pub mod swarm;
 
@@ -23,5 +24,6 @@ pub use nostr::{
 pub use projection::*;
 pub use records::*;
 pub use service::*;
+pub use source::*;
 pub use storage::*;
 pub use swarm::*;
