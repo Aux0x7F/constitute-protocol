@@ -1,4 +1,5 @@
 pub mod broker;
+pub mod build;
 pub mod caac;
 pub mod crypto;
 pub mod logging;
@@ -11,6 +12,7 @@ pub mod storage;
 pub mod swarm;
 
 pub use broker::*;
+pub use build::*;
 pub use caac::*;
 pub use crypto::*;
 pub use logging::*;
