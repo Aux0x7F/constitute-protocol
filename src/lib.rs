@@ -1,3 +1,4 @@
+pub mod app;
 pub mod broker;
 pub mod build;
 pub mod caac;
@@ -11,6 +12,7 @@ pub mod source;
 pub mod storage;
 pub mod swarm;
 
+pub use app::*;
 pub use broker::*;
 pub use build::*;
 pub use caac::*;
