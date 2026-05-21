@@ -301,7 +301,12 @@ pub fn validate_source_ref_update(record: &SourceRefUpdate) -> Result<()> {
             "blocked or rejected source ref update needs blockedReasons"
         ));
     }
-    if record.policy.fast_forward_only && record.from_snapshot_ref.is_none() {
+    if matches!(
+        record.state.as_str(),
+        SOURCE_UPDATE_STATE_ACCEPTED | SOURCE_UPDATE_STATE_APPLIED
+    ) && record.policy.fast_forward_only
+        && record.from_snapshot_ref.is_none()
+    {
         return Err(anyhow!(
             "fast-forward source ref update needs fromSnapshotRef"
         ));
@@ -738,5 +743,28 @@ mod tests {
             observed_at: 2,
         };
         validate_source_import_proof(&proof).expect("valid import proof");
+    }
+
+    #[test]
+    fn blocked_fast_forward_update_can_name_missing_base() {
+        let update = SourceRefUpdate {
+            kind: Some(RECORD_SOURCE_REF_UPDATE.to_string()),
+            update_ref: "source:update:main-blocked".to_string(),
+            source_graph_ref: "source:graph:constitute-git".to_string(),
+            ref_name: "refs/heads/main".to_string(),
+            ref_kind: SOURCE_REF_KIND_BRANCH.to_string(),
+            from_snapshot_ref: None,
+            to_snapshot_ref: "source:snapshot:head".to_string(),
+            writer_ref: "identity:device:agent".to_string(),
+            state: SOURCE_UPDATE_STATE_BLOCKED.to_string(),
+            grant_refs: vec![],
+            evidence_refs: vec![],
+            witness_refs: vec![],
+            blocked_reasons: vec!["source.policy.fastForwardRequired".to_string()],
+            policy: policy(),
+            signed_at: 3,
+            valid_until: Some(20),
+        };
+        validate_source_ref_update(&update).expect("blocked update can carry missing base posture");
     }
 }
