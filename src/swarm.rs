@@ -5431,6 +5431,7 @@ pub fn validate_service_manager_operation_posture(
         "service manager operation posture missing rollbackRef",
     )?;
     if record.operation == SERVICE_MANAGER_OPERATION_ROLLBACK
+        && record.state != SERVICE_MANAGER_OPERATION_STATE_BLOCKED
         && record
             .rollback_ref
             .as_deref()
@@ -5443,6 +5444,7 @@ pub fn validate_service_manager_operation_posture(
         ));
     }
     if record.operation == SERVICE_MANAGER_OPERATION_RELEASE
+        && record.state != SERVICE_MANAGER_OPERATION_STATE_BLOCKED
         && record
             .release_ref
             .as_deref()
