@@ -177,6 +177,12 @@ pub struct AppReleaseResolution {
     pub selected_activity_ref: Option<String>,
     #[serde(default)]
     pub selected_artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub selected_module_role_refs: Vec<String>,
+    #[serde(default)]
+    pub selected_storage_refs: Vec<String>,
+    #[serde(default)]
+    pub source_digest_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_snapshot_ref: Option<String>,
     #[serde(default)]
@@ -365,6 +371,18 @@ pub fn validate_app_release_resolution(record: &AppReleaseResolution) -> Result<
         &record.selected_artifact_refs,
         "app release resolution selectedArtifactRefs",
     )?;
+    validate_ref_list(
+        &record.selected_module_role_refs,
+        "app release resolution selectedModuleRoleRefs",
+    )?;
+    validate_ref_list(
+        &record.selected_storage_refs,
+        "app release resolution selectedStorageRefs",
+    )?;
+    validate_ref_list(
+        &record.source_digest_refs,
+        "app release resolution sourceDigestRefs",
+    )?;
     validate_optional_ref(
         record.source_snapshot_ref.as_deref(),
         "app release resolution sourceSnapshotRef",
@@ -395,12 +413,15 @@ pub fn validate_app_release_resolution(record: &AppReleaseResolution) -> Result<
         && (record.selected_release_ref.is_none()
             || record.selected_activity_ref.is_none()
             || record.selected_artifact_refs.is_empty()
+            || record.selected_module_role_refs.is_empty()
+            || record.selected_storage_refs.is_empty()
+            || record.source_digest_refs.is_empty()
             || record.source_snapshot_ref.is_none()
             || record.build_proof_refs.is_empty()
             || record.compatibility_refs.is_empty())
     {
         return Err(anyhow!(
-            "resolved app release requires selected release, activity, artifacts, source snapshot, build proof, and compatibility refs"
+            "resolved app release requires selected release, activity, artifacts, module roles, storage, source digest, source snapshot, build proof, and compatibility refs"
         ));
     }
     if matches!(
@@ -748,6 +769,9 @@ mod tests {
             selected_release_ref: Some(release.release_ref),
             selected_activity_ref: Some(activity.activity_ref),
             selected_artifact_refs: vec!["build:artifact:module".to_string()],
+            selected_module_role_refs: release.module_role_refs,
+            selected_storage_refs: release.storage_refs,
+            source_digest_refs: vec!["source:digest:cybersec-module".to_string()],
             source_snapshot_ref: Some(release.source_snapshot_ref),
             build_proof_refs: release.proof_refs,
             compatibility_refs: contract.compatibility_refs,
@@ -778,6 +802,9 @@ mod tests {
             selected_release_ref: None,
             selected_activity_ref: None,
             selected_artifact_refs: vec![],
+            selected_module_role_refs: vec![],
+            selected_storage_refs: vec![],
+            source_digest_refs: vec![],
             source_snapshot_ref: None,
             build_proof_refs: vec![],
             compatibility_refs: vec![],
