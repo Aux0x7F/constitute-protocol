@@ -1,4 +1,6 @@
+pub mod app;
 pub mod broker;
+pub mod build;
 pub mod caac;
 pub mod crypto;
 pub mod logging;
@@ -6,10 +8,13 @@ mod nostr;
 pub mod projection;
 pub mod records;
 pub mod service;
+pub mod source;
 pub mod storage;
 pub mod swarm;
 
+pub use app::*;
 pub use broker::*;
+pub use build::*;
 pub use caac::*;
 pub use crypto::*;
 pub use logging::*;
@@ -23,5 +28,6 @@ pub use nostr::{
 pub use projection::*;
 pub use records::*;
 pub use service::*;
+pub use source::*;
 pub use storage::*;
 pub use swarm::*;

@@ -133,6 +133,10 @@ pub struct ProjectionRecord {
     #[serde(default)]
     pub scope: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub materialization_budget_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub consumer_floor_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub payload_schema: Option<String>,
     #[serde(default)]
     pub payload: Value,
@@ -254,6 +258,22 @@ pub fn validate_projection_record(record: &ProjectionRecord, allowed: &[String])
     if record.service_pk.trim().is_empty() {
         return Err(anyhow!("projection record missing servicePk"));
     }
+    if record
+        .materialization_budget_ref
+        .as_ref()
+        .is_some_and(|value| value.trim().is_empty())
+    {
+        return Err(anyhow!(
+            "projection record materializationBudgetRef is empty"
+        ));
+    }
+    if record
+        .consumer_floor_ref
+        .as_ref()
+        .is_some_and(|value| value.trim().is_empty())
+    {
+        return Err(anyhow!("projection record consumerFloorRef is empty"));
+    }
     if !record.payload.is_object() {
         return Err(anyhow!("projection record payload must be an object"));
     }
@@ -305,6 +325,8 @@ mod tests {
                 reason: None,
             },
             scope: json!({}),
+            materialization_budget_ref: Some("logging.default.72h.low".to_string()),
+            consumer_floor_ref: Some("logging-ui.events.floor".to_string()),
             payload_schema: Some("constitute.logging.events.v1".to_string()),
             payload: json!({ "events": [] }),
             safe_facts: json!({}),

@@ -174,7 +174,7 @@ export type LogRedactionClass = "safe" | "redacted" | "encryptedDetail" | "sensi
 export type LogVerbosityClass = "critical" | "normal" | "verbose" | "noise";
 export type LogRetentionClass = "forever" | "long" | "rolling" | "short" | "ephemeral";
 export type LogEvidenceProfileEventClass =
-  | "securityAudit"
+  | "cybersecAudit"
   | "runtimeDiagnostic"
   | "serviceEvent"
   | "storageAccess"
@@ -358,6 +358,8 @@ export type ServiceNodeProjectionRecord = {
   status?: Record<string, unknown>;
   result?: Record<string, unknown>;
   attaches?: ServiceAttachDescriptor[];
+  materializationBudgetRefs?: string[];
+  consumerFloorRefs?: string[];
   safeFacts?: Record<string, unknown>;
   diagnostics?: unknown[];
 };
@@ -377,6 +379,8 @@ export type ProjectionRecord = {
   cursor?: ProjectionCursor;
   freshness: ProjectionFreshness;
   scope?: Record<string, unknown>;
+  materializationBudgetRef?: string;
+  consumerFloorRef?: string;
   payloadSchema?: string;
   payload: Record<string, unknown>;
   safeFacts?: Record<string, unknown>;
@@ -1386,8 +1390,33 @@ export type EventFabricProcessorContractRecord = {
   expiresAt?: number;
 };
 
-export type SecurityProcessorSeedRecord = {
-  kind?: "security.processor.seed";
+export type EventFabricProcessorReportRecord = {
+  kind?: "event.fabric.processor.report";
+  reportId: string;
+  processorContractRef: string;
+  fabricRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  runnerOperationRef: string;
+  state: "clear" | "alerted" | "processed" | "degraded" | "blocked" | "expired";
+  inputRefs?: string[];
+  outputRefs?: string[];
+  inputAccessClassRefs?: string[];
+  inputEventClasses: string[];
+  inputContentClasses: AgreementContentClass[];
+  accessGroupRefs?: string[];
+  observedEventRefs?: string[];
+  heldEventRefs?: string[];
+  storageRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type CybersecProcessorSeedRecord = {
+  kind?: "cybersec.processor.seed";
   seedId: string;
   fabricRef: string;
   processorRef: string;
@@ -1772,6 +1801,8 @@ export type ServiceManagerOperation =
   | "stop"
   | "restart"
   | "rollback"
+  | "release"
+  | "secretReady"
   | "healthCheck"
   | "promote";
 export type ServiceManagerOperationState =
@@ -1825,6 +1856,16 @@ export type AppRunnerFulfillmentState =
   | "expired"
   | "blocked"
   | "failed"
+  | "rejected"
+  | "cancelled";
+export type RunnerHostFulfillmentState =
+  | "ready"
+  | "accepted"
+  | "running"
+  | "succeeded"
+  | "released"
+  | "degraded"
+  | "blocked"
   | "rejected"
   | "cancelled";
 
@@ -2151,6 +2192,9 @@ export type ServiceManagerOperationPosture = {
   resourcePosture?: ResourcePosture;
   evidenceRefs?: string[];
   proofRefs?: string[];
+  witnessRefs?: string[];
+  retentionRefs?: string[];
+  releaseWitnessRefs?: string[];
   blockedReasons?: string[];
   safeFacts?: Record<string, unknown>;
   requestedAt: number;
@@ -2241,17 +2285,22 @@ export type SurfaceAppAuthorityAccessPosture = {
   appId: string;
   actionRequired?: boolean;
   accessRequired?: boolean;
+  syncRequired?: boolean;
   rootRefs?: string[];
   deviceRefs?: string[];
   grantRefs?: string[];
   authorityRefs?: string[];
   accessGroupRefs?: string[];
+  accessEpochRefs?: string[];
+  privateEnvelopeRefs?: string[];
+  syncRefs?: string[];
   requiredContentClasses?: AgreementContentClass[];
   revocationRefs?: string[];
   exerciseRefs?: string[];
   evidenceRefs?: string[];
   actionPosture?: Record<string, unknown>;
   accessPosture?: Record<string, unknown>;
+  syncPosture?: Record<string, unknown>;
   revocationPosture?: Record<string, unknown>;
   expiryPosture?: Record<string, unknown>;
   revocationState?: string;
@@ -2353,6 +2402,11 @@ export type SurfaceAppSourceCandidatePosture = {
   releaseSourceRefs?: string[];
   swarmSourceRefs?: string[];
   releaseContractRef?: string;
+  digestRefs?: string[];
+  signatureRefs?: string[];
+  publisherRefs?: string[];
+  sourceAuthorityRefs?: string[];
+  releaseEvidenceRefs?: string[];
   compatibilityRefs?: string[];
   proofDigestRefs?: string[];
   rollbackRefs?: string[];
@@ -2407,7 +2461,14 @@ export type SurfaceAppRuntimeSelectionPosture = {
   pinnedVersion: string;
   sourceMode: SurfaceModuleFulfillmentMode;
   requiredModuleRoles?: SurfaceModuleRole[];
+  requiredPrimitiveRefs?: string[];
+  permissionRequirementRefs?: string[];
+  capabilityRequirementRefs?: string[];
+  projectionSubscriptionRefs?: string[];
+  materializationBudgetRefs?: string[];
+  accessRequirementRefs?: string[];
   compatibilityResult?: Record<string, unknown>;
+  appContractResolution?: Record<string, unknown>;
   sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   sourceTrustResult?: Record<string, unknown>;
   modulePostures?: SurfaceModuleRolePosture[];
@@ -2578,6 +2639,41 @@ export type RunnerOperationRecord = {
   expiresAt?: number;
 };
 
+export type RunnerHostFulfillmentPosture = {
+  kind?: "runner.host.fulfillment.posture";
+  postureId: string;
+  runnerId: string;
+  runnerRef: string;
+  hostRef: string;
+  operationId: string;
+  operation: RunnerOperation;
+  state: RunnerHostFulfillmentState;
+  requesterRef: string;
+  subjectRef: string;
+  contractRef: string;
+  serviceRefs?: string[];
+  contractRefs?: string[];
+  grantRefs: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  releaseRefs?: string[];
+  witnessRefs?: string[];
+  resourceBudget: Record<string, unknown>;
+  resourcePosture?: ResourcePosture | null;
+  secretBoundary?: SurfaceSecretBoundary;
+  releasePosture?: SurfaceReleasePosture | null;
+  rollbackPosture?: SurfaceReleasePosture | null;
+  releaseRef?: string;
+  rollbackRef?: string;
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type AppRunnerFulfillmentReport = {
   kind?: "app.runner.fulfillment.report";
   reportId: string;
@@ -2608,6 +2704,7 @@ export type AppRunnerFulfillmentReport = {
   secretBoundary?: SurfaceSecretBoundary;
   releasePosture?: SurfaceReleasePosture | null;
   rollbackPosture?: SurfaceReleasePosture | null;
+  hostFulfillmentPosture?: RunnerHostFulfillmentPosture | null;
   releaseRef?: string;
   rollbackRef?: string;
   operationPosture: Record<string, unknown>;
@@ -2651,6 +2748,7 @@ export type AppRunnerFulfillmentLifecycle = {
   secretBoundary?: SurfaceSecretBoundary;
   releasePosture?: SurfaceReleasePosture | null;
   rollbackPosture?: SurfaceReleasePosture | null;
+  hostFulfillmentPosture?: RunnerHostFulfillmentPosture | null;
   releaseRef?: string;
   rollbackRef?: string;
   operationPosture?: Record<string, unknown> | null;
@@ -2804,7 +2902,8 @@ export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
 export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
 export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
-export function assertSecurityProcessorSeed(record: unknown): SecurityProcessorSeedRecord;
+export function assertEventFabricProcessorReport(record: unknown): EventFabricProcessorReportRecord;
+export function assertCybersecProcessorSeed(record: unknown): CybersecProcessorSeedRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {
@@ -2879,5 +2978,6 @@ export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBoo
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
 export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
+export function assertRunnerHostFulfillmentPosture(record: unknown): RunnerHostFulfillmentPosture;
 export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;
 export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerFulfillmentLifecycle;

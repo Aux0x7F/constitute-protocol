@@ -57,6 +57,15 @@ export const SURFACE_APP = Object.freeze({
     NATIVE_INSTALLED: "nativeInstalled",
     DEV_OVERLAY: "devOverlay",
   }),
+  SOURCE_CLASS: Object.freeze({
+    BUNDLED: "bundled",
+    STORAGE_PINNED: "storagePinned",
+    RELEASE_FETCHED: "releaseFetched",
+    SWARM_HOSTED: "swarmHosted",
+    NATIVE_INSTALLED: "nativeInstalled",
+    DEV_OVERLAY: "devOverlay",
+    UNKNOWN: "unknown",
+  }),
   UPDATE_POSTURE: Object.freeze({
     STATIC: "static",
     COMPATIBLE: "compatible",
@@ -105,6 +114,8 @@ export const SURFACE_APP = Object.freeze({
     STOP: "stop",
     RESTART: "restart",
     ROLLBACK: "rollback",
+    RELEASE: "release",
+    SECRET_READY: "secretReady",
     HEALTH_CHECK: "healthCheck",
     PROMOTE: "promote",
   }),
@@ -197,6 +208,17 @@ export const RUNNER = Object.freeze({
     EXPIRED: "expired",
     BLOCKED: "blocked",
     FAILED: "failed",
+    REJECTED: "rejected",
+    CANCELLED: "cancelled",
+  }),
+  HOST_FULFILLMENT_STATE: Object.freeze({
+    READY: "ready",
+    ACCEPTED: "accepted",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    RELEASED: "released",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
     REJECTED: "rejected",
     CANCELLED: "cancelled",
   }),
@@ -339,7 +361,7 @@ export const LOGGING = Object.freeze({
     EPHEMERAL: "ephemeral",
   }),
   EVIDENCE_PROFILE_EVENT_CLASS: Object.freeze({
-    SECURITY_AUDIT: "securityAudit",
+    CYBERSEC_AUDIT: "cybersecAudit",
     RUNTIME_DIAGNOSTIC: "runtimeDiagnostic",
     SERVICE_EVENT: "serviceEvent",
     STORAGE_ACCESS: "storageAccess",
@@ -1000,6 +1022,10 @@ export function assertServiceNodeProjectionRecord(record, surface) {
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`service node projection ${field} must be an object`);
   }
   for (const attach of record.attaches || []) assertServiceAttachDescriptor(attach);
+  requireArray(record.materializationBudgetRefs || [], "service node projection materializationBudgetRefs")
+    .forEach((entry) => requireString(entry, "service node projection materializationBudgetRef"));
+  requireArray(record.consumerFloorRefs || [], "service node projection consumerFloorRefs")
+    .forEach((entry) => requireString(entry, "service node projection consumerFloorRef"));
   rejectUnsafeSafeFacts(record.safeFacts ?? {});
   return record;
 }
@@ -1192,6 +1218,8 @@ export function assertProjectionRecord(result, descriptor) {
   assertProjectionChannelId(result.channelId, descriptor);
   if (!String(result.service || "").trim()) throw new Error("projection record missing service");
   if (!String(result.servicePk || "").trim()) throw new Error("projection record missing servicePk");
+  if (result.materializationBudgetRef !== undefined) requireString(result.materializationBudgetRef, "projection record materializationBudgetRef");
+  if (result.consumerFloorRef !== undefined) requireString(result.consumerFloorRef, "projection record consumerFloorRef");
   assertProjectionFreshness(result.freshness);
   const payload = result.payload ?? {};
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -1209,6 +1237,8 @@ export function makeProjectionRecord({
   cursor,
   freshness,
   scope = {},
+  materializationBudgetRef,
+  consumerFloorRef,
   payloadSchema,
   payload = {},
   safeFacts = {},
@@ -1223,6 +1253,8 @@ export function makeProjectionRecord({
     ...(cursor ? { cursor } : {}),
     freshness,
     scope,
+    ...(materializationBudgetRef ? { materializationBudgetRef } : {}),
+    ...(consumerFloorRef ? { consumerFloorRef } : {}),
     ...(payloadSchema ? { payloadSchema } : {}),
     payload,
     safeFacts,
@@ -1301,7 +1333,8 @@ export const SWARM = Object.freeze({
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
-    SECURITY_PROCESSOR_SEED: "security.processor.seed",
+    EVENT_FABRIC_PROCESSOR_REPORT: "event.fabric.processor.report",
+    CYBERSEC_PROCESSOR_SEED: "cybersec.processor.seed",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1343,6 +1376,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
+    RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
@@ -1379,7 +1413,8 @@ export const SWARM = Object.freeze({
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
-    SECURITY_PROCESSOR_SEED: "security.processor.seed",
+    EVENT_FABRIC_PROCESSOR_REPORT: "event.fabric.processor.report",
+    CYBERSEC_PROCESSOR_SEED: "cybersec.processor.seed",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1421,6 +1456,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     RUNNER_OPERATION: "runner.operation",
+    RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
   }),
@@ -4062,9 +4098,9 @@ export function assertAuthorityRootOperation(record) {
   requireString(record.targetRef, "authority root operation targetRef");
   const adminGrantRefs = assertReferenceList(record.adminGrantRefs, "authority root operation adminGrantRefs");
   const rootRefs = assertOptionalReferenceList(record.rootRefs, "authority root operation rootRefs");
-  assertOptionalReferenceList(record.deviceRefs, "authority root operation deviceRefs");
-  assertOptionalReferenceList(record.notificationRefs, "authority root operation notificationRefs");
-  assertOptionalReferenceList(record.evidenceRefs, "authority root operation evidenceRefs");
+  const deviceRefs = assertOptionalReferenceList(record.deviceRefs, "authority root operation deviceRefs");
+  const notificationRefs = assertOptionalReferenceList(record.notificationRefs, "authority root operation notificationRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "authority root operation evidenceRefs");
   const state = assertActionGrantStateName(record.state, "authority root operation state");
   const blockedReason = String(record.blockedReason || "").trim();
   if ([AGREEMENT.ACTION_GRANT_STATE.BLOCKED, AGREEMENT.ACTION_GRANT_STATE.REJECTED].includes(state) && !blockedReason) {
@@ -4073,6 +4109,15 @@ export function assertAuthorityRootOperation(record) {
   if (adminGrantRefs.length === 0) throw new Error("authority root operation requires adminGrantRefs");
   if ([AGREEMENT.ROOT_OPERATION.ROTATE_ROOT, AGREEMENT.ROOT_OPERATION.REVOKE_ROOT, AGREEMENT.ROOT_OPERATION.ADD_ROOT].includes(record.operation) && rootRefs.length === 0) {
     throw new Error("root-changing authority operation requires rootRefs");
+  }
+  if ([AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE, AGREEMENT.ROOT_OPERATION.REVOKE_DEVICE].includes(record.operation) && deviceRefs.length === 0) {
+    throw new Error("device-changing authority operation requires deviceRefs");
+  }
+  if ([AGREEMENT.ACTION_GRANT_STATE.ACCEPTED, AGREEMENT.ACTION_GRANT_STATE.APPLIED].includes(state)) {
+    if (evidenceRefs.length === 0) throw new Error("accepted or applied authority root operation requires evidenceRefs");
+    if ([AGREEMENT.ROOT_OPERATION.ADD_ROOT, AGREEMENT.ROOT_OPERATION.ROTATE_ROOT, AGREEMENT.ROOT_OPERATION.REVOKE_ROOT, AGREEMENT.ROOT_OPERATION.ENROLL_DEVICE, AGREEMENT.ROOT_OPERATION.REVOKE_DEVICE].includes(record.operation) && notificationRefs.length === 0) {
+      throw new Error("root or device authority operation requires notificationRefs");
+    }
   }
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "authority root operation safeFacts");
   if (!Number(record.issuedAt || 0)) throw new Error("authority root operation missing issuedAt");
@@ -4409,51 +4454,88 @@ export function assertEventFabricProcessorContract(record) {
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }
 
-export function assertSecurityProcessorSeed(record) {
-  if (!isObject(record)) throw new Error("security processor seed must be an object");
-  assertRecordKind(record, SWARM.RECORD_KIND.SECURITY_PROCESSOR_SEED, "security processor seed");
-  requireString(record.seedId, "security processor seed seedId");
-  requireString(record.fabricRef, "security processor seed fabricRef");
-  requireString(record.processorRef, "security processor seed processorRef");
-  requireString(record.processorRoleRef, "security processor seed processorRoleRef");
-  requireString(record.threatAnalysisRole, "security processor seed threatAnalysisRole");
-  const state = requireString(record.state, "security processor seed state");
-  if (!["ready", "degraded", "blocked", "pending", "expired"].includes(state)) throw new Error("invalid security processor seed state");
-  assertReferenceList(record.inputAccessClassRefs, "security processor seed inputAccessClassRefs");
-  requireNonEmptyArray(record.inputEventClasses, "security processor seed inputEventClasses").forEach((entry) => requireString(entry, "security processor seed inputEventClass"));
-  requireNonEmptyArray(record.inputContentClasses, "security processor seed inputContentClasses").forEach((entry) => assertContentClassName(entry, "security processor seed inputContentClass"));
-  assertOptionalReferenceList(record.accessGroupRefs, "security processor seed accessGroupRefs");
-  assertOptionalReferenceList(record.processorContractRefs, "security processor seed processorContractRefs");
-  assertOptionalReferenceList(record.evidenceProfileRefs, "security processor seed evidenceProfileRefs");
-  assertOptionalReferenceList(record.materializationBudgetRefs, "security processor seed materializationBudgetRefs");
-  assertOptionalReferenceList(record.storageRefs, "security processor seed storageRefs");
-  assertOptionalReferenceList(record.detailRefs, "security processor seed detailRefs");
-  assertOptionalReferenceList(record.alertOutputRefs, "security processor seed alertOutputRefs");
-  assertOptionalReferenceList(record.evidenceHoldRefs, "security processor seed evidenceHoldRefs");
-  assertOptionalReferenceList(record.retentionHoldRefs, "security processor seed retentionHoldRefs");
-  const custody = assertOptionalObject(record.encryptedDetailCustody, "security processor seed encryptedDetailCustody");
-  if (Object.keys(custody).length) {
-    requireString(custody.state, "security processor seed encryptedDetailCustody state");
-    assertOptionalReferenceList(custody.accessGroupRefs, "security processor seed encryptedDetailCustody accessGroupRefs");
-    assertOptionalReferenceList(custody.detailRefs, "security processor seed encryptedDetailCustody detailRefs");
-  }
-  const boundaries = assertOptionalObject(record.semanticBoundaries, "security processor seed semanticBoundaries");
-  for (const field of ["logging", "storage", "eventDomain"]) {
-    requireString(boundaries[field], `security processor seed semanticBoundaries ${field}`);
-  }
-  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "security processor seed blockedReasons");
+export function assertEventFabricProcessorReport(record) {
+  if (!isObject(record)) throw new Error("event fabric processor report must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_REPORT, "event fabric processor report");
+  requireString(record.reportId, "event fabric processor report reportId");
+  requireString(record.processorContractRef, "event fabric processor report processorContractRef");
+  requireString(record.fabricRef, "event fabric processor report fabricRef");
+  requireString(record.processorRef, "event fabric processor report processorRef");
+  requireString(record.processorRoleRef, "event fabric processor report processorRoleRef");
+  requireString(record.runnerOperationRef, "event fabric processor report runnerOperationRef");
+  const state = requireString(record.state, "event fabric processor report state");
+  if (!["clear", "alerted", "processed", "degraded", "blocked", "expired"].includes(state)) throw new Error("invalid event fabric processor report state");
+  assertOptionalReferenceList(record.inputRefs, "event fabric processor report inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "event fabric processor report outputRefs");
+  assertOptionalReferenceList(record.inputAccessClassRefs, "event fabric processor report inputAccessClassRefs");
+  requireNonEmptyArray(record.inputEventClasses, "event fabric processor report inputEventClasses").forEach((entry) => requireString(entry, "event fabric processor report inputEventClass"));
+  requireNonEmptyArray(record.inputContentClasses, "event fabric processor report inputContentClasses").forEach((entry) => assertContentClassName(entry, "event fabric processor report inputContentClass"));
+  assertOptionalReferenceList(record.accessGroupRefs, "event fabric processor report accessGroupRefs");
+  assertOptionalReferenceList(record.observedEventRefs, "event fabric processor report observedEventRefs");
+  assertOptionalReferenceList(record.heldEventRefs, "event fabric processor report heldEventRefs");
+  assertOptionalReferenceList(record.storageRefs, "event fabric processor report storageRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "event fabric processor report evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "event fabric processor report blockedReasons");
   if (state === "blocked" && blockedReasons.length === 0) {
-    throw new Error("security processor seed blocked state requires blockedReasons");
+    throw new Error("event fabric processor report blocked state requires blockedReasons");
   }
-  assertOptionalReferenceList(record.evidenceRefs, "security processor seed evidenceRefs");
   if (record.safeFacts !== undefined) {
-    assertSafeObject(record.safeFacts, "security processor seed safeFacts");
-    assertNoPrivateContentFields(record.safeFacts, "security processor seed safeFacts");
+    assertSafeObject(record.safeFacts, "event fabric processor report safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "event fabric processor report safeFacts");
   }
-  rejectRouteControlByteFields(record, "security processor seed");
-  if (!Number(record.issuedAt || 0)) throw new Error("security processor seed missing issuedAt");
+  rejectRouteControlByteFields(record, "event fabric processor report");
+  if (!Number(record.observedAt || 0)) throw new Error("event fabric processor report missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("event fabric processor report expires before observedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertCybersecProcessorSeed(record) {
+  if (!isObject(record)) throw new Error("cybersec processor seed must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CYBERSEC_PROCESSOR_SEED, "cybersec processor seed");
+  requireString(record.seedId, "cybersec processor seed seedId");
+  requireString(record.fabricRef, "cybersec processor seed fabricRef");
+  requireString(record.processorRef, "cybersec processor seed processorRef");
+  requireString(record.processorRoleRef, "cybersec processor seed processorRoleRef");
+  requireString(record.threatAnalysisRole, "cybersec processor seed threatAnalysisRole");
+  const state = requireString(record.state, "cybersec processor seed state");
+  if (!["ready", "degraded", "blocked", "pending", "expired"].includes(state)) throw new Error("invalid cybersec processor seed state");
+  assertReferenceList(record.inputAccessClassRefs, "cybersec processor seed inputAccessClassRefs");
+  requireNonEmptyArray(record.inputEventClasses, "cybersec processor seed inputEventClasses").forEach((entry) => requireString(entry, "cybersec processor seed inputEventClass"));
+  requireNonEmptyArray(record.inputContentClasses, "cybersec processor seed inputContentClasses").forEach((entry) => assertContentClassName(entry, "cybersec processor seed inputContentClass"));
+  assertOptionalReferenceList(record.accessGroupRefs, "cybersec processor seed accessGroupRefs");
+  assertOptionalReferenceList(record.processorContractRefs, "cybersec processor seed processorContractRefs");
+  assertOptionalReferenceList(record.evidenceProfileRefs, "cybersec processor seed evidenceProfileRefs");
+  assertOptionalReferenceList(record.materializationBudgetRefs, "cybersec processor seed materializationBudgetRefs");
+  assertOptionalReferenceList(record.storageRefs, "cybersec processor seed storageRefs");
+  assertOptionalReferenceList(record.detailRefs, "cybersec processor seed detailRefs");
+  assertOptionalReferenceList(record.alertOutputRefs, "cybersec processor seed alertOutputRefs");
+  assertOptionalReferenceList(record.evidenceHoldRefs, "cybersec processor seed evidenceHoldRefs");
+  assertOptionalReferenceList(record.retentionHoldRefs, "cybersec processor seed retentionHoldRefs");
+  const custody = assertOptionalObject(record.encryptedDetailCustody, "cybersec processor seed encryptedDetailCustody");
+  if (Object.keys(custody).length) {
+    requireString(custody.state, "cybersec processor seed encryptedDetailCustody state");
+    assertOptionalReferenceList(custody.accessGroupRefs, "cybersec processor seed encryptedDetailCustody accessGroupRefs");
+    assertOptionalReferenceList(custody.detailRefs, "cybersec processor seed encryptedDetailCustody detailRefs");
+  }
+  const boundaries = assertOptionalObject(record.semanticBoundaries, "cybersec processor seed semanticBoundaries");
+  for (const field of ["logging", "storage", "eventDomain"]) {
+    requireString(boundaries[field], `cybersec processor seed semanticBoundaries ${field}`);
+  }
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "cybersec processor seed blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("cybersec processor seed blocked state requires blockedReasons");
+  }
+  assertOptionalReferenceList(record.evidenceRefs, "cybersec processor seed evidenceRefs");
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "cybersec processor seed safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "cybersec processor seed safeFacts");
+  }
+  rejectRouteControlByteFields(record, "cybersec processor seed");
+  if (!Number(record.issuedAt || 0)) throw new Error("cybersec processor seed missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
-    throw new Error("security processor seed expires before issuedAt");
+    throw new Error("cybersec processor seed expires before issuedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }
@@ -5027,6 +5109,9 @@ export function assertServiceManagerOperationPosture(record) {
   assertOptionalReferenceList(record.grantRefs, "service manager operation posture grantRefs");
   assertOptionalReferenceList(record.evidenceRefs, "service manager operation posture evidenceRefs");
   assertOptionalReferenceList(record.proofRefs, "service manager operation posture proofRefs");
+  assertOptionalReferenceList(record.witnessRefs, "service manager operation posture witnessRefs");
+  assertOptionalReferenceList(record.retentionRefs, "service manager operation posture retentionRefs");
+  assertOptionalReferenceList(record.releaseWitnessRefs, "service manager operation posture releaseWitnessRefs");
   if (record.runnerOperationRef !== undefined) requireString(record.runnerOperationRef, "service manager operation posture runnerOperationRef");
   if (record.runnerRef !== undefined) assertResolvedMemberRef(record.runnerRef, "service manager operation posture runnerRef");
   if (record.hostRef !== undefined) requireString(record.hostRef, "service manager operation posture hostRef");
@@ -5034,6 +5119,9 @@ export function assertServiceManagerOperationPosture(record) {
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager operation posture rollbackRef");
   if (operation === SURFACE_APP.SERVICE_MANAGER_OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
     throw new Error("service manager rollback operation requires rollbackRef");
+  }
+  if (operation === SURFACE_APP.SERVICE_MANAGER_OPERATION.RELEASE && !String(record.releaseRef || "").trim()) {
+    throw new Error("service manager release operation requires releaseRef");
   }
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "service manager operation secretBoundary");
   if (record.releasePosture !== undefined) assertSurfaceReleasePosture(record.releasePosture, "service manager operation releasePosture");
@@ -5215,17 +5303,22 @@ export function assertSurfaceAppAuthorityAccessPosture(record) {
   requireString(record.appId, "surface app authority access posture appId");
   if (record.actionRequired !== undefined && typeof record.actionRequired !== "boolean") throw new Error("surface app authority access posture actionRequired must be boolean");
   if (record.accessRequired !== undefined && typeof record.accessRequired !== "boolean") throw new Error("surface app authority access posture accessRequired must be boolean");
+  if (record.syncRequired !== undefined && typeof record.syncRequired !== "boolean") throw new Error("surface app authority access posture syncRequired must be boolean");
   assertOptionalReferenceList(record.rootRefs, "surface app authority access posture rootRefs");
   assertOptionalReferenceList(record.deviceRefs, "surface app authority access posture deviceRefs");
   const grantRefs = assertOptionalReferenceList(record.grantRefs, "surface app authority access posture grantRefs");
   const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "surface app authority access posture authorityRefs");
   const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "surface app authority access posture accessGroupRefs");
+  const accessEpochRefs = assertOptionalReferenceList(record.accessEpochRefs, "surface app authority access posture accessEpochRefs");
+  const privateEnvelopeRefs = assertOptionalReferenceList(record.privateEnvelopeRefs, "surface app authority access posture privateEnvelopeRefs");
+  const syncRefs = assertOptionalReferenceList(record.syncRefs, "surface app authority access posture syncRefs");
   const requiredContentClasses = assertOptionalContentClassList(record.requiredContentClasses, "surface app authority access posture requiredContentClasses");
   assertOptionalReferenceList(record.revocationRefs, "surface app authority access posture revocationRefs");
   assertOptionalReferenceList(record.exerciseRefs, "surface app authority access posture exerciseRefs");
   assertOptionalReferenceList(record.evidenceRefs, "surface app authority access posture evidenceRefs");
   if (record.actionPosture !== undefined) assertSafeObject(record.actionPosture, "surface app authority access posture actionPosture");
   if (record.accessPosture !== undefined) assertSafeObject(record.accessPosture, "surface app authority access posture accessPosture");
+  if (record.syncPosture !== undefined) assertSafeObject(record.syncPosture, "surface app authority access posture syncPosture");
   if (record.revocationPosture !== undefined) assertSafeObject(record.revocationPosture, "surface app authority access posture revocationPosture");
   if (record.expiryPosture !== undefined) assertSafeObject(record.expiryPosture, "surface app authority access posture expiryPosture");
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "surface app authority access posture safeFacts");
@@ -5237,6 +5330,9 @@ export function assertSurfaceAppAuthorityAccessPosture(record) {
   }
   if (record.accessRequired === true && requiredContentClasses.length === 0 && state !== "blocked") {
     throw new Error("surface app authority access posture access requires requiredContentClasses");
+  }
+  if (record.syncRequired === true && syncRefs.length === 0 && state !== "blocked") {
+    throw new Error("surface app authority access posture sync requires syncRefs");
   }
   if (String(record.revocationState || "").trim()) {
     const revocationState = requireString(record.revocationState, "surface app authority access posture revocationState");
@@ -5254,6 +5350,9 @@ export function assertSurfaceAppAuthorityAccessPosture(record) {
     grantRefs,
     authorityRefs,
     accessGroupRefs,
+    accessEpochRefs,
+    privateEnvelopeRefs,
+    syncRefs,
     requiredContentClasses,
   };
 }
@@ -5430,13 +5529,19 @@ export function assertSurfaceAppSourceCandidatePosture(record) {
   const state = assertSurfaceAppRecordState(record, "surface app source candidate posture", ["ready", "degraded", "blocked"]);
   const sourceMode = requireString(record.sourceMode, "surface app source candidate posture sourceMode");
   if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app source candidate posture sourceMode");
-  requireString(record.sourceClass, "surface app source candidate posture sourceClass");
+  const sourceClass = requireString(record.sourceClass, "surface app source candidate posture sourceClass");
+  if (!Object.values(SURFACE_APP.SOURCE_CLASS).includes(sourceClass)) throw new Error("invalid surface app source candidate posture sourceClass");
   assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
   assertOptionalReferenceList(record.bundledSourceRefs, "surface app source candidate posture bundledSourceRefs");
   assertOptionalReferenceList(record.remoteSourceRefs, "surface app source candidate posture remoteSourceRefs");
   assertOptionalReferenceList(record.storageObjectRefs, "surface app source candidate posture storageObjectRefs");
   assertOptionalReferenceList(record.releaseSourceRefs, "surface app source candidate posture releaseSourceRefs");
   assertOptionalReferenceList(record.swarmSourceRefs, "surface app source candidate posture swarmSourceRefs");
+  assertOptionalReferenceList(record.digestRefs, "surface app source candidate posture digestRefs");
+  assertOptionalReferenceList(record.signatureRefs, "surface app source candidate posture signatureRefs");
+  assertOptionalReferenceList(record.publisherRefs, "surface app source candidate posture publisherRefs");
+  assertOptionalReferenceList(record.sourceAuthorityRefs, "surface app source candidate posture sourceAuthorityRefs");
+  assertOptionalReferenceList(record.releaseEvidenceRefs, "surface app source candidate posture releaseEvidenceRefs");
   assertOptionalReferenceList(record.compatibilityRefs, "surface app source candidate posture compatibilityRefs");
   assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs");
   assertOptionalReferenceList(record.rollbackRefs, "surface app source candidate posture rollbackRefs");
@@ -5450,6 +5555,12 @@ export function assertSurfaceAppSourceCandidatePosture(record) {
     const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
     if (!candidateRefs.length) throw new Error("remote surface app source candidate requires candidateRefs");
     if (!String(record.releaseContractRef || "").trim()) throw new Error("remote surface app source candidate requires releaseContractRef");
+    if (!assertOptionalReferenceList(record.digestRefs, "surface app source candidate posture digestRefs").length) {
+      throw new Error("remote surface app source candidate requires digestRefs");
+    }
+    if (!assertOptionalReferenceList(record.signatureRefs, "surface app source candidate posture signatureRefs").length) {
+      throw new Error("remote surface app source candidate requires signatureRefs");
+    }
     if (!assertOptionalReferenceList(record.proofDigestRefs, "surface app source candidate posture proofDigestRefs").length) {
       throw new Error("remote surface app source candidate requires proofDigestRefs");
     }
@@ -5521,7 +5632,14 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   const sourceMode = requireString(record.sourceMode, "surface app runtime selection posture sourceMode");
   if (!Object.values(SURFACE_APP.FULFILLMENT_MODE).includes(sourceMode)) throw new Error("invalid surface app runtime selection posture sourceMode");
   assertOptionalReferenceList(record.requiredModuleRoles, "surface app runtime selection posture requiredModuleRoles");
+  assertOptionalReferenceList(record.requiredPrimitiveRefs, "surface app runtime selection posture requiredPrimitiveRefs");
+  assertOptionalReferenceList(record.permissionRequirementRefs, "surface app runtime selection posture permissionRequirementRefs");
+  assertOptionalReferenceList(record.capabilityRequirementRefs, "surface app runtime selection posture capabilityRequirementRefs");
+  assertOptionalReferenceList(record.projectionSubscriptionRefs, "surface app runtime selection posture projectionSubscriptionRefs");
+  assertOptionalReferenceList(record.materializationBudgetRefs, "surface app runtime selection posture materializationBudgetRefs");
+  assertOptionalReferenceList(record.accessRequirementRefs, "surface app runtime selection posture accessRequirementRefs");
   if (record.compatibilityResult !== undefined) assertSurfaceAppReadiness(record.compatibilityResult, "surface app runtime compatibility result");
+  if (record.appContractResolution !== undefined) assertSafeObject(record.appContractResolution, "surface app runtime contract resolution");
   if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.sourceTrustResult !== undefined) assertSurfaceAppReadiness(record.sourceTrustResult, "surface app runtime source trust result");
   requireArray(record.modulePostures || [], "surface app runtime selection posture modulePostures").forEach(assertSurfaceModuleRolePosture);
@@ -5748,6 +5866,61 @@ export function assertRunnerOperation(record) {
   return record;
 }
 
+export function assertRunnerHostFulfillmentPosture(record) {
+  if (!isObject(record)) throw new Error("runner host fulfillment posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RUNNER_HOST_FULFILLMENT_POSTURE, "runner host fulfillment posture");
+  requireString(record.postureId, "runner host fulfillment posture postureId");
+  requireString(record.runnerId, "runner host fulfillment posture runnerId");
+  assertResolvedMemberRef(record.runnerRef, "runner host fulfillment posture runnerRef");
+  requireString(record.hostRef, "runner host fulfillment posture hostRef");
+  requireString(record.operationId, "runner host fulfillment posture operationId");
+  const operation = requireString(record.operation, "runner host fulfillment posture operation");
+  if (!Object.values(RUNNER.OPERATION).includes(operation)) throw new Error("invalid runner host fulfillment operation");
+  const state = requireString(record.state, "runner host fulfillment posture state");
+  if (!Object.values(RUNNER.HOST_FULFILLMENT_STATE).includes(state)) throw new Error("invalid runner host fulfillment posture state");
+  requireString(record.requesterRef, "runner host fulfillment posture requesterRef");
+  requireString(record.subjectRef, "runner host fulfillment posture subjectRef");
+  requireString(record.contractRef, "runner host fulfillment posture contractRef");
+  const grantRefs = assertReferenceList(record.grantRefs, "runner host fulfillment posture grantRefs");
+  assertOptionalReferenceList(record.serviceRefs, "runner host fulfillment posture serviceRefs");
+  assertOptionalReferenceList(record.contractRefs, "runner host fulfillment posture contractRefs");
+  assertOptionalReferenceList(record.capabilityRefs, "runner host fulfillment posture capabilityRefs");
+  assertOptionalReferenceList(record.inputRefs, "runner host fulfillment posture inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "runner host fulfillment posture outputRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "runner host fulfillment posture evidenceRefs");
+  assertOptionalReferenceList(record.proofRefs, "runner host fulfillment posture proofRefs");
+  assertOptionalReferenceList(record.releaseRefs, "runner host fulfillment posture releaseRefs");
+  assertOptionalReferenceList(record.witnessRefs, "runner host fulfillment posture witnessRefs");
+  if (!isObject(record.resourceBudget)) throw new Error("runner host fulfillment posture resourceBudget must be an object");
+  assertSafeObject(record.resourceBudget, "runner host fulfillment posture resourceBudget");
+  if (record.resourcePosture !== undefined && record.resourcePosture !== null) assertResourcePosture(record.resourcePosture);
+  if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "runner host fulfillment posture secretBoundary");
+  if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "runner host fulfillment posture releasePosture");
+  if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "runner host fulfillment posture rollbackPosture");
+  if (record.releaseRef !== undefined) requireString(record.releaseRef, "runner host fulfillment posture releaseRef");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "runner host fulfillment posture rollbackRef");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "runner host fulfillment posture blockedReasons");
+  if ([RUNNER.HOST_FULFILLMENT_STATE.BLOCKED, RUNNER.HOST_FULFILLMENT_STATE.REJECTED, RUNNER.HOST_FULFILLMENT_STATE.CANCELLED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked, rejected, or cancelled runner host fulfillment posture requires blockedReasons");
+  }
+  if ([RUNNER.HOST_FULFILLMENT_STATE.ACCEPTED, RUNNER.HOST_FULFILLMENT_STATE.RUNNING, RUNNER.HOST_FULFILLMENT_STATE.SUCCEEDED, RUNNER.HOST_FULFILLMENT_STATE.RELEASED].includes(state) && grantRefs.length === 0) {
+    throw new Error("actionable runner host fulfillment posture requires grantRefs");
+  }
+  if (operation === RUNNER.OPERATION.RELEASE && !String(record.releaseRef || "").trim() && !(Array.isArray(record.releaseRefs) && record.releaseRefs.length)) {
+    throw new Error("runner host release posture requires releaseRef or releaseRefs");
+  }
+  if (operation === RUNNER.OPERATION.ROLLBACK && !String(record.rollbackRef || "").trim()) {
+    throw new Error("runner host rollback posture requires rollbackRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "runner host fulfillment posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "runner host fulfillment posture");
+  if (!Number(record.observedAt || 0)) throw new Error("runner host fulfillment posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("runner host fulfillment posture expiresAt must be after observedAt");
+  }
+  return record;
+}
+
 function assertRunnerFulfillmentState(value, context = "runner fulfillment state") {
   const state = requireString(value, context);
   if (!Object.values(RUNNER.FULFILLMENT_STATE).includes(state)) throw new Error("invalid runner fulfillment state");
@@ -5789,6 +5962,7 @@ export function assertAppRunnerFulfillmentReport(record) {
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment report secretBoundary");
   if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment report releasePosture");
   if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment report rollbackPosture");
+  if (record.hostFulfillmentPosture !== undefined && record.hostFulfillmentPosture !== null) assertRunnerHostFulfillmentPosture(record.hostFulfillmentPosture);
   if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment report releaseRef");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment report rollbackRef");
   const operationPosture = assertOptionalObject(record.operationPosture, "app runner fulfillment report operationPosture");
@@ -5876,6 +6050,7 @@ export function assertAppRunnerFulfillmentLifecycle(record) {
   if (record.secretBoundary !== undefined) assertSurfaceSecretBoundary(record.secretBoundary, "app runner fulfillment lifecycle secretBoundary");
   if (record.releasePosture !== undefined && record.releasePosture !== null) assertSurfaceReleasePosture(record.releasePosture, "app runner fulfillment lifecycle releasePosture");
   if (record.rollbackPosture !== undefined && record.rollbackPosture !== null) assertSurfaceReleasePosture(record.rollbackPosture, "app runner fulfillment lifecycle rollbackPosture");
+  if (record.hostFulfillmentPosture !== undefined && record.hostFulfillmentPosture !== null) assertRunnerHostFulfillmentPosture(record.hostFulfillmentPosture);
   if (record.releaseRef !== undefined) requireString(record.releaseRef, "app runner fulfillment lifecycle releaseRef");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "app runner fulfillment lifecycle rollbackRef");
   if (record.operationPosture !== undefined && record.operationPosture !== null) assertSafeObject(assertOptionalObject(record.operationPosture, "app runner fulfillment lifecycle operationPosture"), "app runner fulfillment lifecycle operationPosture");
