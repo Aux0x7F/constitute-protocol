@@ -184,6 +184,9 @@ export const APP = Object.freeze({
     ACTIVITY: "app.activity",
     RELEASE: "app.release",
     RELEASE_RESOLUTION: "app.release.resolution",
+    ACTIVITY_DEPENDENCY: "app.activity.dependency",
+    MESSAGING_CONTRACT: "messaging.contract",
+    COMMUNICATIONS_MODERATION_CONTRACT: "communications.moderation.contract",
   }),
   CONTRACT_STATE: Object.freeze({
     DRAFT: "draft",
@@ -218,6 +221,29 @@ export const APP = Object.freeze({
     BLOCKED: "blocked",
     DEGRADED: "degraded",
     SUPERSEDED: "superseded",
+  }),
+  DEPENDENCY_TYPE: Object.freeze({
+    MESSAGING: "messaging",
+    COMMUNICATIONS_MODERATION: "communicationsModeration",
+  }),
+  DEPENDENCY_STATE: Object.freeze({
+    READY: "ready",
+    PENDING: "pending",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  MESSAGING_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  COMMUNICATIONS_MODERATION_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
   }),
 });
 
@@ -1434,6 +1460,9 @@ export const SWARM = Object.freeze({
     APP_ACTIVITY: "app.activity",
     APP_RELEASE: "app.release",
     APP_RELEASE_RESOLUTION: "app.release.resolution",
+    APP_ACTIVITY_DEPENDENCY: "app.activity.dependency",
+    MESSAGING_CONTRACT: "messaging.contract",
+    COMMUNICATIONS_MODERATION_CONTRACT: "communications.moderation.contract",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1519,6 +1548,9 @@ export const SWARM = Object.freeze({
     APP_ACTIVITY: "app.activity",
     APP_RELEASE: "app.release",
     APP_RELEASE_RESOLUTION: "app.release.resolution",
+    APP_ACTIVITY_DEPENDENCY: "app.activity.dependency",
+    MESSAGING_CONTRACT: "messaging.contract",
+    COMMUNICATIONS_MODERATION_CONTRACT: "communications.moderation.contract",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -4842,6 +4874,113 @@ export function assertAppReleaseResolution(record) {
   if (!Number(record.resolvedAt || 0)) throw new Error("app release resolution missing resolvedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.resolvedAt)) {
     throw new Error("app release resolution expires before resolvedAt");
+  }
+  return record;
+}
+
+export function assertAppActivityDependency(record) {
+  if (!isObject(record)) throw new Error("app activity dependency must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.ACTIVITY_DEPENDENCY, "app activity dependency");
+  requireString(record.dependencyRef, "app activity dependency dependencyRef");
+  requireString(record.appContractRef, "app activity dependency appContractRef");
+  requireString(record.activityRef, "app activity dependency activityRef");
+  const dependencyType = requireString(record.dependencyType, "app activity dependency dependencyType");
+  if (!Object.values(APP.DEPENDENCY_TYPE).includes(dependencyType)) throw new Error("invalid app activity dependency type");
+  if (typeof record.required !== "boolean") throw new Error("app activity dependency required must be boolean");
+  const state = requireString(record.state, "app activity dependency state");
+  if (!Object.values(APP.DEPENDENCY_STATE).includes(state)) throw new Error("invalid app activity dependency state");
+  const contractRefs = assertOptionalReferenceList(record.contractRefs, "app activity dependency contractRefs");
+  const primitiveRefs = assertOptionalReferenceList(record.primitiveRefs, "app activity dependency primitiveRefs");
+  assertOptionalReferenceList(record.permissionRefs, "app activity dependency permissionRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "app activity dependency accessGroupRefs");
+  assertOptionalReferenceList(record.materializationRefs, "app activity dependency materializationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app activity dependency evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app activity dependency blockedReasons");
+  if (record.required && state === APP.DEPENDENCY_STATE.READY && (contractRefs.length === 0 || primitiveRefs.length === 0)) {
+    throw new Error("ready required app activity dependency requires contractRefs and primitiveRefs");
+  }
+  if (state === APP.DEPENDENCY_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked app activity dependency requires blockedReasons");
+  }
+  assertNoPrivateContentFields(record, "app activity dependency");
+  if (!Number(record.issuedAt || 0)) throw new Error("app activity dependency missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("app activity dependency expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertMessagingContract(record) {
+  if (!isObject(record)) throw new Error("messaging contract must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.MESSAGING_CONTRACT, "messaging contract");
+  requireString(record.messagingContractRef, "messaging contract messagingContractRef");
+  requireString(record.scopeRef, "messaging contract scopeRef");
+  requireString(record.authorRef, "messaging contract authorRef");
+  const state = requireString(record.state, "messaging contract state");
+  if (!Object.values(APP.MESSAGING_STATE).includes(state)) throw new Error("invalid messaging contract state");
+  assertOptionalReferenceList(record.conversationRefs, "messaging contract conversationRefs");
+  const participantRoleRefs = assertOptionalReferenceList(record.participantRoleRefs, "messaging contract participantRoleRefs");
+  const activityRefs = assertOptionalReferenceList(record.activityRefs, "messaging contract activityRefs");
+  const contentClassRefs = assertOptionalReferenceList(record.contentClassRefs, "messaging contract contentClassRefs");
+  const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "messaging contract accessGroupRefs");
+  const witnessFloorRefs = assertOptionalReferenceList(record.witnessFloorRefs, "messaging contract witnessFloorRefs");
+  const retentionRefs = assertOptionalReferenceList(record.retentionRefs, "messaging contract retentionRefs");
+  assertOptionalReferenceList(record.moderationContractRefs, "messaging contract moderationContractRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "messaging contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "messaging contract blockedReasons");
+  if (state === APP.MESSAGING_STATE.READY && (
+    participantRoleRefs.length === 0
+      || activityRefs.length === 0
+      || contentClassRefs.length === 0
+      || accessGroupRefs.length === 0
+      || witnessFloorRefs.length === 0
+      || retentionRefs.length === 0
+  )) {
+    throw new Error("ready messaging contract requires participant roles, activities, content classes, access groups, witness floors, and retention refs");
+  }
+  if (state === APP.MESSAGING_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked messaging contract requires blockedReasons");
+  }
+  assertNoPrivateContentFields(record, "messaging contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("messaging contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("messaging contract expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertCommunicationsModerationContract(record) {
+  if (!isObject(record)) throw new Error("communications moderation contract must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.COMMUNICATIONS_MODERATION_CONTRACT, "communications moderation contract");
+  requireString(record.moderationContractRef, "communications moderation contract moderationContractRef");
+  requireString(record.scopeRef, "communications moderation contract scopeRef");
+  requireString(record.authorityRealmRef, "communications moderation contract authorityRealmRef");
+  const state = requireString(record.state, "communications moderation contract state");
+  if (!Object.values(APP.COMMUNICATIONS_MODERATION_STATE).includes(state)) throw new Error("invalid communications moderation contract state");
+  const actionRefs = assertOptionalReferenceList(record.actionRefs, "communications moderation contract actionRefs");
+  const targetRefs = assertOptionalReferenceList(record.targetRefs, "communications moderation contract targetRefs");
+  const messagingContractRefs = assertOptionalReferenceList(record.messagingContractRefs, "communications moderation contract messagingContractRefs");
+  assertOptionalReferenceList(record.eventFabricRefs, "communications moderation contract eventFabricRefs");
+  const permissionRefs = assertOptionalReferenceList(record.permissionRefs, "communications moderation contract permissionRefs");
+  const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "communications moderation contract accessGroupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "communications moderation contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "communications moderation contract blockedReasons");
+  if (state === APP.COMMUNICATIONS_MODERATION_STATE.READY && (
+    actionRefs.length === 0
+      || targetRefs.length === 0
+      || messagingContractRefs.length === 0
+      || permissionRefs.length === 0
+      || accessGroupRefs.length === 0
+  )) {
+    throw new Error("ready communications moderation contract requires actions, targets, messaging contracts, permissions, and access groups");
+  }
+  if (state === APP.COMMUNICATIONS_MODERATION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked communications moderation contract requires blockedReasons");
+  }
+  assertNoPrivateContentFields(record, "communications moderation contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("communications moderation contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("communications moderation contract expires before issuedAt");
   }
   return record;
 }

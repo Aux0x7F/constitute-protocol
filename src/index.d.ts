@@ -1968,6 +1968,63 @@ export type AppReleaseResolutionRecord = {
   expiresAt?: number;
 };
 
+export type AppActivityDependencyRecord = {
+  kind?: "app.activity.dependency";
+  dependencyRef: string;
+  appContractRef: string;
+  activityRef: string;
+  dependencyType: "messaging" | "communicationsModeration" | string;
+  required: boolean;
+  state: "ready" | "pending" | "degraded" | "blocked" | "expired" | string;
+  contractRefs?: string[];
+  primitiveRefs?: string[];
+  permissionRefs?: string[];
+  accessGroupRefs?: string[];
+  materializationRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type MessagingContractRecord = {
+  kind?: "messaging.contract";
+  messagingContractRef: string;
+  scopeRef: string;
+  authorRef: string;
+  state: "ready" | "degraded" | "blocked" | "expired" | string;
+  conversationRefs?: string[];
+  participantRoleRefs?: string[];
+  activityRefs?: string[];
+  contentClassRefs?: string[];
+  accessGroupRefs?: string[];
+  witnessFloorRefs?: string[];
+  retentionRefs?: string[];
+  moderationContractRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type CommunicationsModerationContractRecord = {
+  kind?: "communications.moderation.contract";
+  moderationContractRef: string;
+  scopeRef: string;
+  authorityRealmRef: string;
+  state: "ready" | "degraded" | "blocked" | "expired" | string;
+  actionRefs?: string[];
+  targetRefs?: string[];
+  messagingContractRefs?: string[];
+  eventFabricRefs?: string[];
+  permissionRefs?: string[];
+  accessGroupRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type SurfaceModuleClaim = {
   moduleRef: string;
   role: SurfaceModuleRole;
@@ -3052,6 +3109,9 @@ export function assertAppModuleRole(record: unknown): AppModuleRoleRecord;
 export function assertAppActivity(record: unknown): AppActivityRecord;
 export function assertAppRelease(record: unknown): AppReleaseRecord;
 export function assertAppReleaseResolution(record: unknown): AppReleaseResolutionRecord;
+export function assertAppActivityDependency(record: unknown): AppActivityDependencyRecord;
+export function assertMessagingContract(record: unknown): MessagingContractRecord;
+export function assertCommunicationsModerationContract(record: unknown): CommunicationsModerationContractRecord;
 export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
 export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
 export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;

@@ -92,6 +92,9 @@ import {
   assertAppModuleRole,
   assertAppRelease,
   assertAppReleaseResolution,
+  assertAppActivityDependency,
+  assertMessagingContract,
+  assertCommunicationsModerationContract,
   assertServiceManagerPosture,
   assertServiceManagerSecretBoundary,
   assertServiceManagerReleaseContract,
@@ -791,6 +794,98 @@ test("app contracts validate activity release and resolution records", () => {
     ...resolution,
     selectedStorageRefs: [],
   }), /resolved app release requires selected release/);
+});
+
+test("messaging and communications moderation remain app activity dependencies", () => {
+  const issuedAt = 1_779_267_000;
+  const messaging = assertMessagingContract({
+    kind: APP.RECORD_KIND.MESSAGING_CONTRACT,
+    messagingContractRef: "messaging:contract:truecost.web-team",
+    scopeRef: "activity:scope:truecost.web-team.hosting",
+    authorRef: "identity:truecost.root",
+    state: APP.MESSAGING_STATE.READY,
+    conversationRefs: ["messaging:thread:truecost.web-team.hosting"],
+    participantRoleRefs: ["role:community.member", "role:webadmin"],
+    activityRefs: ["app:activity:messaging.thread"],
+    contentClassRefs: ["content:message.body", "content:message.safe-index"],
+    accessGroupRefs: ["access-group:truecost.web-team"],
+    witnessFloorRefs: ["witness:floor:messaging.thread"],
+    retentionRefs: ["retention:message.thread.default"],
+    moderationContractRefs: ["moderation:contract:truecost.web-team"],
+    evidenceRefs: ["evidence:messaging.contract"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+  const moderation = assertCommunicationsModerationContract({
+    kind: APP.RECORD_KIND.COMMUNICATIONS_MODERATION_CONTRACT,
+    moderationContractRef: "moderation:contract:truecost.web-team",
+    scopeRef: messaging.scopeRef,
+    authorityRealmRef: "authority:realm:truecost.community",
+    state: APP.COMMUNICATIONS_MODERATION_STATE.READY,
+    actionRefs: ["moderation:action:report", "moderation:action:hide", "moderation:action:appeal"],
+    targetRefs: messaging.conversationRefs,
+    messagingContractRefs: [messaging.messagingContractRef],
+    eventFabricRefs: ["event-fabric:logging.default"],
+    permissionRefs: ["permission:moderation.web-team"],
+    accessGroupRefs: ["access-group:truecost.moderators"],
+    evidenceRefs: ["evidence:moderation.contract"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+  const messagingDependency = assertAppActivityDependency({
+    kind: APP.RECORD_KIND.ACTIVITY_DEPENDENCY,
+    dependencyRef: "app:dependency:community.channel.messaging",
+    appContractRef: "app:contract:communities@0.1.0",
+    activityRef: "app:activity:community.role-channel",
+    dependencyType: APP.DEPENDENCY_TYPE.MESSAGING,
+    required: true,
+    state: APP.DEPENDENCY_STATE.READY,
+    contractRefs: [messaging.messagingContractRef],
+    primitiveRefs: ["primitive:messaging.thread"],
+    permissionRefs: ["permission:message.write"],
+    accessGroupRefs: messaging.accessGroupRefs,
+    materializationRefs: ["materialization:thread.messages"],
+    evidenceRefs: ["evidence:dependency.messaging"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+  const moderationDependency = assertAppActivityDependency({
+    kind: APP.RECORD_KIND.ACTIVITY_DEPENDENCY,
+    dependencyRef: "app:dependency:community.channel.moderation",
+    appContractRef: "app:contract:communities@0.1.0",
+    activityRef: "app:activity:community.role-channel",
+    dependencyType: APP.DEPENDENCY_TYPE.COMMUNICATIONS_MODERATION,
+    required: false,
+    state: APP.DEPENDENCY_STATE.READY,
+    contractRefs: [moderation.moderationContractRef],
+    primitiveRefs: ["primitive:communications.moderation"],
+    permissionRefs: moderation.permissionRefs,
+    accessGroupRefs: moderation.accessGroupRefs,
+    materializationRefs: ["materialization:moderation.posture"],
+    evidenceRefs: ["evidence:dependency.moderation"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+
+  assert.equal(messagingDependency.dependencyType, "messaging");
+  assert.equal(moderationDependency.dependencyType, "communicationsModeration");
+  assert.throws(() => assertMessagingContract({
+    ...messaging,
+    contentClassRefs: [],
+  }), /ready messaging contract requires participant roles/);
+  assert.throws(() => assertAppActivityDependency({
+    ...messagingDependency,
+    state: APP.DEPENDENCY_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blocked app activity dependency requires blockedReasons/);
+  assert.throws(() => assertCommunicationsModerationContract({
+    ...moderation,
+    actionRefs: [],
+  }), /ready communications moderation contract requires actions/);
+  assert.throws(() => assertAppActivityDependency({
+    ...messagingDependency,
+    payload: "message bodies stay behind CAAC access refs",
+  }), /forbidden protocol field: payload/);
 });
 
 test("service edge adapter posture validates service-owned admission and backpressure evidence", () => {
