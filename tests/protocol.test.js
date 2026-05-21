@@ -3344,15 +3344,30 @@ test("multi-identity authority proof covers sync, read, write/reduce, and revoke
       "contract:logging.default",
       "contract:nvr.streams",
       "contract:storage.default",
+      "contract:source.default",
+      "contract:build.default",
+      "app:constitute-cybersec",
     ],
     actionGrantRefs: [
       "grant:gateway:agent-full-access",
       "grant:logging:agent-writer",
       "grant:nvr:agent-preview",
+      "grant:storage:agent-pin",
+      "grant:source:agent-update",
+      "grant:build:agent-run",
     ],
-    accessGroupRefs: ["access-group:identity:aux:cybersec-events"],
-    accessEpochRefs: ["access-epoch:identity:aux:cybersec-events:3"],
-    privateEnvelopeRefs: ["private-envelope:logging-event:sample"],
+    accessGroupRefs: [
+      "access-group:identity:aux:cybersec-events",
+      "access-group:identity:aux:source-build",
+    ],
+    accessEpochRefs: [
+      "access-epoch:identity:aux:cybersec-events:3",
+      "access-epoch:identity:aux:source-build:1",
+    ],
+    privateEnvelopeRefs: [
+      "private-envelope:logging-event:sample",
+      "private-envelope:source-build:sample",
+    ],
     revocationRefs: ["revocation:grant:agent-full-access"],
     checks: [
       {
@@ -3368,8 +3383,14 @@ test("multi-identity authority proof covers sync, read, write/reduce, and revoke
         plane: AGREEMENT.PLANE.ACCESS_AUTHORITY,
         state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
         targetRef: "event-fabric:logging.default",
-        accessGroupRefs: ["access-group:identity:aux:cybersec-events"],
-        accessEpochRefs: ["access-epoch:identity:aux:cybersec-events:3"],
+        accessGroupRefs: [
+          "access-group:identity:aux:cybersec-events",
+          "access-group:identity:aux:source-build",
+        ],
+        accessEpochRefs: [
+          "access-epoch:identity:aux:cybersec-events:3",
+          "access-epoch:identity:aux:source-build:1",
+        ],
         evidenceRefs: ["proof:caac-open:agent-dev"],
       },
       {
@@ -3377,8 +3398,18 @@ test("multi-identity authority proof covers sync, read, write/reduce, and revoke
         plane: AGREEMENT.PLANE.ACTION_AUTHORITY,
         state: AGREEMENT.AUTHORITY_PROOF_STATE.PROVED,
         targetRef: "contract:logging.default",
-        grantRefs: ["grant:logging:agent-writer"],
-        exerciseRefs: ["exercise:logging:agent-writer:1"],
+        grantRefs: [
+          "grant:logging:agent-writer",
+          "grant:storage:agent-pin",
+          "grant:source:agent-update",
+          "grant:build:agent-run",
+        ],
+        exerciseRefs: [
+          "exercise:logging:agent-writer:1",
+          "exercise:storage:agent-pin:1",
+          "exercise:source:agent-update:1",
+          "exercise:build:agent-run:1",
+        ],
         evidenceRefs: ["event:logging:agent-test"],
       },
       {
