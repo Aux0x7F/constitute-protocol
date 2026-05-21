@@ -7,6 +7,7 @@ import {
   AGREEMENT,
   APP,
   LOGGING,
+  FABRIC,
   PROJECTION,
   RUNNER,
   ReplayCache,
@@ -21,8 +22,15 @@ import {
   assertAppRunnerAdvertisement,
   assertAppRunnerFulfillmentReport,
   assertAppRunnerFulfillmentLifecycle,
+  assertContentIndexRefPosture,
+  assertContractIntentionPosture,
+  assertHostFabricFulfillmentPlan,
+  assertHostFabricMemberContribution,
+  assertLifecyclePlanPosture,
   assertRunnerHostFulfillmentPosture,
   assertRunnerOperation,
+  assertSubstrateAssociationHandoff,
+  assertUniqueEdgeClassification,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
   assertCapabilityName,
@@ -1860,6 +1868,173 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
     state: RUNNER.HOST_FULFILLMENT_STATE.BLOCKED,
     blockedReasons: [],
   }), /requires blockedReasons/);
+});
+
+test("host fabric records separate association, composition, lifecycle, source truth, and unique edges", () => {
+  const observedAt = 1700000040;
+  const handoff = assertSubstrateAssociationHandoff({
+    kind: SWARM.RECORD_KIND.SUBSTRATE_ASSOCIATION_HANDOFF,
+    handoffId: "handoff:lab-gateway:initial-owner",
+    substrateRef: "substrate:first-trust:lab",
+    hostRef: "host:lab-gateway",
+    ownerRef: "identity:aux",
+    fabricRef: "fabric:lab-gateway",
+    state: FABRIC.ASSOCIATION_HANDOFF_STATE.HANDED_OFF,
+    initialAssociationRefs: ["association:substrate:aux:lab-gateway"],
+    gatewayAssociationRefs: ["association:gateway:lab-gateway:ongoing"],
+    evidenceRefs: ["evidence:substrate:verified"],
+    safeFacts: { handoff: "substrate-to-gateway-association" },
+    issuedAt: observedAt - 10,
+    handedOffAt: observedAt - 1,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(handoff.state, FABRIC.ASSOCIATION_HANDOFF_STATE.HANDED_OFF);
+
+  const memberContribution = assertHostFabricMemberContribution({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION,
+    contributionId: "fabric-contribution:gateway-association:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    memberRef: BROWSER_PK,
+    role: FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION,
+    state: FABRIC.MEMBER_CONTRIBUTION_STATE.RUNNING,
+    contractRef: "contract:gateway-association@0.1.0",
+    subjectRef: "association:gateway:lab-gateway:ongoing",
+    capabilityRefs: ["gateway.association.fulfill"],
+    grantRefs: ["grant:gateway-association:fulfill"],
+    evidenceRefs: ["evidence:gateway-association:presence"],
+    lifecyclePlanRefs: ["lifecycle-plan:gateway-association:1"],
+    safeFacts: { role: "gatewayAssociation" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(memberContribution.role, FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION);
+
+  const lifecycle = assertLifecyclePlanPosture({
+    kind: SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
+    lifecyclePlanId: "lifecycle-plan:gateway-association:1",
+    subjectRef: "association:gateway:lab-gateway:ongoing",
+    contractRef: "contract:lifecycle.gateway-association@0.1.0",
+    state: FABRIC.LIFECYCLE_PLAN_STATE.READY,
+    lifecycleContractRefs: ["contract:lifecycle.gateway-association@0.1.0"],
+    phasePostures: [
+      { phase: FABRIC.LIFECYCLE_PHASE.SOURCE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:source:indexed"] },
+      { phase: FABRIC.LIFECYCLE_PHASE.RUN, state: FABRIC.LIFECYCLE_PHASE_STATE.RUNNING, evidenceRefs: ["evidence:association:running"] },
+      { phase: FABRIC.LIFECYCLE_PHASE.OBSERVE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:association:observed"] },
+    ],
+    memberContributionRefs: [memberContribution.contributionId],
+    evidenceRefs: ["evidence:lifecycle:reduced"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(lifecycle.phasePostures.length, 3);
+
+  const plan = assertHostFabricFulfillmentPlan({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
+    planId: "fabric-plan:lab-gateway:association",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    contractRef: "contract:gateway-association@0.1.0",
+    state: FABRIC.FULFILLMENT_PLAN_STATE.READY,
+    requiredRoleRefs: ["role:gatewayAssociation"],
+    memberContributionRefs: [memberContribution.contributionId],
+    lifecyclePlanRefs: [lifecycle.lifecyclePlanId],
+    materializationBudgetRefs: ["materialization-budget:gateway-association"],
+    associationHandoffRef: handoff.handoffId,
+    evidenceRefs: ["evidence:fabric:plan-ready"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(plan.memberContributionRefs[0], memberContribution.contributionId);
+
+  const contentIndex = assertContentIndexRefPosture({
+    kind: SWARM.RECORD_KIND.CONTENT_INDEX_REF_POSTURE,
+    postureId: "content-index-posture:gateway-association",
+    contentIndexRef: "content-index:gateway-association@0.1.0",
+    state: FABRIC.CONTENT_INDEX_STATE.READY,
+    sourceRefs: ["source:gateway-association:contract"],
+    materializedProjectionRefs: ["projection:gateway-association:hot"],
+    storageRefs: ["storage:pin:gateway-association:contract"],
+    schemaRefs: ["schema:content-index:v1"],
+    evidenceRefs: ["evidence:content-index:materialized"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(contentIndex.sourceRefs[0], "source:gateway-association:contract");
+
+  const intention = assertContractIntentionPosture({
+    kind: SWARM.RECORD_KIND.CONTRACT_INTENTION_POSTURE,
+    postureId: "contract-intention-posture:gateway-association",
+    intentionRef: "contract-intention:gateway-association@0.1.0",
+    state: FABRIC.CONTRACT_INTENTION_STATE.READY,
+    canonicalHashRef: "hash:contract-intention:gateway-association",
+    contentIndexRefs: [contentIndex.contentIndexRef],
+    authoringSurfaceRefs: ["authoring:typed-library"],
+    proofGateRefs: ["proof-gate:protocol-validated"],
+    reducerRefs: ["reducer:gateway-association"],
+    evidenceRefs: ["evidence:intention:signed"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(intention.contentIndexRefs[0], contentIndex.contentIndexRef);
+
+  const uniqueEdge = assertUniqueEdgeClassification({
+    kind: SWARM.RECORD_KIND.UNIQUE_EDGE_CLASSIFICATION,
+    classificationId: "unique-edge:host-service-adapter:systemd",
+    subjectRef: "adapter:host-service:systemd",
+    state: FABRIC.UNIQUE_EDGE_CLASSIFICATION.UNIQUE_EDGE,
+    externalRealityRef: "external:host-os:systemd",
+    interactionRef: "interaction:service-lifecycle:systemd-unit",
+    policyRefs: ["policy:host-service-adapter"],
+    grantRefs: ["grant:host-service-adapter"],
+    evidenceRefs: ["evidence:systemd:unit-state"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(uniqueEdge.state, FABRIC.UNIQUE_EDGE_CLASSIFICATION.UNIQUE_EDGE);
+
+  const genericPrimitive = assertUniqueEdgeClassification({
+    kind: SWARM.RECORD_KIND.UNIQUE_EDGE_CLASSIFICATION,
+    classificationId: "unique-edge:runtime-client:generic",
+    subjectRef: "module:runtime-client",
+    state: FABRIC.UNIQUE_EDGE_CLASSIFICATION.GENERIC_PRIMITIVE,
+    primitiveRef: "primitive:surface-runtime-client",
+    evidenceRefs: ["evidence:runtime-client:generic"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(genericPrimitive.primitiveRef, "primitive:surface-runtime-client");
+
+  assert.throws(() => assertSubstrateAssociationHandoff({
+    ...handoff,
+    gatewayAssociationRefs: [],
+  }), /gatewayAssociationRefs/);
+  assert.throws(() => assertLifecyclePlanPosture({
+    ...lifecycle,
+    lifecyclePlanId: "lifecycle-plan:bad:blocked",
+    state: FABRIC.LIFECYCLE_PLAN_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /requires blockedReasons/);
+  assert.throws(() => assertContentIndexRefPosture({
+    ...contentIndex,
+    postureId: "content-index-posture:bad:storage-only",
+    sourceRefs: [],
+  }), /requires sourceRefs/);
+  assert.throws(() => assertContractIntentionPosture({
+    ...intention,
+    postureId: "contract-intention-posture:bad:no-hash",
+    canonicalHashRef: "",
+  }), /canonicalHashRef/);
+  assert.throws(() => assertUniqueEdgeClassification({
+    ...uniqueEdge,
+    classificationId: "unique-edge:bad:no-external",
+    externalRealityRef: "",
+  }), /externalRealityRef/);
+  assert.throws(() => assertHostFabricMemberContribution({
+    ...memberContribution,
+    contributionId: "fabric-contribution:bad:secret",
+    safeFacts: { token: "nope" },
+  }), /unsafe safe fact key|forbidden protocol field/);
 });
 
 test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {

@@ -294,6 +294,98 @@ export const RUNNER = Object.freeze({
   }),
 });
 
+export const FABRIC = Object.freeze({
+  ASSOCIATION_HANDOFF_STATE: Object.freeze({
+    READY: "ready",
+    HANDED_OFF: "handedOff",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  MEMBER_ROLE: Object.freeze({
+    GATEWAY_ASSOCIATION: "gatewayAssociation",
+    HOST_SERVICE_ADAPTER: "hostServiceAdapter",
+    EXECUTION_FULFILLMENT: "executionFulfillment",
+    STORAGE_JOURNAL_CACHE: "storageJournalCache",
+    SOURCE_CONTENT_INDEX: "sourceContentIndex",
+    BUILD_PROCESSOR: "buildProcessor",
+    RUNTIME: "runtime",
+    SURFACE: "surface",
+    PLATFORM_ADAPTER: "platformAdapter",
+    SERVICE_SURFACE_ADAPTER: "serviceSurfaceAdapter",
+    SERVICE_EDGE_ADAPTER: "serviceEdgeAdapter",
+    LOGGING_PROCESSOR: "loggingProcessor",
+    DOMAIN_SERVICE: "domainService",
+  }),
+  MEMBER_CONTRIBUTION_STATE: Object.freeze({
+    CLAIMED: "claimed",
+    ACCEPTED: "accepted",
+    RUNNING: "running",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+    SUPERSEDED: "superseded",
+  }),
+  FULFILLMENT_PLAN_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  LIFECYCLE_PLAN_STATE: Object.freeze({
+    READY: "ready",
+    RUNNING: "running",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  LIFECYCLE_PHASE: Object.freeze({
+    SOURCE: "source",
+    BUILD: "build",
+    RELEASE: "release",
+    LOAD: "load",
+    RUN: "run",
+    OBSERVE: "observe",
+    ROLLBACK: "rollback",
+    EXPIRY: "expiry",
+    CLEANUP: "cleanup",
+  }),
+  LIFECYCLE_PHASE_STATE: Object.freeze({
+    NOT_REQUIRED: "notRequired",
+    PENDING: "pending",
+    READY: "ready",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    FAILED: "failed",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  CONTENT_INDEX_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+    EXPIRED: "expired",
+  }),
+  CONTRACT_INTENTION_STATE: Object.freeze({
+    DRAFT: "draft",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+    EXPIRED: "expired",
+  }),
+  UNIQUE_EDGE_CLASSIFICATION: Object.freeze({
+    GENERIC_PRIMITIVE: "genericPrimitive",
+    UNIQUE_EDGE: "uniqueEdge",
+    BLOCKED: "blocked",
+  }),
+});
+
 export const BUILD = Object.freeze({
   CAPABILITY: Object.freeze({
     RUN_EXECUTE: "build.run.execute",
@@ -1451,6 +1543,13 @@ export const SWARM = Object.freeze({
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
+    SUBSTRATE_ASSOCIATION_HANDOFF: "substrate.association.handoff",
+    HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
+    HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
+    LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
+    CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
+    CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
+    UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
     RUNNER_OPERATION: "runner.operation",
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
@@ -1539,6 +1638,13 @@ export const SWARM = Object.freeze({
     SURFACE_MODULE_ROLE_POSTURE: "surface.module.role.posture",
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
+    SUBSTRATE_ASSOCIATION_HANDOFF: "substrate.association.handoff",
+    HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
+    HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
+    LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
+    CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
+    CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
+    UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
     RUNNER_OPERATION: "runner.operation",
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
@@ -3893,6 +3999,261 @@ function assertSafeObject(value, name) {
   return object;
 }
 
+function assertEnumValue(value, allowed, name) {
+  const text = requireString(value, name);
+  if (!Object.values(allowed).includes(text)) throw new Error(`unsupported ${name}`);
+  return text;
+}
+
+function assertBlockedReasonsForState(state, blockedStates, blockedReasons, context) {
+  if (blockedStates.includes(state) && blockedReasons.length === 0) {
+    throw new Error(`${context} requires blockedReasons`);
+  }
+}
+
+function assertFabricObservedWindow(record, context) {
+  const observedAt = Number(record.observedAt || 0);
+  if (!observedAt) throw new Error(`${context} missing observedAt`);
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= observedAt) {
+    throw new Error(`${context} expiresAt must be after observedAt`);
+  }
+  return observedAt;
+}
+
+function assertLifecyclePhasePosture(value, context) {
+  if (!isObject(value)) throw new Error(`${context} must be an object`);
+  const phase = assertEnumValue(value.phase, FABRIC.LIFECYCLE_PHASE, `${context} phase`);
+  const state = assertEnumValue(value.state, FABRIC.LIFECYCLE_PHASE_STATE, `${context} state`);
+  const blockedReasons = assertOptionalReferenceList(value.blockedReasons, `${context} blockedReasons`);
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.LIFECYCLE_PHASE_STATE.BLOCKED, FABRIC.LIFECYCLE_PHASE_STATE.FAILED],
+    blockedReasons,
+    context,
+  );
+  assertOptionalReferenceList(value.evidenceRefs, `${context} evidenceRefs`);
+  assertOptionalReferenceList(value.outputRefs, `${context} outputRefs`);
+  if (value.safeFacts !== undefined) assertSafeObject(value.safeFacts, `${context} safeFacts`);
+  return { ...value, phase, state, blockedReasons };
+}
+
+export function assertSubstrateAssociationHandoff(record) {
+  if (!isObject(record)) throw new Error("substrate association handoff must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SUBSTRATE_ASSOCIATION_HANDOFF, "substrate association handoff");
+  requireString(record.handoffId, "substrate association handoff handoffId");
+  requireString(record.substrateRef, "substrate association handoff substrateRef");
+  requireString(record.hostRef, "substrate association handoff hostRef");
+  requireString(record.ownerRef, "substrate association handoff ownerRef");
+  requireString(record.fabricRef, "substrate association handoff fabricRef");
+  const state = assertEnumValue(record.state, FABRIC.ASSOCIATION_HANDOFF_STATE, "substrate association handoff state");
+  assertReferenceList(record.initialAssociationRefs, "substrate association handoff initialAssociationRefs");
+  const gatewayAssociationRefs = assertOptionalReferenceList(record.gatewayAssociationRefs, "substrate association handoff gatewayAssociationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "substrate association handoff evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "substrate association handoff blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.ASSOCIATION_HANDOFF_STATE.BLOCKED, FABRIC.ASSOCIATION_HANDOFF_STATE.EXPIRED],
+    blockedReasons,
+    "substrate association handoff",
+  );
+  if (state === FABRIC.ASSOCIATION_HANDOFF_STATE.HANDED_OFF && gatewayAssociationRefs.length === 0) {
+    throw new Error("handed off substrate association requires gatewayAssociationRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "substrate association handoff safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "substrate association handoff");
+  if (!Number(record.issuedAt || 0)) throw new Error("substrate association handoff missing issuedAt");
+  if (record.handedOffAt !== undefined) assertOptionalTimeField(record.handedOffAt, "substrate association handoff handedOffAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("substrate association handoff expiresAt must be after issuedAt");
+  }
+  return { ...record, state, gatewayAssociationRefs, blockedReasons };
+}
+
+export function assertHostFabricMemberContribution(record) {
+  if (!isObject(record)) throw new Error("host-fabric member contribution must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION, "host-fabric member contribution");
+  requireString(record.contributionId, "host-fabric member contribution contributionId");
+  requireString(record.fabricRef, "host-fabric member contribution fabricRef");
+  requireString(record.hostRef, "host-fabric member contribution hostRef");
+  assertResolvedMemberRef(record.memberRef, "host-fabric member contribution memberRef");
+  const role = assertEnumValue(record.role, FABRIC.MEMBER_ROLE, "host-fabric member contribution role");
+  const state = assertEnumValue(record.state, FABRIC.MEMBER_CONTRIBUTION_STATE, "host-fabric member contribution state");
+  requireString(record.contractRef, "host-fabric member contribution contractRef");
+  requireString(record.subjectRef, "host-fabric member contribution subjectRef");
+  assertOptionalReferenceList(record.capabilityRefs, "host-fabric member contribution capabilityRefs");
+  assertOptionalReferenceList(record.grantRefs, "host-fabric member contribution grantRefs");
+  assertOptionalReferenceList(record.inputRefs, "host-fabric member contribution inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "host-fabric member contribution outputRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "host-fabric member contribution evidenceRefs");
+  assertOptionalReferenceList(record.lifecyclePlanRefs, "host-fabric member contribution lifecyclePlanRefs");
+  assertOptionalReferenceList(record.releaseRefs, "host-fabric member contribution releaseRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric member contribution blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.MEMBER_CONTRIBUTION_STATE.BLOCKED, FABRIC.MEMBER_CONTRIBUTION_STATE.EXPIRED],
+    blockedReasons,
+    "host-fabric member contribution",
+  );
+  if (record.resourcePosture !== undefined && record.resourcePosture !== null) assertResourcePosture(record.resourcePosture);
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric member contribution safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric member contribution");
+  assertFabricObservedWindow(record, "host-fabric member contribution");
+  return { ...record, role, state, blockedReasons };
+}
+
+export function assertHostFabricFulfillmentPlan(record) {
+  if (!isObject(record)) throw new Error("host-fabric fulfillment plan must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN, "host-fabric fulfillment plan");
+  requireString(record.planId, "host-fabric fulfillment plan planId");
+  requireString(record.fabricRef, "host-fabric fulfillment plan fabricRef");
+  requireString(record.hostRef, "host-fabric fulfillment plan hostRef");
+  requireString(record.contractRef, "host-fabric fulfillment plan contractRef");
+  const state = assertEnumValue(record.state, FABRIC.FULFILLMENT_PLAN_STATE, "host-fabric fulfillment plan state");
+  const requiredRoleRefs = assertReferenceList(record.requiredRoleRefs, "host-fabric fulfillment plan requiredRoleRefs");
+  const memberContributionRefs = assertOptionalReferenceList(record.memberContributionRefs, "host-fabric fulfillment plan memberContributionRefs");
+  assertOptionalReferenceList(record.missingRoleRefs, "host-fabric fulfillment plan missingRoleRefs");
+  assertOptionalReferenceList(record.lifecyclePlanRefs, "host-fabric fulfillment plan lifecyclePlanRefs");
+  assertOptionalReferenceList(record.materializationBudgetRefs, "host-fabric fulfillment plan materializationBudgetRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "host-fabric fulfillment plan evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric fulfillment plan blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.FULFILLMENT_PLAN_STATE.BLOCKED, FABRIC.FULFILLMENT_PLAN_STATE.EXPIRED],
+    blockedReasons,
+    "host-fabric fulfillment plan",
+  );
+  if (state === FABRIC.FULFILLMENT_PLAN_STATE.READY && memberContributionRefs.length === 0) {
+    throw new Error("ready host-fabric fulfillment plan requires memberContributionRefs");
+  }
+  if (record.associationHandoffRef !== undefined) requireString(record.associationHandoffRef, "host-fabric fulfillment plan associationHandoffRef");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric fulfillment plan safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric fulfillment plan");
+  assertFabricObservedWindow(record, "host-fabric fulfillment plan");
+  return { ...record, state, requiredRoleRefs, memberContributionRefs, blockedReasons };
+}
+
+export function assertLifecyclePlanPosture(record) {
+  if (!isObject(record)) throw new Error("lifecycle plan posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE, "lifecycle plan posture");
+  requireString(record.lifecyclePlanId, "lifecycle plan posture lifecyclePlanId");
+  requireString(record.subjectRef, "lifecycle plan posture subjectRef");
+  requireString(record.contractRef, "lifecycle plan posture contractRef");
+  const state = assertEnumValue(record.state, FABRIC.LIFECYCLE_PLAN_STATE, "lifecycle plan posture state");
+  assertReferenceList(record.lifecycleContractRefs, "lifecycle plan posture lifecycleContractRefs");
+  const phasePostures = requireNonEmptyArray(record.phasePostures, "lifecycle plan posture phasePostures")
+    .map((entry, index) => assertLifecyclePhasePosture(entry, `lifecycle plan posture phasePostures ${index}`));
+  assertOptionalReferenceList(record.memberContributionRefs, "lifecycle plan posture memberContributionRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "lifecycle plan posture evidenceRefs");
+  assertOptionalReferenceList(record.releaseRefs, "lifecycle plan posture releaseRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "lifecycle plan posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.LIFECYCLE_PLAN_STATE.BLOCKED, FABRIC.LIFECYCLE_PLAN_STATE.EXPIRED],
+    blockedReasons,
+    "lifecycle plan posture",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "lifecycle plan posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "lifecycle plan posture");
+  assertFabricObservedWindow(record, "lifecycle plan posture");
+  return { ...record, state, phasePostures, blockedReasons };
+}
+
+export function assertContentIndexRefPosture(record) {
+  if (!isObject(record)) throw new Error("content-index ref posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTENT_INDEX_REF_POSTURE, "content-index ref posture");
+  requireString(record.postureId, "content-index ref posture postureId");
+  requireString(record.contentIndexRef, "content-index ref posture contentIndexRef");
+  const state = assertEnumValue(record.state, FABRIC.CONTENT_INDEX_STATE, "content-index ref posture state");
+  const sourceRefs = assertOptionalReferenceList(record.sourceRefs, "content-index ref posture sourceRefs");
+  const materializedProjectionRefs = assertOptionalReferenceList(record.materializedProjectionRefs, "content-index ref posture materializedProjectionRefs");
+  assertOptionalReferenceList(record.storageRefs, "content-index ref posture storageRefs");
+  assertOptionalReferenceList(record.writerRefs, "content-index ref posture writerRefs");
+  assertOptionalReferenceList(record.schemaRefs, "content-index ref posture schemaRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "content-index ref posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "content-index ref posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTENT_INDEX_STATE.BLOCKED, FABRIC.CONTENT_INDEX_STATE.EXPIRED],
+    blockedReasons,
+    "content-index ref posture",
+  );
+  if (state === FABRIC.CONTENT_INDEX_STATE.READY && sourceRefs.length === 0) {
+    throw new Error("ready content-index ref posture requires sourceRefs");
+  }
+  if (state === FABRIC.CONTENT_INDEX_STATE.READY && materializedProjectionRefs.length === 0) {
+    throw new Error("ready content-index ref posture requires materializedProjectionRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "content-index ref posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "content-index ref posture");
+  assertFabricObservedWindow(record, "content-index ref posture");
+  return { ...record, state, sourceRefs, materializedProjectionRefs, blockedReasons };
+}
+
+export function assertContractIntentionPosture(record) {
+  if (!isObject(record)) throw new Error("contract intention posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTRACT_INTENTION_POSTURE, "contract intention posture");
+  requireString(record.postureId, "contract intention posture postureId");
+  requireString(record.intentionRef, "contract intention posture intentionRef");
+  const state = assertEnumValue(record.state, FABRIC.CONTRACT_INTENTION_STATE, "contract intention posture state");
+  const contentIndexRefs = assertOptionalReferenceList(record.contentIndexRefs, "contract intention posture contentIndexRefs");
+  assertOptionalReferenceList(record.authoringSurfaceRefs, "contract intention posture authoringSurfaceRefs");
+  assertOptionalReferenceList(record.proofGateRefs, "contract intention posture proofGateRefs");
+  assertOptionalReferenceList(record.reducerRefs, "contract intention posture reducerRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "contract intention posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "contract intention posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTRACT_INTENTION_STATE.BLOCKED, FABRIC.CONTRACT_INTENTION_STATE.EXPIRED],
+    blockedReasons,
+    "contract intention posture",
+  );
+  if (state === FABRIC.CONTRACT_INTENTION_STATE.READY && !String(record.canonicalHashRef || "").trim()) {
+    throw new Error("ready contract intention posture requires canonicalHashRef");
+  }
+  if (state === FABRIC.CONTRACT_INTENTION_STATE.READY && contentIndexRefs.length === 0) {
+    throw new Error("ready contract intention posture requires contentIndexRefs");
+  }
+  if (record.canonicalHashRef !== undefined) requireString(record.canonicalHashRef, "contract intention posture canonicalHashRef");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "contract intention posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "contract intention posture");
+  assertFabricObservedWindow(record, "contract intention posture");
+  return { ...record, state, contentIndexRefs, blockedReasons };
+}
+
+export function assertUniqueEdgeClassification(record) {
+  if (!isObject(record)) throw new Error("unique edge classification must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.UNIQUE_EDGE_CLASSIFICATION, "unique edge classification");
+  requireString(record.classificationId, "unique edge classification classificationId");
+  requireString(record.subjectRef, "unique edge classification subjectRef");
+  const state = assertEnumValue(record.state, FABRIC.UNIQUE_EDGE_CLASSIFICATION, "unique edge classification state");
+  if (record.primitiveRef !== undefined) requireString(record.primitiveRef, "unique edge classification primitiveRef");
+  if (record.externalRealityRef !== undefined) requireString(record.externalRealityRef, "unique edge classification externalRealityRef");
+  if (record.interactionRef !== undefined) requireString(record.interactionRef, "unique edge classification interactionRef");
+  if (state === FABRIC.UNIQUE_EDGE_CLASSIFICATION.UNIQUE_EDGE) {
+    requireString(record.externalRealityRef, "unique edge classification externalRealityRef");
+    requireString(record.interactionRef, "unique edge classification interactionRef");
+  }
+  if (state === FABRIC.UNIQUE_EDGE_CLASSIFICATION.GENERIC_PRIMITIVE) {
+    requireString(record.primitiveRef, "unique edge classification primitiveRef");
+  }
+  assertOptionalReferenceList(record.policyRefs, "unique edge classification policyRefs");
+  assertOptionalReferenceList(record.inputRefs, "unique edge classification inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "unique edge classification outputRefs");
+  assertOptionalReferenceList(record.grantRefs, "unique edge classification grantRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "unique edge classification evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "unique edge classification blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.UNIQUE_EDGE_CLASSIFICATION.BLOCKED],
+    blockedReasons,
+    "unique edge classification",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "unique edge classification safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "unique edge classification");
+  assertFabricObservedWindow(record, "unique edge classification");
+  return { ...record, state, blockedReasons };
+}
+
 function assertPrivateRefList(value, name = "privateRefs") {
   if (value === undefined || value === null) return [];
   const refs = requireArray(value, name);
@@ -4643,6 +5004,10 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.CONSUMER_FLOOR,
     SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
     SWARM.RECORD_KIND.MEDIA_TRANSPORT_OBSERVATION,
+    SWARM.RECORD_KIND.SUBSTRATE_ASSOCIATION_HANDOFF,
+    SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION,
+    SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
+    SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
     "stream.session.offer",
     "stream.session.answer",
     "stream.session.candidate",

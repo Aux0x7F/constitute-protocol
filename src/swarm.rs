@@ -137,6 +137,13 @@ pub const RECORD_SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: &str =
     "surface.app.fulfillment.identity.posture";
 pub const RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE: &str =
     "surface.app.authority.access.posture";
+pub const RECORD_SUBSTRATE_ASSOCIATION_HANDOFF: &str = "substrate.association.handoff";
+pub const RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION: &str = "hostFabric.member.contribution";
+pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.plan";
+pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
+pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
+pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
+pub const RECORD_UNIQUE_EDGE_CLASSIFICATION: &str = "uniqueEdge.classification";
 pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
 pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
 pub const RECORD_APP_RUNNER_FULFILLMENT_LIFECYCLE: &str = "app.runner.fulfillment.lifecycle";
@@ -244,6 +251,76 @@ pub const RUNNER_FULFILLMENT_STATE_BLOCKED: &str = "blocked";
 pub const RUNNER_FULFILLMENT_STATE_FAILED: &str = "failed";
 pub const RUNNER_FULFILLMENT_STATE_REJECTED: &str = "rejected";
 pub const RUNNER_FULFILLMENT_STATE_CANCELLED: &str = "cancelled";
+
+pub const FABRIC_ASSOCIATION_HANDOFF_READY: &str = "ready";
+pub const FABRIC_ASSOCIATION_HANDOFF_HANDED_OFF: &str = "handedOff";
+pub const FABRIC_ASSOCIATION_HANDOFF_DEGRADED: &str = "degraded";
+pub const FABRIC_ASSOCIATION_HANDOFF_BLOCKED: &str = "blocked";
+pub const FABRIC_ASSOCIATION_HANDOFF_EXPIRED: &str = "expired";
+pub const FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION: &str = "gatewayAssociation";
+pub const FABRIC_MEMBER_ROLE_HOST_SERVICE_ADAPTER: &str = "hostServiceAdapter";
+pub const FABRIC_MEMBER_ROLE_EXECUTION_FULFILLMENT: &str = "executionFulfillment";
+pub const FABRIC_MEMBER_ROLE_STORAGE_JOURNAL_CACHE: &str = "storageJournalCache";
+pub const FABRIC_MEMBER_ROLE_SOURCE_CONTENT_INDEX: &str = "sourceContentIndex";
+pub const FABRIC_MEMBER_ROLE_BUILD_PROCESSOR: &str = "buildProcessor";
+pub const FABRIC_MEMBER_ROLE_RUNTIME: &str = "runtime";
+pub const FABRIC_MEMBER_ROLE_SURFACE: &str = "surface";
+pub const FABRIC_MEMBER_ROLE_PLATFORM_ADAPTER: &str = "platformAdapter";
+pub const FABRIC_MEMBER_ROLE_SERVICE_SURFACE_ADAPTER: &str = "serviceSurfaceAdapter";
+pub const FABRIC_MEMBER_ROLE_SERVICE_EDGE_ADAPTER: &str = "serviceEdgeAdapter";
+pub const FABRIC_MEMBER_ROLE_LOGGING_PROCESSOR: &str = "loggingProcessor";
+pub const FABRIC_MEMBER_ROLE_DOMAIN_SERVICE: &str = "domainService";
+pub const FABRIC_MEMBER_CONTRIBUTION_CLAIMED: &str = "claimed";
+pub const FABRIC_MEMBER_CONTRIBUTION_ACCEPTED: &str = "accepted";
+pub const FABRIC_MEMBER_CONTRIBUTION_RUNNING: &str = "running";
+pub const FABRIC_MEMBER_CONTRIBUTION_DEGRADED: &str = "degraded";
+pub const FABRIC_MEMBER_CONTRIBUTION_BLOCKED: &str = "blocked";
+pub const FABRIC_MEMBER_CONTRIBUTION_RELEASED: &str = "released";
+pub const FABRIC_MEMBER_CONTRIBUTION_EXPIRED: &str = "expired";
+pub const FABRIC_MEMBER_CONTRIBUTION_SUPERSEDED: &str = "superseded";
+pub const FABRIC_FULFILLMENT_PLAN_READY: &str = "ready";
+pub const FABRIC_FULFILLMENT_PLAN_DEGRADED: &str = "degraded";
+pub const FABRIC_FULFILLMENT_PLAN_BLOCKED: &str = "blocked";
+pub const FABRIC_FULFILLMENT_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_LIFECYCLE_PLAN_READY: &str = "ready";
+pub const FABRIC_LIFECYCLE_PLAN_RUNNING: &str = "running";
+pub const FABRIC_LIFECYCLE_PLAN_DEGRADED: &str = "degraded";
+pub const FABRIC_LIFECYCLE_PLAN_BLOCKED: &str = "blocked";
+pub const FABRIC_LIFECYCLE_PLAN_RELEASED: &str = "released";
+pub const FABRIC_LIFECYCLE_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_LIFECYCLE_PHASE_SOURCE: &str = "source";
+pub const FABRIC_LIFECYCLE_PHASE_BUILD: &str = "build";
+pub const FABRIC_LIFECYCLE_PHASE_RELEASE: &str = "release";
+pub const FABRIC_LIFECYCLE_PHASE_LOAD: &str = "load";
+pub const FABRIC_LIFECYCLE_PHASE_RUN: &str = "run";
+pub const FABRIC_LIFECYCLE_PHASE_OBSERVE: &str = "observe";
+pub const FABRIC_LIFECYCLE_PHASE_ROLLBACK: &str = "rollback";
+pub const FABRIC_LIFECYCLE_PHASE_EXPIRY: &str = "expiry";
+pub const FABRIC_LIFECYCLE_PHASE_CLEANUP: &str = "cleanup";
+pub const FABRIC_LIFECYCLE_PHASE_NOT_REQUIRED: &str = "notRequired";
+pub const FABRIC_LIFECYCLE_PHASE_PENDING: &str = "pending";
+pub const FABRIC_LIFECYCLE_PHASE_READY: &str = "ready";
+pub const FABRIC_LIFECYCLE_PHASE_RUNNING: &str = "running";
+pub const FABRIC_LIFECYCLE_PHASE_SUCCEEDED: &str = "succeeded";
+pub const FABRIC_LIFECYCLE_PHASE_DEGRADED: &str = "degraded";
+pub const FABRIC_LIFECYCLE_PHASE_BLOCKED: &str = "blocked";
+pub const FABRIC_LIFECYCLE_PHASE_FAILED: &str = "failed";
+pub const FABRIC_LIFECYCLE_PHASE_RELEASED: &str = "released";
+pub const FABRIC_LIFECYCLE_PHASE_EXPIRED: &str = "expired";
+pub const FABRIC_CONTENT_INDEX_READY: &str = "ready";
+pub const FABRIC_CONTENT_INDEX_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTENT_INDEX_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTENT_INDEX_SUPERSEDED: &str = "superseded";
+pub const FABRIC_CONTENT_INDEX_EXPIRED: &str = "expired";
+pub const FABRIC_CONTRACT_INTENTION_DRAFT: &str = "draft";
+pub const FABRIC_CONTRACT_INTENTION_READY: &str = "ready";
+pub const FABRIC_CONTRACT_INTENTION_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTRACT_INTENTION_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTRACT_INTENTION_SUPERSEDED: &str = "superseded";
+pub const FABRIC_CONTRACT_INTENTION_EXPIRED: &str = "expired";
+pub const FABRIC_UNIQUE_EDGE_GENERIC_PRIMITIVE: &str = "genericPrimitive";
+pub const FABRIC_UNIQUE_EDGE_UNIQUE_EDGE: &str = "uniqueEdge";
+pub const FABRIC_UNIQUE_EDGE_BLOCKED: &str = "blocked";
 
 pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
 pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
@@ -3006,6 +3083,239 @@ pub struct AppRunnerAttestation {
     pub recipe_id: String,
     pub status: String,
     pub issued_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SubstrateAssociationHandoff {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub handoff_id: String,
+    pub substrate_ref: String,
+    pub host_ref: String,
+    pub owner_ref: String,
+    pub fabric_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub initial_association_refs: Vec<String>,
+    #[serde(default)]
+    pub gateway_association_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub handed_off_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricMemberContribution {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub contribution_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub member_ref: String,
+    pub role: String,
+    pub state: String,
+    pub contract_ref: String,
+    pub subject_ref: String,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_posture: Option<ResourcePosture>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricFulfillmentPlan {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub plan_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub contract_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub required_role_refs: Vec<String>,
+    #[serde(default)]
+    pub member_contribution_refs: Vec<String>,
+    #[serde(default)]
+    pub missing_role_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub materialization_budget_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub association_handoff_ref: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePhasePosture {
+    pub phase: String,
+    pub state: String,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecyclePlanPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub lifecycle_plan_id: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub lifecycle_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub phase_postures: Vec<LifecyclePhasePosture>,
+    #[serde(default)]
+    pub member_contribution_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIndexRefPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub content_index_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub materialized_projection_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub writer_refs: Vec<String>,
+    #[serde(default)]
+    pub schema_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractIntentionPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub intention_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub canonical_hash_ref: Option<String>,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub authoring_surface_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_gate_refs: Vec<String>,
+    #[serde(default)]
+    pub reducer_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UniqueEdgeClassification {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub classification_id: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub primitive_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub external_reality_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub interaction_ref: Option<String>,
+    #[serde(default)]
+    pub policy_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -7691,6 +8001,591 @@ pub fn validate_app_runner_attestation(attestation: &AppRunnerAttestation) -> Re
     Ok(())
 }
 
+fn validate_fabric_observed_window(
+    observed_at: u64,
+    expires_at: Option<u64>,
+    context: &str,
+) -> Result<()> {
+    if observed_at == 0 {
+        return Err(anyhow!("{context} missing observedAt"));
+    }
+    if expires_at.is_some_and(|expires_at| expires_at <= observed_at) {
+        return Err(anyhow!("{context} expiresAt must be after observedAt"));
+    }
+    Ok(())
+}
+
+fn validate_blocked_reasons(
+    blocked: bool,
+    blocked_reasons: &[String],
+    context: &str,
+) -> Result<()> {
+    validate_reference_list(
+        blocked_reasons,
+        &format!("{context} missing blockedReasons"),
+    )?;
+    if blocked && blocked_reasons.is_empty() {
+        return Err(anyhow!("{context} requires blockedReasons"));
+    }
+    Ok(())
+}
+
+pub fn validate_substrate_association_handoff(record: &SubstrateAssociationHandoff) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SUBSTRATE_ASSOCIATION_HANDOFF,
+        "substrate association handoff",
+    )?;
+    require_non_empty(
+        &record.handoff_id,
+        "substrate association handoff missing handoffId",
+    )?;
+    require_non_empty(
+        &record.substrate_ref,
+        "substrate association handoff missing substrateRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "substrate association handoff missing hostRef",
+    )?;
+    require_non_empty(
+        &record.owner_ref,
+        "substrate association handoff missing ownerRef",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "substrate association handoff missing fabricRef",
+    )?;
+    validate_fabric_association_handoff_state(&record.state)?;
+    require_non_empty_vec(
+        &record.initial_association_refs,
+        "substrate association handoff requires initialAssociationRefs",
+    )?;
+    validate_reference_list(
+        &record.gateway_association_refs,
+        "substrate association handoff missing gatewayAssociationRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "substrate association handoff missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_ASSOCIATION_HANDOFF_BLOCKED | FABRIC_ASSOCIATION_HANDOFF_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "substrate association handoff",
+    )?;
+    if record.state == FABRIC_ASSOCIATION_HANDOFF_HANDED_OFF
+        && record.gateway_association_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "handed off substrate association requires gatewayAssociationRefs"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "substrate association handoff safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "substrate association handoff",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "substrate association handoff",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("substrate association handoff missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "substrate association handoff expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_host_fabric_member_contribution(
+    record: &HostFabricMemberContribution,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION,
+        "host-fabric member contribution",
+    )?;
+    require_non_empty(
+        &record.contribution_id,
+        "host-fabric member contribution missing contributionId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric member contribution missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric member contribution missing hostRef",
+    )?;
+    validate_resolved_member_ref(
+        &record.member_ref,
+        "host-fabric member contribution missing memberRef",
+    )?;
+    validate_fabric_member_role(&record.role)?;
+    validate_fabric_member_contribution_state(&record.state)?;
+    require_non_empty(
+        &record.contract_ref,
+        "host-fabric member contribution missing contractRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric member contribution missing subjectRef",
+    )?;
+    validate_reference_list(
+        &record.capability_refs,
+        "host-fabric member contribution missing capabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "host-fabric member contribution missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "host-fabric member contribution missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "host-fabric member contribution missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric member contribution missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "host-fabric member contribution missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "host-fabric member contribution missing releaseRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_MEMBER_CONTRIBUTION_BLOCKED | FABRIC_MEMBER_CONTRIBUTION_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "host-fabric member contribution",
+    )?;
+    if let Some(resource_posture) = &record.resource_posture {
+        validate_resource_posture(resource_posture)?;
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric member contribution safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric member contribution",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric member contribution",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric member contribution",
+    )
+}
+
+pub fn validate_host_fabric_fulfillment_plan(record: &HostFabricFulfillmentPlan) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_FULFILLMENT_PLAN,
+        "host-fabric fulfillment plan",
+    )?;
+    require_non_empty(
+        &record.plan_id,
+        "host-fabric fulfillment plan missing planId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric fulfillment plan missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric fulfillment plan missing hostRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "host-fabric fulfillment plan missing contractRef",
+    )?;
+    validate_fabric_fulfillment_plan_state(&record.state)?;
+    require_non_empty_vec(
+        &record.required_role_refs,
+        "host-fabric fulfillment plan requires requiredRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.member_contribution_refs,
+        "host-fabric fulfillment plan missing memberContributionRefs",
+    )?;
+    validate_reference_list(
+        &record.missing_role_refs,
+        "host-fabric fulfillment plan missing missingRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "host-fabric fulfillment plan missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.materialization_budget_refs,
+        "host-fabric fulfillment plan missing materializationBudgetRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric fulfillment plan missing evidenceRefs",
+    )?;
+    validate_optional_ref(
+        record.association_handoff_ref.as_deref(),
+        "host-fabric fulfillment plan missing associationHandoffRef",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_FULFILLMENT_PLAN_BLOCKED | FABRIC_FULFILLMENT_PLAN_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "host-fabric fulfillment plan",
+    )?;
+    if record.state == FABRIC_FULFILLMENT_PLAN_READY && record.member_contribution_refs.is_empty() {
+        return Err(anyhow!(
+            "ready host-fabric fulfillment plan requires memberContributionRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "host-fabric fulfillment plan safeFacts")?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric fulfillment plan",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric fulfillment plan",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric fulfillment plan",
+    )
+}
+
+fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &str) -> Result<()> {
+    validate_fabric_lifecycle_phase(&record.phase)?;
+    validate_fabric_lifecycle_phase_state(&record.state)?;
+    validate_reference_list(
+        &record.evidence_refs,
+        &format!("{context} missing evidenceRefs"),
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        &format!("{context} missing outputRefs"),
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_LIFECYCLE_PHASE_BLOCKED | FABRIC_LIFECYCLE_PHASE_FAILED
+        ),
+        &record.blocked_reasons,
+        context,
+    )?;
+    validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))
+}
+
+pub fn validate_lifecycle_plan_posture(record: &LifecyclePlanPosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_LIFECYCLE_PLAN_POSTURE,
+        "lifecycle plan posture",
+    )?;
+    require_non_empty(
+        &record.lifecycle_plan_id,
+        "lifecycle plan posture missing lifecyclePlanId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "lifecycle plan posture missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "lifecycle plan posture missing contractRef",
+    )?;
+    validate_fabric_lifecycle_plan_state(&record.state)?;
+    require_non_empty_vec(
+        &record.lifecycle_contract_refs,
+        "lifecycle plan posture requires lifecycleContractRefs",
+    )?;
+    if record.phase_postures.is_empty() {
+        return Err(anyhow!("lifecycle plan posture requires phasePostures"));
+    }
+    for (index, phase) in record.phase_postures.iter().enumerate() {
+        validate_lifecycle_phase_posture(
+            phase,
+            &format!("lifecycle plan posture phasePostures {index}"),
+        )?;
+    }
+    validate_reference_list(
+        &record.member_contribution_refs,
+        "lifecycle plan posture missing memberContributionRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "lifecycle plan posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "lifecycle plan posture missing releaseRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_LIFECYCLE_PLAN_BLOCKED | FABRIC_LIFECYCLE_PLAN_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "lifecycle plan posture",
+    )?;
+    validate_safe_facts(&record.safe_facts, "lifecycle plan posture safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "lifecycle plan posture")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "lifecycle plan posture")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "lifecycle plan posture",
+    )
+}
+
+pub fn validate_content_index_ref_posture(record: &ContentIndexRefPosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CONTENT_INDEX_REF_POSTURE,
+        "content-index ref posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "content-index ref posture missing postureId",
+    )?;
+    require_non_empty(
+        &record.content_index_ref,
+        "content-index ref posture missing contentIndexRef",
+    )?;
+    validate_fabric_content_index_state(&record.state)?;
+    validate_reference_list(
+        &record.source_refs,
+        "content-index ref posture missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.materialized_projection_refs,
+        "content-index ref posture missing materializedProjectionRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "content-index ref posture missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.writer_refs,
+        "content-index ref posture missing writerRefs",
+    )?;
+    validate_reference_list(
+        &record.schema_refs,
+        "content-index ref posture missing schemaRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "content-index ref posture missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTENT_INDEX_BLOCKED | FABRIC_CONTENT_INDEX_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "content-index ref posture",
+    )?;
+    if record.state == FABRIC_CONTENT_INDEX_READY && record.source_refs.is_empty() {
+        return Err(anyhow!(
+            "ready content-index ref posture requires sourceRefs"
+        ));
+    }
+    if record.state == FABRIC_CONTENT_INDEX_READY && record.materialized_projection_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "ready content-index ref posture requires materializedProjectionRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "content-index ref posture safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "content-index ref posture")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "content-index ref posture")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "content-index ref posture",
+    )
+}
+
+pub fn validate_contract_intention_posture(record: &ContractIntentionPosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CONTRACT_INTENTION_POSTURE,
+        "contract intention posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "contract intention posture missing postureId",
+    )?;
+    require_non_empty(
+        &record.intention_ref,
+        "contract intention posture missing intentionRef",
+    )?;
+    validate_fabric_contract_intention_state(&record.state)?;
+    validate_optional_ref(
+        record.canonical_hash_ref.as_deref(),
+        "contract intention posture missing canonicalHashRef",
+    )?;
+    validate_reference_list(
+        &record.content_index_refs,
+        "contract intention posture missing contentIndexRefs",
+    )?;
+    validate_reference_list(
+        &record.authoring_surface_refs,
+        "contract intention posture missing authoringSurfaceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_gate_refs,
+        "contract intention posture missing proofGateRefs",
+    )?;
+    validate_reference_list(
+        &record.reducer_refs,
+        "contract intention posture missing reducerRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "contract intention posture missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTRACT_INTENTION_BLOCKED | FABRIC_CONTRACT_INTENTION_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "contract intention posture",
+    )?;
+    if record.state == FABRIC_CONTRACT_INTENTION_READY
+        && record
+            .canonical_hash_ref
+            .as_deref()
+            .unwrap_or_default()
+            .trim()
+            .is_empty()
+    {
+        return Err(anyhow!(
+            "ready contract intention posture requires canonicalHashRef"
+        ));
+    }
+    if record.state == FABRIC_CONTRACT_INTENTION_READY && record.content_index_refs.is_empty() {
+        return Err(anyhow!(
+            "ready contract intention posture requires contentIndexRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "contract intention posture safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "contract intention posture")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "contract intention posture")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "contract intention posture",
+    )
+}
+
+pub fn validate_unique_edge_classification(record: &UniqueEdgeClassification) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_UNIQUE_EDGE_CLASSIFICATION,
+        "unique edge classification",
+    )?;
+    require_non_empty(
+        &record.classification_id,
+        "unique edge classification missing classificationId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "unique edge classification missing subjectRef",
+    )?;
+    validate_unique_edge_classification_state(&record.state)?;
+    validate_optional_ref(
+        record.primitive_ref.as_deref(),
+        "unique edge classification missing primitiveRef",
+    )?;
+    validate_optional_ref(
+        record.external_reality_ref.as_deref(),
+        "unique edge classification missing externalRealityRef",
+    )?;
+    validate_optional_ref(
+        record.interaction_ref.as_deref(),
+        "unique edge classification missing interactionRef",
+    )?;
+    if record.state == FABRIC_UNIQUE_EDGE_UNIQUE_EDGE {
+        require_non_empty(
+            record.external_reality_ref.as_deref().unwrap_or_default(),
+            "unique edge classification requires externalRealityRef",
+        )?;
+        require_non_empty(
+            record.interaction_ref.as_deref().unwrap_or_default(),
+            "unique edge classification requires interactionRef",
+        )?;
+    }
+    if record.state == FABRIC_UNIQUE_EDGE_GENERIC_PRIMITIVE {
+        require_non_empty(
+            record.primitive_ref.as_deref().unwrap_or_default(),
+            "unique edge classification requires primitiveRef",
+        )?;
+    }
+    validate_reference_list(
+        &record.policy_refs,
+        "unique edge classification missing policyRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "unique edge classification missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "unique edge classification missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "unique edge classification missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "unique edge classification missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        record.state == FABRIC_UNIQUE_EDGE_BLOCKED,
+        &record.blocked_reasons,
+        "unique edge classification",
+    )?;
+    validate_safe_facts(&record.safe_facts, "unique edge classification safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "unique edge classification")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "unique edge classification")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "unique edge classification",
+    )
+}
+
 pub fn validate_runner_operation(record: &RunnerOperationRecord) -> Result<()> {
     validate_optional_kind(&record.kind, RECORD_RUNNER_OPERATION, "runner operation")?;
     require_non_empty(&record.operation_id, "runner operation missing operationId")?;
@@ -8305,6 +9200,175 @@ fn validate_service_manager_proof_profile(profile: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported service manager proof profile"))
+    }
+}
+
+fn validate_fabric_association_handoff_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ASSOCIATION_HANDOFF_READY
+            | FABRIC_ASSOCIATION_HANDOFF_HANDED_OFF
+            | FABRIC_ASSOCIATION_HANDOFF_DEGRADED
+            | FABRIC_ASSOCIATION_HANDOFF_BLOCKED
+            | FABRIC_ASSOCIATION_HANDOFF_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported fabric association handoff state"))
+    }
+}
+
+fn validate_fabric_member_role(role: &str) -> Result<()> {
+    if matches!(
+        role,
+        FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION
+            | FABRIC_MEMBER_ROLE_HOST_SERVICE_ADAPTER
+            | FABRIC_MEMBER_ROLE_EXECUTION_FULFILLMENT
+            | FABRIC_MEMBER_ROLE_STORAGE_JOURNAL_CACHE
+            | FABRIC_MEMBER_ROLE_SOURCE_CONTENT_INDEX
+            | FABRIC_MEMBER_ROLE_BUILD_PROCESSOR
+            | FABRIC_MEMBER_ROLE_RUNTIME
+            | FABRIC_MEMBER_ROLE_SURFACE
+            | FABRIC_MEMBER_ROLE_PLATFORM_ADAPTER
+            | FABRIC_MEMBER_ROLE_SERVICE_SURFACE_ADAPTER
+            | FABRIC_MEMBER_ROLE_SERVICE_EDGE_ADAPTER
+            | FABRIC_MEMBER_ROLE_LOGGING_PROCESSOR
+            | FABRIC_MEMBER_ROLE_DOMAIN_SERVICE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric member role"))
+    }
+}
+
+fn validate_fabric_member_contribution_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_MEMBER_CONTRIBUTION_CLAIMED
+            | FABRIC_MEMBER_CONTRIBUTION_ACCEPTED
+            | FABRIC_MEMBER_CONTRIBUTION_RUNNING
+            | FABRIC_MEMBER_CONTRIBUTION_DEGRADED
+            | FABRIC_MEMBER_CONTRIBUTION_BLOCKED
+            | FABRIC_MEMBER_CONTRIBUTION_RELEASED
+            | FABRIC_MEMBER_CONTRIBUTION_EXPIRED
+            | FABRIC_MEMBER_CONTRIBUTION_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric member contribution state"))
+    }
+}
+
+fn validate_fabric_fulfillment_plan_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_FULFILLMENT_PLAN_READY
+            | FABRIC_FULFILLMENT_PLAN_DEGRADED
+            | FABRIC_FULFILLMENT_PLAN_BLOCKED
+            | FABRIC_FULFILLMENT_PLAN_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric fulfillment plan state"))
+    }
+}
+
+fn validate_fabric_lifecycle_plan_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LIFECYCLE_PLAN_READY
+            | FABRIC_LIFECYCLE_PLAN_RUNNING
+            | FABRIC_LIFECYCLE_PLAN_DEGRADED
+            | FABRIC_LIFECYCLE_PLAN_BLOCKED
+            | FABRIC_LIFECYCLE_PLAN_RELEASED
+            | FABRIC_LIFECYCLE_PLAN_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle plan state"))
+    }
+}
+
+fn validate_fabric_lifecycle_phase(phase: &str) -> Result<()> {
+    if matches!(
+        phase,
+        FABRIC_LIFECYCLE_PHASE_SOURCE
+            | FABRIC_LIFECYCLE_PHASE_BUILD
+            | FABRIC_LIFECYCLE_PHASE_RELEASE
+            | FABRIC_LIFECYCLE_PHASE_LOAD
+            | FABRIC_LIFECYCLE_PHASE_RUN
+            | FABRIC_LIFECYCLE_PHASE_OBSERVE
+            | FABRIC_LIFECYCLE_PHASE_ROLLBACK
+            | FABRIC_LIFECYCLE_PHASE_EXPIRY
+            | FABRIC_LIFECYCLE_PHASE_CLEANUP
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle phase"))
+    }
+}
+
+fn validate_fabric_lifecycle_phase_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LIFECYCLE_PHASE_NOT_REQUIRED
+            | FABRIC_LIFECYCLE_PHASE_PENDING
+            | FABRIC_LIFECYCLE_PHASE_READY
+            | FABRIC_LIFECYCLE_PHASE_RUNNING
+            | FABRIC_LIFECYCLE_PHASE_SUCCEEDED
+            | FABRIC_LIFECYCLE_PHASE_DEGRADED
+            | FABRIC_LIFECYCLE_PHASE_BLOCKED
+            | FABRIC_LIFECYCLE_PHASE_FAILED
+            | FABRIC_LIFECYCLE_PHASE_RELEASED
+            | FABRIC_LIFECYCLE_PHASE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle phase state"))
+    }
+}
+
+fn validate_fabric_content_index_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTENT_INDEX_READY
+            | FABRIC_CONTENT_INDEX_DEGRADED
+            | FABRIC_CONTENT_INDEX_BLOCKED
+            | FABRIC_CONTENT_INDEX_SUPERSEDED
+            | FABRIC_CONTENT_INDEX_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported content-index state"))
+    }
+}
+
+fn validate_fabric_contract_intention_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTRACT_INTENTION_DRAFT
+            | FABRIC_CONTRACT_INTENTION_READY
+            | FABRIC_CONTRACT_INTENTION_DEGRADED
+            | FABRIC_CONTRACT_INTENTION_BLOCKED
+            | FABRIC_CONTRACT_INTENTION_SUPERSEDED
+            | FABRIC_CONTRACT_INTENTION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported contract intention state"))
+    }
+}
+
+fn validate_unique_edge_classification_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_UNIQUE_EDGE_GENERIC_PRIMITIVE
+            | FABRIC_UNIQUE_EDGE_UNIQUE_EDGE
+            | FABRIC_UNIQUE_EDGE_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported unique edge classification state"))
     }
 }
 
@@ -10928,6 +11992,210 @@ mod tests {
         let mut unsafe_fact = runner_operation;
         unsafe_fact.safe_facts = json!({ "token": "inline-secret" });
         assert!(validate_runner_operation(&unsafe_fact).is_err());
+    }
+
+    #[test]
+    fn validates_host_fabric_lifecycle_content_index_and_unique_edge_records() {
+        let member_ref = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
+        let observed_at = 1_700_000_040;
+        let handoff = SubstrateAssociationHandoff {
+            kind: Some(RECORD_SUBSTRATE_ASSOCIATION_HANDOFF.to_string()),
+            handoff_id: "handoff:lab-gateway:initial-owner".to_string(),
+            substrate_ref: "substrate:first-trust:lab".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            owner_ref: "identity:aux".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            state: FABRIC_ASSOCIATION_HANDOFF_HANDED_OFF.to_string(),
+            initial_association_refs: vec!["association:substrate:aux:lab-gateway".to_string()],
+            gateway_association_refs: vec!["association:gateway:lab-gateway:ongoing".to_string()],
+            evidence_refs: vec!["evidence:substrate:verified".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "handoff": "substrate-to-gateway-association" }),
+            issued_at: observed_at - 10,
+            handed_off_at: Some(observed_at - 1),
+            expires_at: Some(observed_at + 600),
+        };
+        validate_substrate_association_handoff(&handoff).expect("valid substrate handoff");
+
+        let contribution = HostFabricMemberContribution {
+            kind: Some(RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION.to_string()),
+            contribution_id: "fabric-contribution:gateway-association:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            member_ref: member_ref.clone(),
+            role: FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION.to_string(),
+            state: FABRIC_MEMBER_CONTRIBUTION_RUNNING.to_string(),
+            contract_ref: "contract:gateway-association@0.1.0".to_string(),
+            subject_ref: "association:gateway:lab-gateway:ongoing".to_string(),
+            capability_refs: vec!["gateway.association.fulfill".to_string()],
+            grant_refs: vec!["grant:gateway-association:fulfill".to_string()],
+            input_refs: vec![],
+            output_refs: vec![],
+            evidence_refs: vec!["evidence:gateway-association:presence".to_string()],
+            lifecycle_plan_refs: vec!["lifecycle-plan:gateway-association:1".to_string()],
+            release_refs: vec![],
+            resource_posture: None,
+            blocked_reasons: vec![],
+            safe_facts: json!({ "role": "gatewayAssociation" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_member_contribution(&contribution).expect("valid fabric contribution");
+
+        let lifecycle = LifecyclePlanPosture {
+            kind: Some(RECORD_LIFECYCLE_PLAN_POSTURE.to_string()),
+            lifecycle_plan_id: "lifecycle-plan:gateway-association:1".to_string(),
+            subject_ref: "association:gateway:lab-gateway:ongoing".to_string(),
+            contract_ref: "contract:lifecycle.gateway-association@0.1.0".to_string(),
+            state: FABRIC_LIFECYCLE_PLAN_READY.to_string(),
+            lifecycle_contract_refs: vec![
+                "contract:lifecycle.gateway-association@0.1.0".to_string(),
+            ],
+            phase_postures: vec![
+                LifecyclePhasePosture {
+                    phase: FABRIC_LIFECYCLE_PHASE_SOURCE.to_string(),
+                    state: FABRIC_LIFECYCLE_PHASE_READY.to_string(),
+                    evidence_refs: vec!["evidence:source:indexed".to_string()],
+                    output_refs: vec![],
+                    blocked_reasons: vec![],
+                    safe_facts: Value::Null,
+                },
+                LifecyclePhasePosture {
+                    phase: FABRIC_LIFECYCLE_PHASE_RUN.to_string(),
+                    state: FABRIC_LIFECYCLE_PHASE_RUNNING.to_string(),
+                    evidence_refs: vec!["evidence:association:running".to_string()],
+                    output_refs: vec![],
+                    blocked_reasons: vec![],
+                    safe_facts: Value::Null,
+                },
+            ],
+            member_contribution_refs: vec![contribution.contribution_id.clone()],
+            evidence_refs: vec!["evidence:lifecycle:reduced".to_string()],
+            release_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_lifecycle_plan_posture(&lifecycle).expect("valid lifecycle plan");
+
+        let plan = HostFabricFulfillmentPlan {
+            kind: Some(RECORD_HOST_FABRIC_FULFILLMENT_PLAN.to_string()),
+            plan_id: "fabric-plan:lab-gateway:association".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            contract_ref: "contract:gateway-association@0.1.0".to_string(),
+            state: FABRIC_FULFILLMENT_PLAN_READY.to_string(),
+            required_role_refs: vec!["role:gatewayAssociation".to_string()],
+            member_contribution_refs: vec![contribution.contribution_id.clone()],
+            missing_role_refs: vec![],
+            lifecycle_plan_refs: vec![lifecycle.lifecycle_plan_id.clone()],
+            materialization_budget_refs: vec![
+                "materialization-budget:gateway-association".to_string(),
+            ],
+            association_handoff_ref: Some(handoff.handoff_id.clone()),
+            evidence_refs: vec!["evidence:fabric:plan-ready".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_fulfillment_plan(&plan).expect("valid fabric plan");
+
+        let content_index = ContentIndexRefPosture {
+            kind: Some(RECORD_CONTENT_INDEX_REF_POSTURE.to_string()),
+            posture_id: "content-index-posture:gateway-association".to_string(),
+            content_index_ref: "content-index:gateway-association@0.1.0".to_string(),
+            state: FABRIC_CONTENT_INDEX_READY.to_string(),
+            source_refs: vec!["source:gateway-association:contract".to_string()],
+            materialized_projection_refs: vec!["projection:gateway-association:hot".to_string()],
+            storage_refs: vec!["storage:pin:gateway-association:contract".to_string()],
+            writer_refs: vec![],
+            schema_refs: vec!["schema:content-index:v1".to_string()],
+            evidence_refs: vec!["evidence:content-index:materialized".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_content_index_ref_posture(&content_index).expect("valid content-index posture");
+
+        let intention = ContractIntentionPosture {
+            kind: Some(RECORD_CONTRACT_INTENTION_POSTURE.to_string()),
+            posture_id: "contract-intention-posture:gateway-association".to_string(),
+            intention_ref: "contract-intention:gateway-association@0.1.0".to_string(),
+            state: FABRIC_CONTRACT_INTENTION_READY.to_string(),
+            canonical_hash_ref: Some("hash:contract-intention:gateway-association".to_string()),
+            content_index_refs: vec![content_index.content_index_ref.clone()],
+            authoring_surface_refs: vec!["authoring:typed-library".to_string()],
+            proof_gate_refs: vec!["proof-gate:protocol-validated".to_string()],
+            reducer_refs: vec!["reducer:gateway-association".to_string()],
+            evidence_refs: vec!["evidence:intention:signed".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_contract_intention_posture(&intention).expect("valid contract intention");
+
+        let unique_edge = UniqueEdgeClassification {
+            kind: Some(RECORD_UNIQUE_EDGE_CLASSIFICATION.to_string()),
+            classification_id: "unique-edge:host-service-adapter:systemd".to_string(),
+            subject_ref: "adapter:host-service:systemd".to_string(),
+            state: FABRIC_UNIQUE_EDGE_UNIQUE_EDGE.to_string(),
+            primitive_ref: None,
+            external_reality_ref: Some("external:host-os:systemd".to_string()),
+            interaction_ref: Some("interaction:service-lifecycle:systemd-unit".to_string()),
+            policy_refs: vec!["policy:host-service-adapter".to_string()],
+            input_refs: vec![],
+            output_refs: vec![],
+            grant_refs: vec!["grant:host-service-adapter".to_string()],
+            evidence_refs: vec!["evidence:systemd:unit-state".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_unique_edge_classification(&unique_edge).expect("valid unique edge");
+
+        let generic = UniqueEdgeClassification {
+            kind: Some(RECORD_UNIQUE_EDGE_CLASSIFICATION.to_string()),
+            classification_id: "unique-edge:runtime-client:generic".to_string(),
+            subject_ref: "module:runtime-client".to_string(),
+            state: FABRIC_UNIQUE_EDGE_GENERIC_PRIMITIVE.to_string(),
+            primitive_ref: Some("primitive:surface-runtime-client".to_string()),
+            external_reality_ref: None,
+            interaction_ref: None,
+            policy_refs: vec![],
+            input_refs: vec![],
+            output_refs: vec![],
+            grant_refs: vec![],
+            evidence_refs: vec!["evidence:runtime-client:generic".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_unique_edge_classification(&generic).expect("valid generic primitive edge");
+
+        let mut bad_handoff = handoff.clone();
+        bad_handoff.gateway_association_refs.clear();
+        assert!(validate_substrate_association_handoff(&bad_handoff).is_err());
+        let mut bad_lifecycle = lifecycle.clone();
+        bad_lifecycle.state = FABRIC_LIFECYCLE_PLAN_BLOCKED.to_string();
+        assert!(validate_lifecycle_plan_posture(&bad_lifecycle).is_err());
+        let mut bad_content_index = content_index.clone();
+        bad_content_index.source_refs.clear();
+        assert!(validate_content_index_ref_posture(&bad_content_index).is_err());
+        let mut bad_intention = intention.clone();
+        bad_intention.canonical_hash_ref = Some(String::new());
+        assert!(validate_contract_intention_posture(&bad_intention).is_err());
+        let mut bad_unique_edge = unique_edge.clone();
+        bad_unique_edge.external_reality_ref = Some(String::new());
+        assert!(validate_unique_edge_classification(&bad_unique_edge).is_err());
+        let mut unsafe_contribution = contribution;
+        unsafe_contribution.safe_facts = json!({ "token": "inline-secret" });
+        assert!(validate_host_fabric_member_contribution(&unsafe_contribution).is_err());
     }
 
     #[test]

@@ -8,6 +8,7 @@ export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
 export const SURFACE_APP: Readonly<Record<string, unknown>>;
 export const APP: Readonly<Record<string, unknown>>;
 export const RUNNER: Readonly<Record<string, unknown>>;
+export const FABRIC: Readonly<Record<string, unknown>>;
 export const BUILD: Readonly<Record<string, unknown>>;
 export const AGREEMENT: Readonly<Record<string, unknown>>;
 export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
@@ -2923,6 +2924,171 @@ export type AppRunnerFulfillmentLifecycle = {
   expiresAt?: number;
 };
 
+export type FabricAssociationHandoffState = "ready" | "handedOff" | "degraded" | "blocked" | "expired";
+export type FabricMemberRole =
+  | "gatewayAssociation"
+  | "hostServiceAdapter"
+  | "executionFulfillment"
+  | "storageJournalCache"
+  | "sourceContentIndex"
+  | "buildProcessor"
+  | "runtime"
+  | "surface"
+  | "platformAdapter"
+  | "serviceSurfaceAdapter"
+  | "serviceEdgeAdapter"
+  | "loggingProcessor"
+  | "domainService";
+export type FabricMemberContributionState = "claimed" | "accepted" | "running" | "degraded" | "blocked" | "released" | "expired" | "superseded";
+export type FabricFulfillmentPlanState = "ready" | "degraded" | "blocked" | "expired";
+export type FabricLifecyclePlanState = "ready" | "running" | "degraded" | "blocked" | "released" | "expired";
+export type FabricLifecyclePhase = "source" | "build" | "release" | "load" | "run" | "observe" | "rollback" | "expiry" | "cleanup";
+export type FabricLifecyclePhaseState = "notRequired" | "pending" | "ready" | "running" | "succeeded" | "degraded" | "blocked" | "failed" | "released" | "expired";
+export type FabricContentIndexState = "ready" | "degraded" | "blocked" | "superseded" | "expired";
+export type FabricContractIntentionState = "draft" | "ready" | "degraded" | "blocked" | "superseded" | "expired";
+export type FabricUniqueEdgeClassificationState = "genericPrimitive" | "uniqueEdge" | "blocked";
+
+export type SubstrateAssociationHandoff = {
+  kind?: "substrate.association.handoff";
+  handoffId: string;
+  substrateRef: string;
+  hostRef: string;
+  ownerRef: string;
+  fabricRef: string;
+  state: FabricAssociationHandoffState;
+  initialAssociationRefs: string[];
+  gatewayAssociationRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  handedOffAt?: number;
+  expiresAt?: number;
+};
+
+export type HostFabricMemberContribution = {
+  kind?: "hostFabric.member.contribution";
+  contributionId: string;
+  fabricRef: string;
+  hostRef: string;
+  memberRef: string;
+  role: FabricMemberRole;
+  state: FabricMemberContributionState;
+  contractRef: string;
+  subjectRef: string;
+  capabilityRefs?: string[];
+  grantRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  lifecyclePlanRefs?: string[];
+  releaseRefs?: string[];
+  resourcePosture?: ResourcePosture | null;
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type HostFabricFulfillmentPlan = {
+  kind?: "hostFabric.fulfillment.plan";
+  planId: string;
+  fabricRef: string;
+  hostRef: string;
+  contractRef: string;
+  state: FabricFulfillmentPlanState;
+  requiredRoleRefs: string[];
+  memberContributionRefs?: string[];
+  missingRoleRefs?: string[];
+  lifecyclePlanRefs?: string[];
+  materializationBudgetRefs?: string[];
+  associationHandoffRef?: string;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type LifecyclePhasePosture = {
+  phase: FabricLifecyclePhase;
+  state: FabricLifecyclePhaseState;
+  evidenceRefs?: string[];
+  outputRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type LifecyclePlanPosture = {
+  kind?: "lifecycle.plan.posture";
+  lifecyclePlanId: string;
+  subjectRef: string;
+  contractRef: string;
+  state: FabricLifecyclePlanState;
+  lifecycleContractRefs: string[];
+  phasePostures: LifecyclePhasePosture[];
+  memberContributionRefs?: string[];
+  evidenceRefs?: string[];
+  releaseRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type ContentIndexRefPosture = {
+  kind?: "contentIndex.ref.posture";
+  postureId: string;
+  contentIndexRef: string;
+  state: FabricContentIndexState;
+  sourceRefs?: string[];
+  materializedProjectionRefs?: string[];
+  storageRefs?: string[];
+  writerRefs?: string[];
+  schemaRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type ContractIntentionPosture = {
+  kind?: "contract.intention.posture";
+  postureId: string;
+  intentionRef: string;
+  state: FabricContractIntentionState;
+  canonicalHashRef?: string;
+  contentIndexRefs?: string[];
+  authoringSurfaceRefs?: string[];
+  proofGateRefs?: string[];
+  reducerRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type UniqueEdgeClassification = {
+  kind?: "uniqueEdge.classification";
+  classificationId: string;
+  subjectRef: string;
+  state: FabricUniqueEdgeClassificationState;
+  primitiveRef?: string;
+  externalRealityRef?: string;
+  interactionRef?: string;
+  policyRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  grantRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export function bytesToHex(bytes: Uint8Array): string;
 export function hexToBytes(hex: string): Uint8Array;
 export function utf8ToBytes(value: string): Uint8Array;
@@ -3145,3 +3311,10 @@ export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
 export function assertRunnerHostFulfillmentPosture(record: unknown): RunnerHostFulfillmentPosture;
 export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;
 export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerFulfillmentLifecycle;
+export function assertSubstrateAssociationHandoff(record: unknown): SubstrateAssociationHandoff;
+export function assertHostFabricMemberContribution(record: unknown): HostFabricMemberContribution;
+export function assertHostFabricFulfillmentPlan(record: unknown): HostFabricFulfillmentPlan;
+export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;
+export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;
+export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;
+export function assertUniqueEdgeClassification(record: unknown): UniqueEdgeClassification;
