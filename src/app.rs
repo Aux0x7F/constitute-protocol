@@ -7,6 +7,9 @@ pub const RECORD_APP_MODULE_ROLE: &str = "app.module.role";
 pub const RECORD_APP_ACTIVITY: &str = "app.activity";
 pub const RECORD_APP_RELEASE: &str = "app.release";
 pub const RECORD_APP_RELEASE_RESOLUTION: &str = "app.release.resolution";
+pub const RECORD_APP_ACTIVITY_DEPENDENCY: &str = "app.activity.dependency";
+pub const RECORD_MESSAGING_CONTRACT: &str = "messaging.contract";
+pub const RECORD_COMMUNICATIONS_MODERATION_CONTRACT: &str = "communications.moderation.contract";
 
 pub const APP_CONTRACT_STATE_DRAFT: &str = "draft";
 pub const APP_CONTRACT_STATE_READY: &str = "ready";
@@ -44,6 +47,25 @@ pub const APP_RESOLUTION_STATE_RESOLVED: &str = "resolved";
 pub const APP_RESOLUTION_STATE_BLOCKED: &str = "blocked";
 pub const APP_RESOLUTION_STATE_DEGRADED: &str = "degraded";
 pub const APP_RESOLUTION_STATE_SUPERSEDED: &str = "superseded";
+
+pub const APP_ACTIVITY_DEPENDENCY_MESSAGING: &str = "messaging";
+pub const APP_ACTIVITY_DEPENDENCY_COMMUNICATIONS_MODERATION: &str = "communicationsModeration";
+
+pub const APP_DEPENDENCY_STATE_READY: &str = "ready";
+pub const APP_DEPENDENCY_STATE_PENDING: &str = "pending";
+pub const APP_DEPENDENCY_STATE_DEGRADED: &str = "degraded";
+pub const APP_DEPENDENCY_STATE_BLOCKED: &str = "blocked";
+pub const APP_DEPENDENCY_STATE_EXPIRED: &str = "expired";
+
+pub const MESSAGING_CONTRACT_STATE_READY: &str = "ready";
+pub const MESSAGING_CONTRACT_STATE_DEGRADED: &str = "degraded";
+pub const MESSAGING_CONTRACT_STATE_BLOCKED: &str = "blocked";
+pub const MESSAGING_CONTRACT_STATE_EXPIRED: &str = "expired";
+
+pub const COMMUNICATIONS_MODERATION_STATE_READY: &str = "ready";
+pub const COMMUNICATIONS_MODERATION_STATE_DEGRADED: &str = "degraded";
+pub const COMMUNICATIONS_MODERATION_STATE_BLOCKED: &str = "blocked";
+pub const COMMUNICATIONS_MODERATION_STATE_EXPIRED: &str = "expired";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -200,6 +222,100 @@ pub struct AppReleaseResolution {
     #[serde(default)]
     pub safe_facts: Value,
     pub resolved_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AppActivityDependency {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub dependency_ref: String,
+    pub app_contract_ref: String,
+    pub activity_ref: String,
+    pub dependency_type: String,
+    pub required: bool,
+    pub state: String,
+    #[serde(default)]
+    pub contract_refs: Vec<String>,
+    #[serde(default)]
+    pub primitive_refs: Vec<String>,
+    #[serde(default)]
+    pub permission_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub materialization_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct MessagingContract {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub messaging_contract_ref: String,
+    pub scope_ref: String,
+    pub author_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub conversation_refs: Vec<String>,
+    #[serde(default)]
+    pub participant_role_refs: Vec<String>,
+    #[serde(default)]
+    pub activity_refs: Vec<String>,
+    #[serde(default)]
+    pub content_class_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub witness_floor_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_refs: Vec<String>,
+    #[serde(default)]
+    pub moderation_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CommunicationsModerationContract {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub moderation_contract_ref: String,
+    pub scope_ref: String,
+    pub authority_realm_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub action_refs: Vec<String>,
+    #[serde(default)]
+    pub target_refs: Vec<String>,
+    #[serde(default)]
+    pub messaging_contract_refs: Vec<String>,
+    #[serde(default)]
+    pub event_fabric_refs: Vec<String>,
+    #[serde(default)]
+    pub permission_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -441,6 +557,218 @@ pub fn validate_app_release_resolution(record: &AppReleaseResolution) -> Result<
     Ok(())
 }
 
+pub fn validate_app_activity_dependency(record: &AppActivityDependency) -> Result<()> {
+    validate_optional_kind(
+        record.kind.as_deref(),
+        RECORD_APP_ACTIVITY_DEPENDENCY,
+        "app activity dependency",
+    )?;
+    reject_private_fields(&serde_json::to_value(record)?, "app activity dependency")?;
+    validate_contract_ref(
+        &record.dependency_ref,
+        "app activity dependency dependencyRef",
+    )?;
+    validate_contract_ref(
+        &record.app_contract_ref,
+        "app activity dependency appContractRef",
+    )?;
+    validate_contract_ref(&record.activity_ref, "app activity dependency activityRef")?;
+    validate_app_activity_dependency_type(&record.dependency_type)?;
+    validate_app_dependency_state(&record.state)?;
+    validate_ref_list(
+        &record.contract_refs,
+        "app activity dependency contractRefs",
+    )?;
+    validate_ref_list(
+        &record.primitive_refs,
+        "app activity dependency primitiveRefs",
+    )?;
+    validate_ref_list(
+        &record.permission_refs,
+        "app activity dependency permissionRefs",
+    )?;
+    validate_ref_list(
+        &record.access_group_refs,
+        "app activity dependency accessGroupRefs",
+    )?;
+    validate_ref_list(
+        &record.materialization_refs,
+        "app activity dependency materializationRefs",
+    )?;
+    validate_ref_list(
+        &record.evidence_refs,
+        "app activity dependency evidenceRefs",
+    )?;
+    validate_reason_list(
+        &record.blocked_reasons,
+        "app activity dependency blockedReasons",
+    )?;
+    if record.required
+        && record.state == APP_DEPENDENCY_STATE_READY
+        && (record.contract_refs.is_empty() || record.primitive_refs.is_empty())
+    {
+        return Err(anyhow!(
+            "ready required app activity dependency requires contractRefs and primitiveRefs"
+        ));
+    }
+    if record.state == APP_DEPENDENCY_STATE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "blocked app activity dependency requires blockedReasons"
+        ));
+    }
+    validate_time_bounds(
+        record.issued_at,
+        record.expires_at,
+        "app activity dependency",
+    )?;
+    Ok(())
+}
+
+pub fn validate_messaging_contract(record: &MessagingContract) -> Result<()> {
+    validate_optional_kind(
+        record.kind.as_deref(),
+        RECORD_MESSAGING_CONTRACT,
+        "messaging contract",
+    )?;
+    reject_private_fields(&serde_json::to_value(record)?, "messaging contract")?;
+    validate_contract_ref(
+        &record.messaging_contract_ref,
+        "messaging contract messagingContractRef",
+    )?;
+    validate_contract_ref(&record.scope_ref, "messaging contract scopeRef")?;
+    validate_contract_ref(&record.author_ref, "messaging contract authorRef")?;
+    validate_messaging_contract_state(&record.state)?;
+    validate_ref_list(
+        &record.conversation_refs,
+        "messaging contract conversationRefs",
+    )?;
+    validate_ref_list(
+        &record.participant_role_refs,
+        "messaging contract participantRoleRefs",
+    )?;
+    validate_ref_list(&record.activity_refs, "messaging contract activityRefs")?;
+    validate_ref_list(
+        &record.content_class_refs,
+        "messaging contract contentClassRefs",
+    )?;
+    validate_ref_list(
+        &record.access_group_refs,
+        "messaging contract accessGroupRefs",
+    )?;
+    validate_ref_list(
+        &record.witness_floor_refs,
+        "messaging contract witnessFloorRefs",
+    )?;
+    validate_ref_list(&record.retention_refs, "messaging contract retentionRefs")?;
+    validate_ref_list(
+        &record.moderation_contract_refs,
+        "messaging contract moderationContractRefs",
+    )?;
+    validate_ref_list(&record.evidence_refs, "messaging contract evidenceRefs")?;
+    validate_reason_list(&record.blocked_reasons, "messaging contract blockedReasons")?;
+    if record.state == MESSAGING_CONTRACT_STATE_READY
+        && (record.participant_role_refs.is_empty()
+            || record.activity_refs.is_empty()
+            || record.content_class_refs.is_empty()
+            || record.access_group_refs.is_empty()
+            || record.witness_floor_refs.is_empty()
+            || record.retention_refs.is_empty())
+    {
+        return Err(anyhow!(
+            "ready messaging contract requires participant roles, activities, content classes, access groups, witness floors, and retention refs"
+        ));
+    }
+    if record.state == MESSAGING_CONTRACT_STATE_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "blocked messaging contract requires blockedReasons"
+        ));
+    }
+    validate_time_bounds(record.issued_at, record.expires_at, "messaging contract")?;
+    Ok(())
+}
+
+pub fn validate_communications_moderation_contract(
+    record: &CommunicationsModerationContract,
+) -> Result<()> {
+    validate_optional_kind(
+        record.kind.as_deref(),
+        RECORD_COMMUNICATIONS_MODERATION_CONTRACT,
+        "communications moderation contract",
+    )?;
+    reject_private_fields(
+        &serde_json::to_value(record)?,
+        "communications moderation contract",
+    )?;
+    validate_contract_ref(
+        &record.moderation_contract_ref,
+        "communications moderation contract moderationContractRef",
+    )?;
+    validate_contract_ref(
+        &record.scope_ref,
+        "communications moderation contract scopeRef",
+    )?;
+    validate_contract_ref(
+        &record.authority_realm_ref,
+        "communications moderation contract authorityRealmRef",
+    )?;
+    validate_communications_moderation_state(&record.state)?;
+    validate_ref_list(
+        &record.action_refs,
+        "communications moderation contract actionRefs",
+    )?;
+    validate_ref_list(
+        &record.target_refs,
+        "communications moderation contract targetRefs",
+    )?;
+    validate_ref_list(
+        &record.messaging_contract_refs,
+        "communications moderation contract messagingContractRefs",
+    )?;
+    validate_ref_list(
+        &record.event_fabric_refs,
+        "communications moderation contract eventFabricRefs",
+    )?;
+    validate_ref_list(
+        &record.permission_refs,
+        "communications moderation contract permissionRefs",
+    )?;
+    validate_ref_list(
+        &record.access_group_refs,
+        "communications moderation contract accessGroupRefs",
+    )?;
+    validate_ref_list(
+        &record.evidence_refs,
+        "communications moderation contract evidenceRefs",
+    )?;
+    validate_reason_list(
+        &record.blocked_reasons,
+        "communications moderation contract blockedReasons",
+    )?;
+    if record.state == COMMUNICATIONS_MODERATION_STATE_READY
+        && (record.action_refs.is_empty()
+            || record.target_refs.is_empty()
+            || record.messaging_contract_refs.is_empty()
+            || record.permission_refs.is_empty()
+            || record.access_group_refs.is_empty())
+    {
+        return Err(anyhow!(
+            "ready communications moderation contract requires actions, targets, messaging contracts, permissions, and access groups"
+        ));
+    }
+    if record.state == COMMUNICATIONS_MODERATION_STATE_BLOCKED && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked communications moderation contract requires blockedReasons"
+        ));
+    }
+    validate_time_bounds(
+        record.issued_at,
+        record.expires_at,
+        "communications moderation contract",
+    )?;
+    Ok(())
+}
+
 pub fn app_ref(kind: &str, id: &str) -> String {
     format!("app:{kind}:{id}")
 }
@@ -538,6 +866,60 @@ fn validate_app_resolution_state(value: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported app release resolution state"))
+    }
+}
+
+fn validate_app_activity_dependency_type(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        APP_ACTIVITY_DEPENDENCY_MESSAGING | APP_ACTIVITY_DEPENDENCY_COMMUNICATIONS_MODERATION
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported app activity dependency type"))
+    }
+}
+
+fn validate_app_dependency_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        APP_DEPENDENCY_STATE_READY
+            | APP_DEPENDENCY_STATE_PENDING
+            | APP_DEPENDENCY_STATE_DEGRADED
+            | APP_DEPENDENCY_STATE_BLOCKED
+            | APP_DEPENDENCY_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported app dependency state"))
+    }
+}
+
+fn validate_messaging_contract_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        MESSAGING_CONTRACT_STATE_READY
+            | MESSAGING_CONTRACT_STATE_DEGRADED
+            | MESSAGING_CONTRACT_STATE_BLOCKED
+            | MESSAGING_CONTRACT_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported messaging contract state"))
+    }
+}
+
+fn validate_communications_moderation_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        COMMUNICATIONS_MODERATION_STATE_READY
+            | COMMUNICATIONS_MODERATION_STATE_DEGRADED
+            | COMMUNICATIONS_MODERATION_STATE_BLOCKED
+            | COMMUNICATIONS_MODERATION_STATE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported communications moderation state"))
     }
 }
 
@@ -817,5 +1199,143 @@ mod tests {
             expires_at: Some(10),
         };
         assert!(validate_app_release_resolution(&resolution).is_err());
+    }
+
+    #[test]
+    fn validates_messaging_and_moderation_activity_dependencies() {
+        let messaging = MessagingContract {
+            kind: Some(RECORD_MESSAGING_CONTRACT.to_string()),
+            messaging_contract_ref: "messaging:contract:truecost.web-team".to_string(),
+            scope_ref: "activity:scope:truecost.web-team.hosting".to_string(),
+            author_ref: "identity:root:truecost".to_string(),
+            state: MESSAGING_CONTRACT_STATE_READY.to_string(),
+            conversation_refs: vec!["messaging:thread:truecost.web-team.hosting".to_string()],
+            participant_role_refs: vec![
+                "role:community.member".to_string(),
+                "role:webadmin".to_string(),
+            ],
+            activity_refs: vec!["app:activity:messaging.thread".to_string()],
+            content_class_refs: vec![
+                "content:message.body".to_string(),
+                "content:message.safe-index".to_string(),
+            ],
+            access_group_refs: vec!["access:group:truecost.web-team".to_string()],
+            witness_floor_refs: vec!["witness:floor:messaging.thread".to_string()],
+            retention_refs: vec!["retention:message.thread.default".to_string()],
+            moderation_contract_refs: vec!["moderation:contract:truecost.web-team".to_string()],
+            evidence_refs: vec!["evidence:messaging.contract".to_string()],
+            blocked_reasons: vec![],
+            issued_at: 1,
+            expires_at: Some(10),
+        };
+        validate_messaging_contract(&messaging).expect("valid messaging contract");
+
+        let moderation = CommunicationsModerationContract {
+            kind: Some(RECORD_COMMUNICATIONS_MODERATION_CONTRACT.to_string()),
+            moderation_contract_ref: "moderation:contract:truecost.web-team".to_string(),
+            scope_ref: messaging.scope_ref.clone(),
+            authority_realm_ref: "authority:realm:truecost.community".to_string(),
+            state: COMMUNICATIONS_MODERATION_STATE_READY.to_string(),
+            action_refs: vec![
+                "moderation:action:report".to_string(),
+                "moderation:action:hide".to_string(),
+                "moderation:action:appeal".to_string(),
+            ],
+            target_refs: messaging.conversation_refs.clone(),
+            messaging_contract_refs: vec![messaging.messaging_contract_ref.clone()],
+            event_fabric_refs: vec!["event-fabric:logging.default".to_string()],
+            permission_refs: vec!["permission:moderation:web-team".to_string()],
+            access_group_refs: vec!["access:group:truecost.moderators".to_string()],
+            evidence_refs: vec!["evidence:moderation.contract".to_string()],
+            blocked_reasons: vec![],
+            issued_at: 2,
+            expires_at: Some(10),
+        };
+        validate_communications_moderation_contract(&moderation)
+            .expect("valid communications moderation contract");
+
+        let messaging_dependency = AppActivityDependency {
+            kind: Some(RECORD_APP_ACTIVITY_DEPENDENCY.to_string()),
+            dependency_ref: "app:dependency:community.channel.messaging".to_string(),
+            app_contract_ref: "app:contract:communities@0.1.0".to_string(),
+            activity_ref: "app:activity:community.role-channel".to_string(),
+            dependency_type: APP_ACTIVITY_DEPENDENCY_MESSAGING.to_string(),
+            required: true,
+            state: APP_DEPENDENCY_STATE_READY.to_string(),
+            contract_refs: vec![messaging.messaging_contract_ref],
+            primitive_refs: vec!["primitive:messaging.thread".to_string()],
+            permission_refs: vec!["permission:message.write".to_string()],
+            access_group_refs: vec!["access:group:truecost.web-team".to_string()],
+            materialization_refs: vec!["materialization:thread.messages".to_string()],
+            evidence_refs: vec!["evidence:dependency.messaging".to_string()],
+            blocked_reasons: vec![],
+            issued_at: 3,
+            expires_at: Some(10),
+        };
+        validate_app_activity_dependency(&messaging_dependency)
+            .expect("valid messaging activity dependency");
+
+        let moderation_dependency = AppActivityDependency {
+            kind: Some(RECORD_APP_ACTIVITY_DEPENDENCY.to_string()),
+            dependency_ref: "app:dependency:community.channel.moderation".to_string(),
+            app_contract_ref: "app:contract:communities@0.1.0".to_string(),
+            activity_ref: "app:activity:community.role-channel".to_string(),
+            dependency_type: APP_ACTIVITY_DEPENDENCY_COMMUNICATIONS_MODERATION.to_string(),
+            required: false,
+            state: APP_DEPENDENCY_STATE_READY.to_string(),
+            contract_refs: vec![moderation.moderation_contract_ref],
+            primitive_refs: vec!["primitive:communications.moderation".to_string()],
+            permission_refs: vec!["permission:moderation.web-team".to_string()],
+            access_group_refs: vec!["access:group:truecost.moderators".to_string()],
+            materialization_refs: vec!["materialization:moderation.posture".to_string()],
+            evidence_refs: vec!["evidence:dependency.moderation".to_string()],
+            blocked_reasons: vec![],
+            issued_at: 4,
+            expires_at: Some(10),
+        };
+        validate_app_activity_dependency(&moderation_dependency)
+            .expect("valid moderation activity dependency");
+    }
+
+    #[test]
+    fn rejects_messaging_moderation_conflation_and_private_payloads() {
+        let mut messaging = MessagingContract {
+            kind: Some(RECORD_MESSAGING_CONTRACT.to_string()),
+            messaging_contract_ref: "messaging:contract:blocked".to_string(),
+            scope_ref: "activity:scope:blocked".to_string(),
+            author_ref: "identity:root:truecost".to_string(),
+            state: MESSAGING_CONTRACT_STATE_READY.to_string(),
+            conversation_refs: vec![],
+            participant_role_refs: vec![],
+            activity_refs: vec![],
+            content_class_refs: vec![],
+            access_group_refs: vec![],
+            witness_floor_refs: vec![],
+            retention_refs: vec![],
+            moderation_contract_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            issued_at: 1,
+            expires_at: Some(10),
+        };
+        assert!(validate_messaging_contract(&messaging).is_err());
+
+        messaging.state = MESSAGING_CONTRACT_STATE_BLOCKED.to_string();
+        assert!(validate_messaging_contract(&messaging).is_err());
+
+        let leaky_dependency = serde_json::json!({
+            "kind": RECORD_APP_ACTIVITY_DEPENDENCY,
+            "dependencyRef": "app:dependency:leaky",
+            "appContractRef": "app:contract:communities@0.1.0",
+            "activityRef": "app:activity:community.role-channel",
+            "dependencyType": APP_ACTIVITY_DEPENDENCY_MESSAGING,
+            "required": true,
+            "state": APP_DEPENDENCY_STATE_READY,
+            "contractRefs": ["messaging:contract:leaky"],
+            "primitiveRefs": ["primitive:messaging.thread"],
+            "payload": "message body must not be here",
+            "issuedAt": 1
+        });
+        assert!(serde_json::from_value::<AppActivityDependency>(leaky_dependency).is_err());
     }
 }

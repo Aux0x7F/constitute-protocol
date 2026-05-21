@@ -5,6 +5,7 @@ import {
   BROKER,
   DIAGNOSTICS,
   AGREEMENT,
+  APP,
   LOGGING,
   PROJECTION,
   RUNNER,
@@ -86,6 +87,14 @@ import {
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertAppActivity,
+  assertAppContract,
+  assertAppModuleRole,
+  assertAppRelease,
+  assertAppReleaseResolution,
+  assertAppActivityDependency,
+  assertMessagingContract,
+  assertCommunicationsModerationContract,
   assertServiceManagerPosture,
   assertServiceManagerSecretBoundary,
   assertServiceManagerReleaseContract,
@@ -681,6 +690,202 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     ...runtimeClient,
     role: "runtimePolicy",
   }), /invalid surface module role/);
+});
+
+test("app contracts validate activity release and resolution records", () => {
+  const contract = assertAppContract({
+    kind: APP.RECORD_KIND.CONTRACT,
+    appContractRef: "app:contract:community-launcher@0.1.0",
+    appId: "community-launcher",
+    version: "0.1.0",
+    authorRef: "identity:community-root",
+    state: APP.CONTRACT_STATE.READY,
+    primitiveRefs: ["app.activity", "runtime.selection"],
+    activityRefs: ["app:activity:community-launcher.channel"],
+    moduleRoleRefs: [
+      "app:module-role:community-launcher.runtime",
+      "app:module-role:community-launcher.view",
+    ],
+    releaseRefs: ["app:release:community-launcher@0.1.0"],
+    permissionRefs: ["permission:community-launcher:run"],
+    accessGroupRefs: ["access-group:community-launcher:members"],
+    compatibilityRefs: ["compat:surface-app:0.1"],
+    evidenceRefs: ["evidence:app-contract:community-launcher"],
+    issuedAt: 1_779_266_000,
+    expiresAt: 1_779_269_600,
+  });
+  const runtimeRole = assertAppModuleRole({
+    kind: APP.RECORD_KIND.MODULE_ROLE,
+    moduleRoleRef: "app:module-role:community-launcher.runtime",
+    appContractRef: contract.appContractRef,
+    roleName: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    required: true,
+    primitiveRefs: ["runtime.attach"],
+    artifactRefs: ["build:artifact:community-launcher-runtime"],
+    compatibilityRefs: ["compat:surface-app:0.1"],
+    evidenceRefs: ["evidence:module-role:runtime"],
+  });
+  const activity = assertAppActivity({
+    kind: APP.RECORD_KIND.ACTIVITY,
+    activityRef: "app:activity:community-launcher.channel",
+    appContractRef: contract.appContractRef,
+    activityId: "channel",
+    state: APP.ACTIVITY_STATE.READY,
+    launchMode: APP.ACTIVITY_LAUNCH.EMBEDDED,
+    embedPolicy: APP.EMBED_POLICY.RESTRICTED,
+    primitiveRefs: ["messaging.thread.observe", "community.role.write"],
+    moduleRoleRefs: [runtimeRole.moduleRoleRef, "app:module-role:community-launcher.view"],
+    permissionRefs: ["permission:community-channel:write"],
+    accessGroupRefs: ["access-group:community-launcher:members"],
+    materializationRefs: ["materialization:community-channel:messages"],
+    evidenceRefs: ["evidence:activity:community-channel"],
+    issuedAt: 1_779_266_000,
+    expiresAt: 1_779_269_600,
+  });
+  const release = assertAppRelease({
+    kind: APP.RECORD_KIND.RELEASE,
+    releaseRef: "app:release:community-launcher@0.1.0",
+    appContractRef: contract.appContractRef,
+    version: contract.version,
+    sourceSnapshotRef: "source:snapshot:community-launcher:head",
+    buildRunRef: "build:run:community-launcher@0.1.0",
+    state: APP.RELEASE_STATE.PUBLISHED,
+    artifactRefs: ["build:artifact:community-launcher-runtime", "build:artifact:community-launcher-view"],
+    proofRefs: ["build:proof:community-launcher@0.1.0"],
+    moduleRoleRefs: contract.moduleRoleRefs,
+    storageRefs: ["storage:object:community-launcher@0.1.0"],
+    compatibilityRefs: contract.compatibilityRefs,
+    evidenceRefs: ["evidence:release:community-launcher"],
+    issuedAt: 1_779_266_010,
+    expiresAt: 1_779_269_600,
+  });
+  const resolution = assertAppReleaseResolution({
+    kind: APP.RECORD_KIND.RELEASE_RESOLUTION,
+    resolutionRef: "app:resolution:community-launcher@0.1.0",
+    appIntentRef: "app:intent:community-launcher:channel",
+    appContractRef: contract.appContractRef,
+    requestedVersion: contract.version,
+    state: APP.RESOLUTION_STATE.RESOLVED,
+    selectedReleaseRef: release.releaseRef,
+    selectedActivityRef: activity.activityRef,
+    selectedArtifactRefs: release.artifactRefs,
+    selectedModuleRoleRefs: release.moduleRoleRefs,
+    selectedStorageRefs: release.storageRefs,
+    sourceDigestRefs: ["source:digest:community-launcher@0.1.0"],
+    sourceSnapshotRef: release.sourceSnapshotRef,
+    buildProofRefs: release.proofRefs,
+    compatibilityRefs: release.compatibilityRefs,
+    permissionRefs: contract.permissionRefs,
+    accessGroupRefs: contract.accessGroupRefs,
+    evidenceRefs: ["evidence:resolution:community-launcher"],
+    safeFacts: { activityId: activity.activityId, artifactCount: release.artifactRefs.length },
+    resolvedAt: 1_779_266_020,
+    expiresAt: 1_779_269_600,
+  });
+
+  assert.equal(contract.appContractRef, "app:contract:community-launcher@0.1.0");
+  assert.equal(activity.launchMode, APP.ACTIVITY_LAUNCH.EMBEDDED);
+  assert.deepEqual(resolution.selectedStorageRefs, ["storage:object:community-launcher@0.1.0"]);
+  assert.throws(() => assertAppActivity({
+    ...activity,
+    moduleRoleRefs: [],
+  }), /ready app activity requires primitiveRefs and moduleRoleRefs/);
+  assert.throws(() => assertAppReleaseResolution({
+    ...resolution,
+    selectedStorageRefs: [],
+  }), /resolved app release requires selected release/);
+});
+
+test("messaging and communications moderation remain app activity dependencies", () => {
+  const issuedAt = 1_779_267_000;
+  const messaging = assertMessagingContract({
+    kind: APP.RECORD_KIND.MESSAGING_CONTRACT,
+    messagingContractRef: "messaging:contract:truecost.web-team",
+    scopeRef: "activity:scope:truecost.web-team.hosting",
+    authorRef: "identity:truecost.root",
+    state: APP.MESSAGING_STATE.READY,
+    conversationRefs: ["messaging:thread:truecost.web-team.hosting"],
+    participantRoleRefs: ["role:community.member", "role:webadmin"],
+    activityRefs: ["app:activity:messaging.thread"],
+    contentClassRefs: ["content:message.body", "content:message.safe-index"],
+    accessGroupRefs: ["access-group:truecost.web-team"],
+    witnessFloorRefs: ["witness:floor:messaging.thread"],
+    retentionRefs: ["retention:message.thread.default"],
+    moderationContractRefs: ["moderation:contract:truecost.web-team"],
+    evidenceRefs: ["evidence:messaging.contract"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+  const moderation = assertCommunicationsModerationContract({
+    kind: APP.RECORD_KIND.COMMUNICATIONS_MODERATION_CONTRACT,
+    moderationContractRef: "moderation:contract:truecost.web-team",
+    scopeRef: messaging.scopeRef,
+    authorityRealmRef: "authority:realm:truecost.community",
+    state: APP.COMMUNICATIONS_MODERATION_STATE.READY,
+    actionRefs: ["moderation:action:report", "moderation:action:hide", "moderation:action:appeal"],
+    targetRefs: messaging.conversationRefs,
+    messagingContractRefs: [messaging.messagingContractRef],
+    eventFabricRefs: ["event-fabric:logging.default"],
+    permissionRefs: ["permission:moderation.web-team"],
+    accessGroupRefs: ["access-group:truecost.moderators"],
+    evidenceRefs: ["evidence:moderation.contract"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+  const messagingDependency = assertAppActivityDependency({
+    kind: APP.RECORD_KIND.ACTIVITY_DEPENDENCY,
+    dependencyRef: "app:dependency:community.channel.messaging",
+    appContractRef: "app:contract:communities@0.1.0",
+    activityRef: "app:activity:community.role-channel",
+    dependencyType: APP.DEPENDENCY_TYPE.MESSAGING,
+    required: true,
+    state: APP.DEPENDENCY_STATE.READY,
+    contractRefs: [messaging.messagingContractRef],
+    primitiveRefs: ["primitive:messaging.thread"],
+    permissionRefs: ["permission:message.write"],
+    accessGroupRefs: messaging.accessGroupRefs,
+    materializationRefs: ["materialization:thread.messages"],
+    evidenceRefs: ["evidence:dependency.messaging"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+  const moderationDependency = assertAppActivityDependency({
+    kind: APP.RECORD_KIND.ACTIVITY_DEPENDENCY,
+    dependencyRef: "app:dependency:community.channel.moderation",
+    appContractRef: "app:contract:communities@0.1.0",
+    activityRef: "app:activity:community.role-channel",
+    dependencyType: APP.DEPENDENCY_TYPE.COMMUNICATIONS_MODERATION,
+    required: false,
+    state: APP.DEPENDENCY_STATE.READY,
+    contractRefs: [moderation.moderationContractRef],
+    primitiveRefs: ["primitive:communications.moderation"],
+    permissionRefs: moderation.permissionRefs,
+    accessGroupRefs: moderation.accessGroupRefs,
+    materializationRefs: ["materialization:moderation.posture"],
+    evidenceRefs: ["evidence:dependency.moderation"],
+    issuedAt,
+    expiresAt: issuedAt + 3_600,
+  });
+
+  assert.equal(messagingDependency.dependencyType, "messaging");
+  assert.equal(moderationDependency.dependencyType, "communicationsModeration");
+  assert.throws(() => assertMessagingContract({
+    ...messaging,
+    contentClassRefs: [],
+  }), /ready messaging contract requires participant roles/);
+  assert.throws(() => assertAppActivityDependency({
+    ...messagingDependency,
+    state: APP.DEPENDENCY_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blocked app activity dependency requires blockedReasons/);
+  assert.throws(() => assertCommunicationsModerationContract({
+    ...moderation,
+    actionRefs: [],
+  }), /ready communications moderation contract requires actions/);
+  assert.throws(() => assertAppActivityDependency({
+    ...messagingDependency,
+    payload: "message bodies stay behind CAAC access refs",
+  }), /forbidden protocol field: payload/);
 });
 
 test("service edge adapter posture validates service-owned admission and backpressure evidence", () => {

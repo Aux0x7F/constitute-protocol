@@ -177,6 +177,76 @@ export const SURFACE_APP = Object.freeze({
   }),
 });
 
+export const APP = Object.freeze({
+  RECORD_KIND: Object.freeze({
+    CONTRACT: "app.contract",
+    MODULE_ROLE: "app.module.role",
+    ACTIVITY: "app.activity",
+    RELEASE: "app.release",
+    RELEASE_RESOLUTION: "app.release.resolution",
+    ACTIVITY_DEPENDENCY: "app.activity.dependency",
+    MESSAGING_CONTRACT: "messaging.contract",
+    COMMUNICATIONS_MODERATION_CONTRACT: "communications.moderation.contract",
+  }),
+  CONTRACT_STATE: Object.freeze({
+    DRAFT: "draft",
+    READY: "ready",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+  }),
+  ACTIVITY_STATE: Object.freeze({
+    READY: "ready",
+    BLOCKED: "blocked",
+    DEPRECATED: "deprecated",
+  }),
+  ACTIVITY_LAUNCH: Object.freeze({
+    SURFACE: "surface",
+    EMBEDDED: "embedded",
+    NATIVE: "native",
+    SERVICE: "service",
+  }),
+  EMBED_POLICY: Object.freeze({
+    ALLOWED: "allowed",
+    RESTRICTED: "restricted",
+    DENIED: "denied",
+  }),
+  RELEASE_STATE: Object.freeze({
+    PUBLISHED: "published",
+    BLOCKED: "blocked",
+    SUPERSEDED: "superseded",
+    REVOKED: "revoked",
+  }),
+  RESOLUTION_STATE: Object.freeze({
+    RESOLVED: "resolved",
+    BLOCKED: "blocked",
+    DEGRADED: "degraded",
+    SUPERSEDED: "superseded",
+  }),
+  DEPENDENCY_TYPE: Object.freeze({
+    MESSAGING: "messaging",
+    COMMUNICATIONS_MODERATION: "communicationsModeration",
+  }),
+  DEPENDENCY_STATE: Object.freeze({
+    READY: "ready",
+    PENDING: "pending",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  MESSAGING_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  COMMUNICATIONS_MODERATION_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+});
+
 export const RUNNER = Object.freeze({
   OPERATION: Object.freeze({
     PREPARE: "prepare",
@@ -221,6 +291,12 @@ export const RUNNER = Object.freeze({
     BLOCKED: "blocked",
     REJECTED: "rejected",
     CANCELLED: "cancelled",
+  }),
+});
+
+export const BUILD = Object.freeze({
+  CAPABILITY: Object.freeze({
+    RUN_EXECUTE: "build.run.execute",
   }),
 });
 
@@ -1379,6 +1455,14 @@ export const SWARM = Object.freeze({
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
+    APP_CONTRACT: "app.contract",
+    APP_MODULE_ROLE: "app.module.role",
+    APP_ACTIVITY: "app.activity",
+    APP_RELEASE: "app.release",
+    APP_RELEASE_RESOLUTION: "app.release.resolution",
+    APP_ACTIVITY_DEPENDENCY: "app.activity.dependency",
+    MESSAGING_CONTRACT: "messaging.contract",
+    COMMUNICATIONS_MODERATION_CONTRACT: "communications.moderation.contract",
   }),
   RECORD_KIND: Object.freeze({
     NODE_CAPABILITY: "node.capability",
@@ -1459,6 +1543,14 @@ export const SWARM = Object.freeze({
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
     APP_RUNNER_FULFILLMENT_LIFECYCLE: "app.runner.fulfillment.lifecycle",
+    APP_CONTRACT: "app.contract",
+    APP_MODULE_ROLE: "app.module.role",
+    APP_ACTIVITY: "app.activity",
+    APP_RELEASE: "app.release",
+    APP_RELEASE_RESOLUTION: "app.release.resolution",
+    APP_ACTIVITY_DEPENDENCY: "app.activity.dependency",
+    MESSAGING_CONTRACT: "messaging.contract",
+    COMMUNICATIONS_MODERATION_CONTRACT: "communications.moderation.contract",
   }),
   AUTHORITY_DOMAIN: Object.freeze({
     IDENTITY: "identity",
@@ -4616,6 +4708,281 @@ export function assertCaacEnvelopeForMode(envelope, {
   }
   if (!verifyEnvelopeSignature(envelope)) throw new Error("invalid caac envelope signature");
   return envelope;
+}
+
+export function assertAppContract(record) {
+  if (!isObject(record)) throw new Error("app contract must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.CONTRACT, "app contract");
+  requireString(record.appContractRef, "app contract appContractRef");
+  requireString(record.appId, "app contract appId");
+  requireString(record.version, "app contract version");
+  requireString(record.authorRef, "app contract authorRef");
+  const state = requireString(record.state, "app contract state");
+  if (!Object.values(APP.CONTRACT_STATE).includes(state)) throw new Error("invalid app contract state");
+  const primitiveRefs = assertOptionalReferenceList(record.primitiveRefs, "app contract primitiveRefs");
+  const activityRefs = assertOptionalReferenceList(record.activityRefs, "app contract activityRefs");
+  const moduleRoleRefs = assertOptionalReferenceList(record.moduleRoleRefs, "app contract moduleRoleRefs");
+  const releaseRefs = assertOptionalReferenceList(record.releaseRefs, "app contract releaseRefs");
+  assertOptionalReferenceList(record.permissionRefs, "app contract permissionRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "app contract accessGroupRefs");
+  assertOptionalReferenceList(record.compatibilityRefs, "app contract compatibilityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app contract blockedReasons");
+  if (state === APP.CONTRACT_STATE.READY && (
+    primitiveRefs.length === 0 || activityRefs.length === 0 || moduleRoleRefs.length === 0 || releaseRefs.length === 0
+  )) {
+    throw new Error("ready app contract requires primitiveRefs, activityRefs, moduleRoleRefs, and releaseRefs");
+  }
+  if (state === APP.CONTRACT_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked app contract requires blockedReasons");
+  }
+  rejectRouteControlByteFields(record, "app contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("app contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("app contract expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertAppModuleRole(record) {
+  if (!isObject(record)) throw new Error("app module role must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.MODULE_ROLE, "app module role");
+  requireString(record.moduleRoleRef, "app module role moduleRoleRef");
+  requireString(record.appContractRef, "app module role appContractRef");
+  const roleName = requireString(record.roleName, "app module role roleName");
+  if (!Object.values(SURFACE_APP.MODULE_ROLE).includes(roleName)) throw new Error("invalid app module role roleName");
+  if (typeof record.required !== "boolean") throw new Error("app module role required must be boolean");
+  const primitiveRefs = assertOptionalReferenceList(record.primitiveRefs, "app module role primitiveRefs");
+  assertOptionalReferenceList(record.platformRefs, "app module role platformRefs");
+  assertOptionalReferenceList(record.artifactRefs, "app module role artifactRefs");
+  assertOptionalReferenceList(record.compatibilityRefs, "app module role compatibilityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app module role evidenceRefs");
+  assertOptionalReferenceList(record.blockedReasons, "app module role blockedReasons");
+  if (record.required && primitiveRefs.length === 0) {
+    throw new Error("required app module role requires primitiveRefs");
+  }
+  rejectRouteControlByteFields(record, "app module role");
+  return record;
+}
+
+export function assertAppActivity(record) {
+  if (!isObject(record)) throw new Error("app activity must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.ACTIVITY, "app activity");
+  requireString(record.activityRef, "app activity activityRef");
+  requireString(record.appContractRef, "app activity appContractRef");
+  requireString(record.activityId, "app activity activityId");
+  const state = requireString(record.state, "app activity state");
+  if (!Object.values(APP.ACTIVITY_STATE).includes(state)) throw new Error("invalid app activity state");
+  const launchMode = requireString(record.launchMode, "app activity launchMode");
+  if (!Object.values(APP.ACTIVITY_LAUNCH).includes(launchMode)) throw new Error("invalid app activity launchMode");
+  const embedPolicy = requireString(record.embedPolicy, "app activity embedPolicy");
+  if (!Object.values(APP.EMBED_POLICY).includes(embedPolicy)) throw new Error("invalid app activity embedPolicy");
+  const primitiveRefs = assertOptionalReferenceList(record.primitiveRefs, "app activity primitiveRefs");
+  const moduleRoleRefs = assertOptionalReferenceList(record.moduleRoleRefs, "app activity moduleRoleRefs");
+  assertOptionalReferenceList(record.permissionRefs, "app activity permissionRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "app activity accessGroupRefs");
+  assertOptionalReferenceList(record.materializationRefs, "app activity materializationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app activity evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app activity blockedReasons");
+  if (state === APP.ACTIVITY_STATE.READY && (primitiveRefs.length === 0 || moduleRoleRefs.length === 0)) {
+    throw new Error("ready app activity requires primitiveRefs and moduleRoleRefs");
+  }
+  if (state === APP.ACTIVITY_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked app activity requires blockedReasons");
+  }
+  rejectRouteControlByteFields(record, "app activity");
+  if (!Number(record.issuedAt || 0)) throw new Error("app activity missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("app activity expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertAppRelease(record) {
+  if (!isObject(record)) throw new Error("app release must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.RELEASE, "app release");
+  requireString(record.releaseRef, "app release releaseRef");
+  requireString(record.appContractRef, "app release appContractRef");
+  requireString(record.version, "app release version");
+  requireString(record.sourceSnapshotRef, "app release sourceSnapshotRef");
+  requireString(record.buildRunRef, "app release buildRunRef");
+  const state = requireString(record.state, "app release state");
+  if (!Object.values(APP.RELEASE_STATE).includes(state)) throw new Error("invalid app release state");
+  const artifactRefs = assertOptionalReferenceList(record.artifactRefs, "app release artifactRefs");
+  const proofRefs = assertOptionalReferenceList(record.proofRefs, "app release proofRefs");
+  assertOptionalReferenceList(record.moduleRoleRefs, "app release moduleRoleRefs");
+  const storageRefs = assertOptionalReferenceList(record.storageRefs, "app release storageRefs");
+  const compatibilityRefs = assertOptionalReferenceList(record.compatibilityRefs, "app release compatibilityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app release evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app release blockedReasons");
+  if (state === APP.RELEASE_STATE.PUBLISHED && (
+    artifactRefs.length === 0 || proofRefs.length === 0 || storageRefs.length === 0 || compatibilityRefs.length === 0
+  )) {
+    throw new Error("published app release requires artifactRefs, proofRefs, storageRefs, and compatibilityRefs");
+  }
+  if ([APP.RELEASE_STATE.BLOCKED, APP.RELEASE_STATE.REVOKED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked or revoked app release requires blockedReasons");
+  }
+  rejectRouteControlByteFields(record, "app release");
+  if (!Number(record.issuedAt || 0)) throw new Error("app release missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("app release expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertAppReleaseResolution(record) {
+  if (!isObject(record)) throw new Error("app release resolution must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.RELEASE_RESOLUTION, "app release resolution");
+  requireString(record.resolutionRef, "app release resolution resolutionRef");
+  requireString(record.appIntentRef, "app release resolution appIntentRef");
+  requireString(record.appContractRef, "app release resolution appContractRef");
+  requireString(record.requestedVersion, "app release resolution requestedVersion");
+  const state = requireString(record.state, "app release resolution state");
+  if (!Object.values(APP.RESOLUTION_STATE).includes(state)) throw new Error("invalid app release resolution state");
+  if (record.selectedReleaseRef !== undefined) requireString(record.selectedReleaseRef, "app release resolution selectedReleaseRef");
+  if (record.selectedActivityRef !== undefined) requireString(record.selectedActivityRef, "app release resolution selectedActivityRef");
+  const selectedArtifactRefs = assertOptionalReferenceList(record.selectedArtifactRefs, "app release resolution selectedArtifactRefs");
+  const selectedModuleRoleRefs = assertOptionalReferenceList(record.selectedModuleRoleRefs, "app release resolution selectedModuleRoleRefs");
+  const selectedStorageRefs = assertOptionalReferenceList(record.selectedStorageRefs, "app release resolution selectedStorageRefs");
+  const sourceDigestRefs = assertOptionalReferenceList(record.sourceDigestRefs, "app release resolution sourceDigestRefs");
+  if (record.sourceSnapshotRef !== undefined) requireString(record.sourceSnapshotRef, "app release resolution sourceSnapshotRef");
+  const buildProofRefs = assertOptionalReferenceList(record.buildProofRefs, "app release resolution buildProofRefs");
+  const compatibilityRefs = assertOptionalReferenceList(record.compatibilityRefs, "app release resolution compatibilityRefs");
+  assertOptionalReferenceList(record.permissionRefs, "app release resolution permissionRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "app release resolution accessGroupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app release resolution evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app release resolution blockedReasons");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "app release resolution safeFacts");
+  if (state === APP.RESOLUTION_STATE.RESOLVED && (
+    !String(record.selectedReleaseRef || "").trim()
+      || !String(record.selectedActivityRef || "").trim()
+      || selectedArtifactRefs.length === 0
+      || selectedModuleRoleRefs.length === 0
+      || selectedStorageRefs.length === 0
+      || sourceDigestRefs.length === 0
+      || !String(record.sourceSnapshotRef || "").trim()
+      || buildProofRefs.length === 0
+      || compatibilityRefs.length === 0
+  )) {
+    throw new Error("resolved app release requires selected release, activity, artifacts, module roles, storage, source digest, source snapshot, build proof, and compatibility refs");
+  }
+  if ([APP.RESOLUTION_STATE.BLOCKED, APP.RESOLUTION_STATE.DEGRADED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked or degraded app release resolution requires blockedReasons");
+  }
+  rejectRouteControlByteFields(record, "app release resolution");
+  if (!Number(record.resolvedAt || 0)) throw new Error("app release resolution missing resolvedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.resolvedAt)) {
+    throw new Error("app release resolution expires before resolvedAt");
+  }
+  return record;
+}
+
+export function assertAppActivityDependency(record) {
+  if (!isObject(record)) throw new Error("app activity dependency must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.ACTIVITY_DEPENDENCY, "app activity dependency");
+  requireString(record.dependencyRef, "app activity dependency dependencyRef");
+  requireString(record.appContractRef, "app activity dependency appContractRef");
+  requireString(record.activityRef, "app activity dependency activityRef");
+  const dependencyType = requireString(record.dependencyType, "app activity dependency dependencyType");
+  if (!Object.values(APP.DEPENDENCY_TYPE).includes(dependencyType)) throw new Error("invalid app activity dependency type");
+  if (typeof record.required !== "boolean") throw new Error("app activity dependency required must be boolean");
+  const state = requireString(record.state, "app activity dependency state");
+  if (!Object.values(APP.DEPENDENCY_STATE).includes(state)) throw new Error("invalid app activity dependency state");
+  const contractRefs = assertOptionalReferenceList(record.contractRefs, "app activity dependency contractRefs");
+  const primitiveRefs = assertOptionalReferenceList(record.primitiveRefs, "app activity dependency primitiveRefs");
+  assertOptionalReferenceList(record.permissionRefs, "app activity dependency permissionRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "app activity dependency accessGroupRefs");
+  assertOptionalReferenceList(record.materializationRefs, "app activity dependency materializationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "app activity dependency evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app activity dependency blockedReasons");
+  if (record.required && state === APP.DEPENDENCY_STATE.READY && (contractRefs.length === 0 || primitiveRefs.length === 0)) {
+    throw new Error("ready required app activity dependency requires contractRefs and primitiveRefs");
+  }
+  if (state === APP.DEPENDENCY_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked app activity dependency requires blockedReasons");
+  }
+  assertNoPrivateContentFields(record, "app activity dependency");
+  if (!Number(record.issuedAt || 0)) throw new Error("app activity dependency missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("app activity dependency expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertMessagingContract(record) {
+  if (!isObject(record)) throw new Error("messaging contract must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.MESSAGING_CONTRACT, "messaging contract");
+  requireString(record.messagingContractRef, "messaging contract messagingContractRef");
+  requireString(record.scopeRef, "messaging contract scopeRef");
+  requireString(record.authorRef, "messaging contract authorRef");
+  const state = requireString(record.state, "messaging contract state");
+  if (!Object.values(APP.MESSAGING_STATE).includes(state)) throw new Error("invalid messaging contract state");
+  assertOptionalReferenceList(record.conversationRefs, "messaging contract conversationRefs");
+  const participantRoleRefs = assertOptionalReferenceList(record.participantRoleRefs, "messaging contract participantRoleRefs");
+  const activityRefs = assertOptionalReferenceList(record.activityRefs, "messaging contract activityRefs");
+  const contentClassRefs = assertOptionalReferenceList(record.contentClassRefs, "messaging contract contentClassRefs");
+  const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "messaging contract accessGroupRefs");
+  const witnessFloorRefs = assertOptionalReferenceList(record.witnessFloorRefs, "messaging contract witnessFloorRefs");
+  const retentionRefs = assertOptionalReferenceList(record.retentionRefs, "messaging contract retentionRefs");
+  assertOptionalReferenceList(record.moderationContractRefs, "messaging contract moderationContractRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "messaging contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "messaging contract blockedReasons");
+  if (state === APP.MESSAGING_STATE.READY && (
+    participantRoleRefs.length === 0
+      || activityRefs.length === 0
+      || contentClassRefs.length === 0
+      || accessGroupRefs.length === 0
+      || witnessFloorRefs.length === 0
+      || retentionRefs.length === 0
+  )) {
+    throw new Error("ready messaging contract requires participant roles, activities, content classes, access groups, witness floors, and retention refs");
+  }
+  if (state === APP.MESSAGING_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked messaging contract requires blockedReasons");
+  }
+  assertNoPrivateContentFields(record, "messaging contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("messaging contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("messaging contract expires before issuedAt");
+  }
+  return record;
+}
+
+export function assertCommunicationsModerationContract(record) {
+  if (!isObject(record)) throw new Error("communications moderation contract must be an object");
+  assertRecordKind(record, APP.RECORD_KIND.COMMUNICATIONS_MODERATION_CONTRACT, "communications moderation contract");
+  requireString(record.moderationContractRef, "communications moderation contract moderationContractRef");
+  requireString(record.scopeRef, "communications moderation contract scopeRef");
+  requireString(record.authorityRealmRef, "communications moderation contract authorityRealmRef");
+  const state = requireString(record.state, "communications moderation contract state");
+  if (!Object.values(APP.COMMUNICATIONS_MODERATION_STATE).includes(state)) throw new Error("invalid communications moderation contract state");
+  const actionRefs = assertOptionalReferenceList(record.actionRefs, "communications moderation contract actionRefs");
+  const targetRefs = assertOptionalReferenceList(record.targetRefs, "communications moderation contract targetRefs");
+  const messagingContractRefs = assertOptionalReferenceList(record.messagingContractRefs, "communications moderation contract messagingContractRefs");
+  assertOptionalReferenceList(record.eventFabricRefs, "communications moderation contract eventFabricRefs");
+  const permissionRefs = assertOptionalReferenceList(record.permissionRefs, "communications moderation contract permissionRefs");
+  const accessGroupRefs = assertOptionalReferenceList(record.accessGroupRefs, "communications moderation contract accessGroupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "communications moderation contract evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "communications moderation contract blockedReasons");
+  if (state === APP.COMMUNICATIONS_MODERATION_STATE.READY && (
+    actionRefs.length === 0
+      || targetRefs.length === 0
+      || messagingContractRefs.length === 0
+      || permissionRefs.length === 0
+      || accessGroupRefs.length === 0
+  )) {
+    throw new Error("ready communications moderation contract requires actions, targets, messaging contracts, permissions, and access groups");
+  }
+  if (state === APP.COMMUNICATIONS_MODERATION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked communications moderation contract requires blockedReasons");
+  }
+  assertNoPrivateContentFields(record, "communications moderation contract");
+  if (!Number(record.issuedAt || 0)) throw new Error("communications moderation contract missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("communications moderation contract expires before issuedAt");
+  }
+  return record;
 }
 
 export function assertAppRecipe(record) {
