@@ -123,6 +123,7 @@ import {
   assertContributionLifecycle,
   assertEventFabricAccessClass,
   assertEventFabricProcessorContract,
+  assertEventFabricProcessorReport,
   assertCybersecProcessorSeed,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
@@ -3222,6 +3223,47 @@ test("agreement grammar separates action authority, access epochs, private reada
     state: "blocked",
     blockedReasons: [],
   }), /blocked state requires blockedReasons/);
+
+  const processorReport = assertEventFabricProcessorReport({
+    kind: SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_REPORT,
+    reportId: "processor-report:cybersec-bootstrap:1",
+    processorContractRef: processor.processorContractId,
+    fabricRef: processor.fabricRef,
+    processorRef: "constitute-cybersec",
+    processorRoleRef: "role:cybersec.processor",
+    runnerOperationRef: "runner-operation:cybersec-bootstrap:execute:1",
+    state: "alerted",
+    inputRefs: [processor.fabricRef, "event-class:cybersec-runtime", "encrypted-detail:logging.default"],
+    outputRefs: ["cybersec:alerts", "cybersec:evidence-hold"],
+    inputAccessClassRefs: ["event-class:cybersec-runtime"],
+    inputEventClasses: ["cybersecAudit", "runtimeDiagnostic"],
+    inputContentClasses: [AGREEMENT.CONTENT_CLASS.ENCRYPTED_DETAIL],
+    accessGroupRefs: [group.groupId],
+    observedEventRefs: ["event:runtime:media-path:1"],
+    heldEventRefs: ["event:runtime:media-path:1"],
+    storageRefs: ["storage:logging.archive"],
+    safeFacts: {
+      eventCount: 1,
+      alertCount: 1,
+      heldEvidenceCount: 1,
+    },
+    evidenceRefs: ["evidence:runner:completed", "event:runtime:media-path:1"],
+    observedAt: 1700000075,
+    expiresAt: 1700000435,
+  });
+  assert.equal(processorReport.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.equal(processorReport.observedEventRefs[0], "event:runtime:media-path:1");
+  assert.throws(() => assertEventFabricProcessorReport({
+    ...processorReport,
+    reportId: "processor-report:blocked",
+    state: "blocked",
+    blockedReasons: [],
+  }), /blocked state requires blockedReasons/);
+  assert.throws(() => assertEventFabricProcessorReport({
+    ...processorReport,
+    reportId: "processor-report:leaky",
+    safeFacts: { ciphertext: "not-safe" },
+  }), /forbidden protocol field/);
 
   const cybersecSeed = assertCybersecProcessorSeed({
     kind: SWARM.RECORD_KIND.CYBERSEC_PROCESSOR_SEED,

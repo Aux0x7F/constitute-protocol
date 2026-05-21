@@ -1390,6 +1390,31 @@ export type EventFabricProcessorContractRecord = {
   expiresAt?: number;
 };
 
+export type EventFabricProcessorReportRecord = {
+  kind?: "event.fabric.processor.report";
+  reportId: string;
+  processorContractRef: string;
+  fabricRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  runnerOperationRef: string;
+  state: "clear" | "alerted" | "processed" | "degraded" | "blocked" | "expired";
+  inputRefs?: string[];
+  outputRefs?: string[];
+  inputAccessClassRefs?: string[];
+  inputEventClasses: string[];
+  inputContentClasses: AgreementContentClass[];
+  accessGroupRefs?: string[];
+  observedEventRefs?: string[];
+  heldEventRefs?: string[];
+  storageRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type CybersecProcessorSeedRecord = {
   kind?: "cybersec.processor.seed";
   seedId: string;
@@ -2877,6 +2902,7 @@ export function assertAccessEpoch(record: unknown): AccessEpochRecord;
 export function assertPrivateContentEnvelope(record: unknown): PrivateContentEnvelopeRecord;
 export function assertEventFabricAccessClass(record: unknown): EventFabricAccessClassRecord;
 export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
+export function assertEventFabricProcessorReport(record: unknown): EventFabricProcessorReportRecord;
 export function assertCybersecProcessorSeed(record: unknown): CybersecProcessorSeedRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;

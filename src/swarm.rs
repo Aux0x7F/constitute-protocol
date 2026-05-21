@@ -101,6 +101,7 @@ pub const RECORD_ACCESS_EPOCH: &str = "access.epoch";
 pub const RECORD_PRIVATE_CONTENT_ENVELOPE: &str = "private.content.envelope";
 pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
 pub const RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT: &str = "event.fabric.processor.contract";
+pub const RECORD_EVENT_FABRIC_PROCESSOR_REPORT: &str = "event.fabric.processor.report";
 pub const RECORD_CYBERSEC_PROCESSOR_SEED: &str = "cybersec.processor.seed";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
@@ -1899,6 +1900,47 @@ pub struct EventFabricProcessorContractRecord {
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EventFabricProcessorReportRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub report_id: String,
+    pub processor_contract_ref: String,
+    pub fabric_ref: String,
+    pub processor_ref: String,
+    pub processor_role_ref: String,
+    pub runner_operation_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub input_access_class_refs: Vec<String>,
+    #[serde(default)]
+    pub input_event_classes: Vec<String>,
+    #[serde(default)]
+    pub input_content_classes: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub observed_event_refs: Vec<String>,
+    #[serde(default)]
+    pub held_event_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -4761,6 +4803,126 @@ pub fn validate_event_fabric_processor_contract(
     {
         return Err(anyhow!(
             "event fabric processor contract expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_event_fabric_processor_report(
+    record: &EventFabricProcessorReportRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_EVENT_FABRIC_PROCESSOR_REPORT,
+        "event fabric processor report",
+    )?;
+    require_non_empty(
+        &record.report_id,
+        "event fabric processor report missing reportId",
+    )?;
+    require_non_empty(
+        &record.processor_contract_ref,
+        "event fabric processor report missing processorContractRef",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "event fabric processor report missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.processor_ref,
+        "event fabric processor report missing processorRef",
+    )?;
+    require_non_empty(
+        &record.processor_role_ref,
+        "event fabric processor report missing processorRoleRef",
+    )?;
+    require_non_empty(
+        &record.runner_operation_ref,
+        "event fabric processor report missing runnerOperationRef",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "clear" | "alerted" | "processed" | "degraded" | "blocked" | "expired"
+    ) {
+        return Err(anyhow!("invalid event fabric processor report state"));
+    }
+    validate_reference_list(
+        &record.input_refs,
+        "event fabric processor report missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "event fabric processor report missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.input_access_class_refs,
+        "event fabric processor report missing inputAccessClassRefs",
+    )?;
+    require_non_empty_vec(
+        &record.input_event_classes,
+        "event fabric processor report requires inputEventClasses",
+    )?;
+    validate_reference_list(
+        &record.input_event_classes,
+        "event fabric processor report missing inputEventClasses",
+    )?;
+    require_non_empty_vec(
+        &record.input_content_classes,
+        "event fabric processor report requires inputContentClasses",
+    )?;
+    for content_class in &record.input_content_classes {
+        validate_content_class(content_class)?;
+    }
+    validate_reference_list(
+        &record.access_group_refs,
+        "event fabric processor report missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.observed_event_refs,
+        "event fabric processor report missing observedEventRefs",
+    )?;
+    validate_reference_list(
+        &record.held_event_refs,
+        "event fabric processor report missing heldEventRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "event fabric processor report missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "event fabric processor report missing evidenceRefs",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "event fabric processor report blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "event fabric processor report missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "event fabric processor report safeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "event fabric processor report safeFacts",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "event fabric processor report",
+    )?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("event fabric processor report missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "event fabric processor report expiresAt must be after observedAt"
         ));
     }
     Ok(())
@@ -11674,6 +11836,54 @@ mod tests {
         bad_processor.processor_contract_id = "processor-contract:blocked".to_string();
         bad_processor.state = "blocked".to_string();
         assert!(validate_event_fabric_processor_contract(&bad_processor).is_err());
+
+        let processor_report = EventFabricProcessorReportRecord {
+            kind: Some(RECORD_EVENT_FABRIC_PROCESSOR_REPORT.to_string()),
+            report_id: "processor-report:cybersec-bootstrap:1".to_string(),
+            processor_contract_ref: processor.processor_contract_id.clone(),
+            fabric_ref: processor.fabric_ref.clone(),
+            processor_ref: "constitute-cybersec".to_string(),
+            processor_role_ref: "role:cybersec.processor".to_string(),
+            runner_operation_ref: "runner-operation:cybersec-bootstrap:execute:1".to_string(),
+            state: "alerted".to_string(),
+            input_refs: vec![
+                processor.fabric_ref.clone(),
+                event_class.class_id.clone(),
+                "encrypted-detail:logging.default".to_string(),
+            ],
+            output_refs: vec![
+                "cybersec:alerts".to_string(),
+                "cybersec:evidence-hold".to_string(),
+            ],
+            input_access_class_refs: vec![event_class.class_id.clone()],
+            input_event_classes: event_class.event_classes.clone(),
+            input_content_classes: vec!["encryptedDetail".to_string()],
+            access_group_refs: vec![group.group_id.clone()],
+            observed_event_refs: vec!["event:runtime:media-path:1".to_string()],
+            held_event_refs: vec!["event:runtime:media-path:1".to_string()],
+            storage_refs: vec!["storage:logging.archive".to_string()],
+            safe_facts: json!({
+                "eventCount": 1,
+                "alertCount": 1,
+                "heldEvidenceCount": 1
+            }),
+            evidence_refs: vec![
+                "evidence:runner:completed".to_string(),
+                "event:runtime:media-path:1".to_string(),
+            ],
+            blocked_reasons: Vec::new(),
+            observed_at: 1_700_000_075,
+            expires_at: Some(1_700_000_435),
+        };
+        validate_event_fabric_processor_report(&processor_report)
+            .expect("valid event fabric processor report");
+        let mut bad_processor_report = processor_report.clone();
+        bad_processor_report.report_id = "processor-report:blocked".to_string();
+        bad_processor_report.state = "blocked".to_string();
+        assert!(validate_event_fabric_processor_report(&bad_processor_report).is_err());
+        let mut leaky_processor_report = processor_report;
+        leaky_processor_report.safe_facts = json!({ "ciphertext": "not-safe" });
+        assert!(validate_event_fabric_processor_report(&leaky_processor_report).is_err());
 
         let cybersec_seed = CybersecProcessorSeedRecord {
             kind: Some(RECORD_CYBERSEC_PROCESSOR_SEED.to_string()),

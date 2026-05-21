@@ -1333,6 +1333,7 @@ export const SWARM = Object.freeze({
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
+    EVENT_FABRIC_PROCESSOR_REPORT: "event.fabric.processor.report",
     CYBERSEC_PROCESSOR_SEED: "cybersec.processor.seed",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
@@ -1412,6 +1413,7 @@ export const SWARM = Object.freeze({
     PRIVATE_CONTENT_ENVELOPE: "private.content.envelope",
     EVENT_FABRIC_ACCESS_CLASS: "event.fabric.accessClass",
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
+    EVENT_FABRIC_PROCESSOR_REPORT: "event.fabric.processor.report",
     CYBERSEC_PROCESSOR_SEED: "cybersec.processor.seed",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
@@ -4448,6 +4450,43 @@ export function assertEventFabricProcessorContract(record) {
   if (!Number(record.issuedAt || 0)) throw new Error("event fabric processor contract missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
     throw new Error("event fabric processor contract expires before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertEventFabricProcessorReport(record) {
+  if (!isObject(record)) throw new Error("event fabric processor report must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.EVENT_FABRIC_PROCESSOR_REPORT, "event fabric processor report");
+  requireString(record.reportId, "event fabric processor report reportId");
+  requireString(record.processorContractRef, "event fabric processor report processorContractRef");
+  requireString(record.fabricRef, "event fabric processor report fabricRef");
+  requireString(record.processorRef, "event fabric processor report processorRef");
+  requireString(record.processorRoleRef, "event fabric processor report processorRoleRef");
+  requireString(record.runnerOperationRef, "event fabric processor report runnerOperationRef");
+  const state = requireString(record.state, "event fabric processor report state");
+  if (!["clear", "alerted", "processed", "degraded", "blocked", "expired"].includes(state)) throw new Error("invalid event fabric processor report state");
+  assertOptionalReferenceList(record.inputRefs, "event fabric processor report inputRefs");
+  assertOptionalReferenceList(record.outputRefs, "event fabric processor report outputRefs");
+  assertOptionalReferenceList(record.inputAccessClassRefs, "event fabric processor report inputAccessClassRefs");
+  requireNonEmptyArray(record.inputEventClasses, "event fabric processor report inputEventClasses").forEach((entry) => requireString(entry, "event fabric processor report inputEventClass"));
+  requireNonEmptyArray(record.inputContentClasses, "event fabric processor report inputContentClasses").forEach((entry) => assertContentClassName(entry, "event fabric processor report inputContentClass"));
+  assertOptionalReferenceList(record.accessGroupRefs, "event fabric processor report accessGroupRefs");
+  assertOptionalReferenceList(record.observedEventRefs, "event fabric processor report observedEventRefs");
+  assertOptionalReferenceList(record.heldEventRefs, "event fabric processor report heldEventRefs");
+  assertOptionalReferenceList(record.storageRefs, "event fabric processor report storageRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "event fabric processor report evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "event fabric processor report blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("event fabric processor report blocked state requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "event fabric processor report safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "event fabric processor report safeFacts");
+  }
+  rejectRouteControlByteFields(record, "event fabric processor report");
+  if (!Number(record.observedAt || 0)) throw new Error("event fabric processor report missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("event fabric processor report expires before observedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }
