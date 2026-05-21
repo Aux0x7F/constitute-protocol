@@ -224,6 +224,12 @@ export const RUNNER = Object.freeze({
   }),
 });
 
+export const BUILD = Object.freeze({
+  CAPABILITY: Object.freeze({
+    RUN_EXECUTE: "build.run.execute",
+  }),
+});
+
 export const AGREEMENT = Object.freeze({
   PLANE: Object.freeze({
     ACTION_AUTHORITY: "actionAuthority",

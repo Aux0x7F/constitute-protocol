@@ -30,6 +30,8 @@ pub const BUILD_PROOF_STATE_PROVED: &str = "proved";
 pub const BUILD_PROOF_STATE_FAILED: &str = "failed";
 pub const BUILD_PROOF_STATE_BLOCKED: &str = "blocked";
 
+pub const CAPABILITY_BUILD_RUN_EXECUTE: &str = "build.run.execute";
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BuildContract {
