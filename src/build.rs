@@ -77,6 +77,10 @@ pub struct BuildRun {
     #[serde(default)]
     pub grant_refs: Vec<String>,
     #[serde(default)]
+    pub resource_grant_refs: Vec<String>,
+    #[serde(default)]
+    pub secret_boundary_refs: Vec<String>,
+    #[serde(default)]
     pub artifact_refs: Vec<String>,
     #[serde(default)]
     pub log_refs: Vec<String>,
@@ -86,6 +90,10 @@ pub struct BuildRun {
     pub metric_refs: Vec<String>,
     #[serde(default)]
     pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub release_candidate_refs: Vec<String>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
     #[serde(default)]
@@ -208,11 +216,18 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
     validate_contract_ref(&record.runner_operation_ref, "build run runnerOperationRef")?;
     validate_build_run_state(&record.state)?;
     validate_ref_list(&record.grant_refs, "build run grantRefs")?;
+    validate_ref_list(&record.resource_grant_refs, "build run resourceGrantRefs")?;
+    validate_ref_list(&record.secret_boundary_refs, "build run secretBoundaryRefs")?;
     validate_ref_list(&record.artifact_refs, "build run artifactRefs")?;
     validate_ref_list(&record.log_refs, "build run logRefs")?;
     validate_ref_list(&record.proof_refs, "build run proofRefs")?;
     validate_ref_list(&record.metric_refs, "build run metricRefs")?;
     validate_ref_list(&record.storage_refs, "build run storageRefs")?;
+    validate_ref_list(&record.compatibility_refs, "build run compatibilityRefs")?;
+    validate_ref_list(
+        &record.release_candidate_refs,
+        "build run releaseCandidateRefs",
+    )?;
     validate_ref_list(&record.evidence_refs, "build run evidenceRefs")?;
     validate_reason_list(&record.blocked_reasons, "build run blockedReasons")?;
     reject_private_fields(&record.safe_facts, "build run safeFacts")?;
@@ -225,6 +240,15 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
     {
         return Err(anyhow!(
             "succeeded build run requires artifactRefs or proofRefs"
+        ));
+    }
+    if matches!(record.state.as_str(), BUILD_RUN_STATE_SUCCEEDED)
+        && (record.resource_grant_refs.is_empty()
+            || record.compatibility_refs.is_empty()
+            || record.release_candidate_refs.is_empty())
+    {
+        return Err(anyhow!(
+            "succeeded build run requires resourceGrantRefs, compatibilityRefs, and releaseCandidateRefs"
         ));
     }
     if matches!(
@@ -509,11 +533,15 @@ mod tests {
             runner_operation_ref: "runner:operation:build-1".to_string(),
             state: BUILD_RUN_STATE_SUCCEEDED.to_string(),
             grant_refs: vec!["authority:grant:runner-build".to_string()],
+            resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
+            secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
             artifact_refs: vec!["build:artifact:module".to_string()],
             log_refs: vec!["storage:object:build-log".to_string()],
             proof_refs: vec!["build:proof:1".to_string()],
             metric_refs: vec!["metrics:build:1".to_string()],
             storage_refs: vec!["storage:object:artifact-module".to_string()],
+            compatibility_refs: vec!["compat:surface-app:0.1".to_string()],
+            release_candidate_refs: vec!["release:candidate:module".to_string()],
             evidence_refs: vec!["runner:evidence:build-1".to_string()],
             blocked_reasons: vec![],
             safe_facts: serde_json::json!({ "durationMs": 42 }),
@@ -573,11 +601,15 @@ mod tests {
             runner_operation_ref: "runner:operation:build-bad".to_string(),
             state: BUILD_RUN_STATE_FAILED.to_string(),
             grant_refs: vec!["authority:grant:runner-build".to_string()],
+            resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
+            secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
             artifact_refs: vec!["build:artifact:module".to_string()],
             log_refs: vec![],
             proof_refs: vec![],
             metric_refs: vec![],
             storage_refs: vec![],
+            compatibility_refs: vec![],
+            release_candidate_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
             safe_facts: serde_json::json!({ "build": "bad-run" }),
