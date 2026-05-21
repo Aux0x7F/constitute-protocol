@@ -5,6 +5,7 @@ import {
   BROKER,
   DIAGNOSTICS,
   AGREEMENT,
+  APP,
   LOGGING,
   PROJECTION,
   RUNNER,
@@ -86,6 +87,11 @@ import {
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertAppActivity,
+  assertAppContract,
+  assertAppModuleRole,
+  assertAppRelease,
+  assertAppReleaseResolution,
   assertServiceManagerPosture,
   assertServiceManagerSecretBoundary,
   assertServiceManagerReleaseContract,
@@ -681,6 +687,110 @@ test("surface app contracts validate module roles and fulfillment boundaries", (
     ...runtimeClient,
     role: "runtimePolicy",
   }), /invalid surface module role/);
+});
+
+test("app contracts validate activity release and resolution records", () => {
+  const contract = assertAppContract({
+    kind: APP.RECORD_KIND.CONTRACT,
+    appContractRef: "app:contract:community-launcher@0.1.0",
+    appId: "community-launcher",
+    version: "0.1.0",
+    authorRef: "identity:community-root",
+    state: APP.CONTRACT_STATE.READY,
+    primitiveRefs: ["app.activity", "runtime.selection"],
+    activityRefs: ["app:activity:community-launcher.channel"],
+    moduleRoleRefs: [
+      "app:module-role:community-launcher.runtime",
+      "app:module-role:community-launcher.view",
+    ],
+    releaseRefs: ["app:release:community-launcher@0.1.0"],
+    permissionRefs: ["permission:community-launcher:run"],
+    accessGroupRefs: ["access-group:community-launcher:members"],
+    compatibilityRefs: ["compat:surface-app:0.1"],
+    evidenceRefs: ["evidence:app-contract:community-launcher"],
+    issuedAt: 1_779_266_000,
+    expiresAt: 1_779_269_600,
+  });
+  const runtimeRole = assertAppModuleRole({
+    kind: APP.RECORD_KIND.MODULE_ROLE,
+    moduleRoleRef: "app:module-role:community-launcher.runtime",
+    appContractRef: contract.appContractRef,
+    roleName: SURFACE_APP.MODULE_ROLE.RUNTIME_CLIENT,
+    required: true,
+    primitiveRefs: ["runtime.attach"],
+    artifactRefs: ["build:artifact:community-launcher-runtime"],
+    compatibilityRefs: ["compat:surface-app:0.1"],
+    evidenceRefs: ["evidence:module-role:runtime"],
+  });
+  const activity = assertAppActivity({
+    kind: APP.RECORD_KIND.ACTIVITY,
+    activityRef: "app:activity:community-launcher.channel",
+    appContractRef: contract.appContractRef,
+    activityId: "channel",
+    state: APP.ACTIVITY_STATE.READY,
+    launchMode: APP.ACTIVITY_LAUNCH.EMBEDDED,
+    embedPolicy: APP.EMBED_POLICY.RESTRICTED,
+    primitiveRefs: ["messaging.thread.observe", "community.role.write"],
+    moduleRoleRefs: [runtimeRole.moduleRoleRef, "app:module-role:community-launcher.view"],
+    permissionRefs: ["permission:community-channel:write"],
+    accessGroupRefs: ["access-group:community-launcher:members"],
+    materializationRefs: ["materialization:community-channel:messages"],
+    evidenceRefs: ["evidence:activity:community-channel"],
+    issuedAt: 1_779_266_000,
+    expiresAt: 1_779_269_600,
+  });
+  const release = assertAppRelease({
+    kind: APP.RECORD_KIND.RELEASE,
+    releaseRef: "app:release:community-launcher@0.1.0",
+    appContractRef: contract.appContractRef,
+    version: contract.version,
+    sourceSnapshotRef: "source:snapshot:community-launcher:head",
+    buildRunRef: "build:run:community-launcher@0.1.0",
+    state: APP.RELEASE_STATE.PUBLISHED,
+    artifactRefs: ["build:artifact:community-launcher-runtime", "build:artifact:community-launcher-view"],
+    proofRefs: ["build:proof:community-launcher@0.1.0"],
+    moduleRoleRefs: contract.moduleRoleRefs,
+    storageRefs: ["storage:object:community-launcher@0.1.0"],
+    compatibilityRefs: contract.compatibilityRefs,
+    evidenceRefs: ["evidence:release:community-launcher"],
+    issuedAt: 1_779_266_010,
+    expiresAt: 1_779_269_600,
+  });
+  const resolution = assertAppReleaseResolution({
+    kind: APP.RECORD_KIND.RELEASE_RESOLUTION,
+    resolutionRef: "app:resolution:community-launcher@0.1.0",
+    appIntentRef: "app:intent:community-launcher:channel",
+    appContractRef: contract.appContractRef,
+    requestedVersion: contract.version,
+    state: APP.RESOLUTION_STATE.RESOLVED,
+    selectedReleaseRef: release.releaseRef,
+    selectedActivityRef: activity.activityRef,
+    selectedArtifactRefs: release.artifactRefs,
+    selectedModuleRoleRefs: release.moduleRoleRefs,
+    selectedStorageRefs: release.storageRefs,
+    sourceDigestRefs: ["source:digest:community-launcher@0.1.0"],
+    sourceSnapshotRef: release.sourceSnapshotRef,
+    buildProofRefs: release.proofRefs,
+    compatibilityRefs: release.compatibilityRefs,
+    permissionRefs: contract.permissionRefs,
+    accessGroupRefs: contract.accessGroupRefs,
+    evidenceRefs: ["evidence:resolution:community-launcher"],
+    safeFacts: { activityId: activity.activityId, artifactCount: release.artifactRefs.length },
+    resolvedAt: 1_779_266_020,
+    expiresAt: 1_779_269_600,
+  });
+
+  assert.equal(contract.appContractRef, "app:contract:community-launcher@0.1.0");
+  assert.equal(activity.launchMode, APP.ACTIVITY_LAUNCH.EMBEDDED);
+  assert.deepEqual(resolution.selectedStorageRefs, ["storage:object:community-launcher@0.1.0"]);
+  assert.throws(() => assertAppActivity({
+    ...activity,
+    moduleRoleRefs: [],
+  }), /ready app activity requires primitiveRefs and moduleRoleRefs/);
+  assert.throws(() => assertAppReleaseResolution({
+    ...resolution,
+    selectedStorageRefs: [],
+  }), /resolved app release requires selected release/);
 });
 
 test("service edge adapter posture validates service-owned admission and backpressure evidence", () => {

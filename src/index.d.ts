@@ -6,7 +6,9 @@ export const DEFAULT_REQUEST_TTL_SECONDS: number;
 export const BROKER: Readonly<Record<string, string>>;
 export const SERVICE_SURFACE: Readonly<Record<string, unknown>>;
 export const SURFACE_APP: Readonly<Record<string, unknown>>;
+export const APP: Readonly<Record<string, unknown>>;
 export const RUNNER: Readonly<Record<string, unknown>>;
+export const BUILD: Readonly<Record<string, unknown>>;
 export const AGREEMENT: Readonly<Record<string, unknown>>;
 export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
@@ -1869,6 +1871,103 @@ export type RunnerHostFulfillmentState =
   | "rejected"
   | "cancelled";
 
+export type AppContractRecord = {
+  kind?: "app.contract";
+  appContractRef: string;
+  appId: string;
+  version: string;
+  authorRef: string;
+  state: "draft" | "ready" | "blocked" | "superseded" | string;
+  primitiveRefs?: string[];
+  activityRefs?: string[];
+  moduleRoleRefs?: string[];
+  releaseRefs?: string[];
+  permissionRefs?: string[];
+  accessGroupRefs?: string[];
+  compatibilityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type AppModuleRoleRecord = {
+  kind?: "app.module.role";
+  moduleRoleRef: string;
+  appContractRef: string;
+  roleName: SurfaceModuleRole;
+  required: boolean;
+  primitiveRefs?: string[];
+  platformRefs?: string[];
+  artifactRefs?: string[];
+  compatibilityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type AppActivityRecord = {
+  kind?: "app.activity";
+  activityRef: string;
+  appContractRef: string;
+  activityId: string;
+  state: "ready" | "blocked" | "deprecated" | string;
+  launchMode: "surface" | "embedded" | "native" | "service" | string;
+  embedPolicy: "allowed" | "restricted" | "denied" | string;
+  primitiveRefs?: string[];
+  moduleRoleRefs?: string[];
+  permissionRefs?: string[];
+  accessGroupRefs?: string[];
+  materializationRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type AppReleaseRecord = {
+  kind?: "app.release";
+  releaseRef: string;
+  appContractRef: string;
+  version: string;
+  sourceSnapshotRef: string;
+  buildRunRef: string;
+  state: "published" | "blocked" | "superseded" | "revoked" | string;
+  artifactRefs?: string[];
+  proofRefs?: string[];
+  moduleRoleRefs?: string[];
+  storageRefs?: string[];
+  compatibilityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type AppReleaseResolutionRecord = {
+  kind?: "app.release.resolution";
+  resolutionRef: string;
+  appIntentRef: string;
+  appContractRef: string;
+  requestedVersion: string;
+  state: "resolved" | "blocked" | "degraded" | "superseded" | string;
+  selectedReleaseRef?: string;
+  selectedActivityRef?: string;
+  selectedArtifactRefs?: string[];
+  selectedModuleRoleRefs?: string[];
+  selectedStorageRefs?: string[];
+  sourceDigestRefs?: string[];
+  sourceSnapshotRef?: string;
+  buildProofRefs?: string[];
+  compatibilityRefs?: string[];
+  permissionRefs?: string[];
+  accessGroupRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  resolvedAt: number;
+  expiresAt?: number;
+};
+
 export type SurfaceModuleClaim = {
   moduleRef: string;
   role: SurfaceModuleRole;
@@ -2948,6 +3047,11 @@ export function assertStreamSessionClose(record: unknown): StreamSessionClose;
 export function assertMediaFulfillmentEvidence(record: unknown): MediaFulfillmentEvidence;
 export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
+export function assertAppContract(record: unknown): AppContractRecord;
+export function assertAppModuleRole(record: unknown): AppModuleRoleRecord;
+export function assertAppActivity(record: unknown): AppActivityRecord;
+export function assertAppRelease(record: unknown): AppReleaseRecord;
+export function assertAppReleaseResolution(record: unknown): AppReleaseResolutionRecord;
 export function assertSurfaceModuleClaim(record: unknown): SurfaceModuleClaim;
 export function assertSurfaceAppContract(record: unknown): SurfaceAppContract;
 export function assertSurfaceAppManifest(record: unknown): SurfaceAppManifest;
