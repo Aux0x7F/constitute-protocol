@@ -384,6 +384,19 @@ export const FABRIC = Object.freeze({
     UNIQUE_EDGE: "uniqueEdge",
     BLOCKED: "blocked",
   }),
+  CONTRACT_TARGET_STATE: Object.freeze({
+    SELECTED: "selected",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  CONTRACT_TARGET_COMPATIBILITY_STATE: Object.freeze({
+    COMPATIBLE: "compatible",
+    DEGRADED: "degraded",
+    INCOMPATIBLE: "incompatible",
+    UNKNOWN: "unknown",
+  }),
 });
 
 export const BUILD = Object.freeze({
@@ -1550,6 +1563,7 @@ export const SWARM = Object.freeze({
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
     UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
+    CONTRACT_TARGET: "contract.target",
     RUNNER_OPERATION: "runner.operation",
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
@@ -1645,6 +1659,7 @@ export const SWARM = Object.freeze({
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
     UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
+    CONTRACT_TARGET: "contract.target",
     RUNNER_OPERATION: "runner.operation",
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
@@ -4252,6 +4267,77 @@ export function assertUniqueEdgeClassification(record) {
   assertSurfaceManagerSensitiveBoundary(record, "unique edge classification");
   assertFabricObservedWindow(record, "unique edge classification");
   return { ...record, state, blockedReasons };
+}
+
+export function assertContractTarget(record) {
+  if (!isObject(record)) throw new Error("contract target must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTRACT_TARGET, "contract target");
+  requireString(record.targetRef, "contract target targetRef");
+  requireString(record.contractRef, "contract target contractRef");
+  requireString(record.profileRef, "contract target profileRef");
+  requireString(record.platformRef, "contract target platformRef");
+  const state = assertEnumValue(record.state, FABRIC.CONTRACT_TARGET_STATE, "contract target state");
+  const compatibilityState = assertEnumValue(
+    record.compatibilityState,
+    FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE,
+    "contract target compatibilityState",
+  );
+  if (record.hostRef !== undefined) requireString(record.hostRef, "contract target hostRef");
+  if (record.substrateRef !== undefined) requireString(record.substrateRef, "contract target substrateRef");
+  const modifierRefs = assertOptionalReferenceList(record.modifierRefs, "contract target modifierRefs");
+  const branchRefs = assertOptionalReferenceList(record.branchRefs, "contract target branchRefs");
+  const subbranchRefs = assertOptionalReferenceList(record.subbranchRefs, "contract target subbranchRefs");
+  const capabilitySlotRefs = assertReferenceList(record.capabilitySlotRefs, "contract target capabilitySlotRefs");
+  if (record.adapterPackRef !== undefined) requireString(record.adapterPackRef, "contract target adapterPackRef");
+  const adapterRefs = assertOptionalReferenceList(record.adapterRefs, "contract target adapterRefs");
+  const negativeSlotRefs = assertOptionalReferenceList(record.negativeSlotRefs, "contract target negativeSlotRefs");
+  const missingSlotRefs = assertOptionalReferenceList(record.missingSlotRefs, "contract target missingSlotRefs");
+  const degradedSlotRefs = assertOptionalReferenceList(record.degradedSlotRefs, "contract target degradedSlotRefs");
+  const proofProfileRefs = assertOptionalReferenceList(record.proofProfileRefs, "contract target proofProfileRefs");
+  const proofRefs = assertOptionalReferenceList(record.proofRefs, "contract target proofRefs");
+  const compatibilityRefs = assertOptionalReferenceList(record.compatibilityRefs, "contract target compatibilityRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "contract target evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "contract target blockedReasons");
+  requireString(record.targetAudience, "contract target targetAudience");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTRACT_TARGET_STATE.BLOCKED, FABRIC.CONTRACT_TARGET_STATE.EXPIRED],
+    blockedReasons,
+    "contract target",
+  );
+  if (state === FABRIC.CONTRACT_TARGET_STATE.READY && missingSlotRefs.length > 0) {
+    throw new Error("ready contract target must not carry missingSlotRefs");
+  }
+  if (state === FABRIC.CONTRACT_TARGET_STATE.READY && degradedSlotRefs.length > 0) {
+    throw new Error("ready contract target must not carry degradedSlotRefs");
+  }
+  if (compatibilityState === FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.INCOMPATIBLE && blockedReasons.length === 0) {
+    throw new Error("incompatible contract target requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "contract target safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "contract target");
+  if (!Number(record.issuedAt || 0)) throw new Error("contract target missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("contract target expiresAt must be after issuedAt");
+  }
+  return {
+    ...record,
+    state,
+    compatibilityState,
+    modifierRefs,
+    branchRefs,
+    subbranchRefs,
+    capabilitySlotRefs,
+    adapterRefs,
+    negativeSlotRefs,
+    missingSlotRefs,
+    degradedSlotRefs,
+    proofProfileRefs,
+    proofRefs,
+    compatibilityRefs,
+    evidenceRefs,
+    blockedReasons,
+  };
 }
 
 function assertPrivateRefList(value, name = "privateRefs") {

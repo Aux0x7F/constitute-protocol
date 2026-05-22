@@ -22,6 +22,7 @@ import {
   assertAppRunnerAdvertisement,
   assertAppRunnerFulfillmentReport,
   assertAppRunnerFulfillmentLifecycle,
+  assertContractTarget,
   assertContentIndexRefPosture,
   assertContractIntentionPosture,
   assertHostFabricFulfillmentPlan,
@@ -2033,6 +2034,62 @@ test("host fabric records separate association, composition, lifecycle, source t
   assert.throws(() => assertHostFabricMemberContribution({
     ...memberContribution,
     contributionId: "fabric-contribution:bad:secret",
+    safeFacts: { token: "nope" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("contract targets declare platform branch adapter slots and proof posture", () => {
+  const issuedAt = 1700000050;
+  const target = assertContractTarget({
+    kind: SWARM.RECORD_KIND.CONTRACT_TARGET,
+    targetRef: "contract-target:desktop-dev:msa-transition",
+    contractRef: "app:contract:nvr@0.1.0",
+    profileRef: "host-profile:desktop",
+    platformRef: "platform:windows",
+    substrateRef: "substrate:desktop-dev",
+    hostRef: "host:local-workstation",
+    state: FABRIC.CONTRACT_TARGET_STATE.DEGRADED,
+    compatibilityState: FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.COMPATIBLE,
+    modifierRefs: ["modifier:dev"],
+    branchRefs: ["branch:0x/msa-transition"],
+    subbranchRefs: ["subbranch:target-contract"],
+    capabilitySlotRefs: [
+      "slot:runtime",
+      "slot:gateway",
+      "slot:nvr-service",
+      "slot:nvr-surface",
+    ],
+    adapterPackRef: "adapter-pack:desktop-dev",
+    adapterRefs: ["adapter:webrtc:browser", "adapter:host-service:windows"],
+    negativeSlotRefs: ["slot:native-client"],
+    degradedSlotRefs: ["slot:operator-proof-focus"],
+    proofProfileRefs: ["proof-profile:nvr-smoke-5s", "proof-profile:long-stream-10m"],
+    proofRefs: ["proof:nvr-smoke-5s:20260522"],
+    compatibilityRefs: ["compat:runtime-2.56"],
+    evidenceRefs: ["evidence:target:selected"],
+    targetAudience: "developer",
+    safeFacts: { profile: "desktop-dev" },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(target.negativeSlotRefs[0], "slot:native-client");
+  assert.equal(target.compatibilityState, FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.COMPATIBLE);
+
+  assert.throws(() => assertContractTarget({
+    ...target,
+    targetRef: "contract-target:bad:ready-with-missing",
+    state: FABRIC.CONTRACT_TARGET_STATE.READY,
+    missingSlotRefs: ["slot:gateway"],
+  }), /missingSlotRefs/);
+  assert.throws(() => assertContractTarget({
+    ...target,
+    targetRef: "contract-target:bad:incompatible",
+    compatibilityState: FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.INCOMPATIBLE,
+    blockedReasons: [],
+  }), /blockedReasons/);
+  assert.throws(() => assertContractTarget({
+    ...target,
+    targetRef: "contract-target:bad:secret",
     safeFacts: { token: "nope" },
   }), /unsafe safe fact key|forbidden protocol field/);
 });

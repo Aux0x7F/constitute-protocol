@@ -2947,6 +2947,8 @@ export type FabricLifecyclePhaseState = "notRequired" | "pending" | "ready" | "r
 export type FabricContentIndexState = "ready" | "degraded" | "blocked" | "superseded" | "expired";
 export type FabricContractIntentionState = "draft" | "ready" | "degraded" | "blocked" | "superseded" | "expired";
 export type FabricUniqueEdgeClassificationState = "genericPrimitive" | "uniqueEdge" | "blocked";
+export type FabricContractTargetState = "selected" | "ready" | "degraded" | "blocked" | "expired";
+export type FabricContractTargetCompatibilityState = "compatible" | "degraded" | "incompatible" | "unknown";
 
 export type SubstrateAssociationHandoff = {
   kind?: "substrate.association.handoff";
@@ -3086,6 +3088,36 @@ export type UniqueEdgeClassification = {
   blockedReasons?: string[];
   safeFacts?: Record<string, unknown>;
   observedAt: number;
+  expiresAt?: number;
+};
+
+export type ContractTarget = {
+  kind?: "contract.target";
+  targetRef: string;
+  contractRef: string;
+  profileRef: string;
+  platformRef: string;
+  state: FabricContractTargetState;
+  compatibilityState: FabricContractTargetCompatibilityState;
+  hostRef?: string;
+  substrateRef?: string;
+  modifierRefs?: string[];
+  branchRefs?: string[];
+  subbranchRefs?: string[];
+  capabilitySlotRefs: string[];
+  adapterPackRef?: string;
+  adapterRefs?: string[];
+  negativeSlotRefs?: string[];
+  missingSlotRefs?: string[];
+  degradedSlotRefs?: string[];
+  proofProfileRefs?: string[];
+  proofRefs?: string[];
+  compatibilityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  targetAudience: string;
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
   expiresAt?: number;
 };
 
@@ -3318,3 +3350,4 @@ export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPostur
 export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;
 export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;
 export function assertUniqueEdgeClassification(record: unknown): UniqueEdgeClassification;
+export function assertContractTarget(record: unknown): ContractTarget;

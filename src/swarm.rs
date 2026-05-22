@@ -144,6 +144,7 @@ pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
 pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
 pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
 pub const RECORD_UNIQUE_EDGE_CLASSIFICATION: &str = "uniqueEdge.classification";
+pub const RECORD_CONTRACT_TARGET: &str = "contract.target";
 pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
 pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
 pub const RECORD_APP_RUNNER_FULFILLMENT_LIFECYCLE: &str = "app.runner.fulfillment.lifecycle";
@@ -321,6 +322,15 @@ pub const FABRIC_CONTRACT_INTENTION_EXPIRED: &str = "expired";
 pub const FABRIC_UNIQUE_EDGE_GENERIC_PRIMITIVE: &str = "genericPrimitive";
 pub const FABRIC_UNIQUE_EDGE_UNIQUE_EDGE: &str = "uniqueEdge";
 pub const FABRIC_UNIQUE_EDGE_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTRACT_TARGET_SELECTED: &str = "selected";
+pub const FABRIC_CONTRACT_TARGET_READY: &str = "ready";
+pub const FABRIC_CONTRACT_TARGET_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTRACT_TARGET_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTRACT_TARGET_EXPIRED: &str = "expired";
+pub const FABRIC_CONTRACT_TARGET_COMPATIBLE: &str = "compatible";
+pub const FABRIC_CONTRACT_TARGET_COMPATIBILITY_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTRACT_TARGET_INCOMPATIBLE: &str = "incompatible";
+pub const FABRIC_CONTRACT_TARGET_COMPATIBILITY_UNKNOWN: &str = "unknown";
 
 pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
 pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
@@ -3314,6 +3324,57 @@ pub struct UniqueEdgeClassification {
     #[serde(default)]
     pub safe_facts: Value,
     pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractTarget {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub target_ref: String,
+    pub contract_ref: String,
+    pub profile_ref: String,
+    pub platform_ref: String,
+    pub state: String,
+    pub compatibility_state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub substrate_ref: Option<String>,
+    #[serde(default)]
+    pub modifier_refs: Vec<String>,
+    #[serde(default)]
+    pub branch_refs: Vec<String>,
+    #[serde(default)]
+    pub subbranch_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_slot_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adapter_pack_ref: Option<String>,
+    #[serde(default)]
+    pub adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub negative_slot_refs: Vec<String>,
+    #[serde(default)]
+    pub missing_slot_refs: Vec<String>,
+    #[serde(default)]
+    pub degraded_slot_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub target_audience: String,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -8586,6 +8647,98 @@ pub fn validate_unique_edge_classification(record: &UniqueEdgeClassification) ->
     )
 }
 
+pub fn validate_contract_target(record: &ContractTarget) -> Result<()> {
+    validate_optional_kind(&record.kind, RECORD_CONTRACT_TARGET, "contract target")?;
+    require_non_empty(&record.target_ref, "contract target missing targetRef")?;
+    require_non_empty(&record.contract_ref, "contract target missing contractRef")?;
+    require_non_empty(&record.profile_ref, "contract target missing profileRef")?;
+    require_non_empty(&record.platform_ref, "contract target missing platformRef")?;
+    validate_contract_target_state(&record.state)?;
+    validate_contract_target_compatibility_state(&record.compatibility_state)?;
+    validate_optional_ref(record.host_ref.as_deref(), "contract target missing hostRef")?;
+    validate_optional_ref(
+        record.substrate_ref.as_deref(),
+        "contract target missing substrateRef",
+    )?;
+    validate_reference_list(&record.modifier_refs, "contract target missing modifierRefs")?;
+    validate_reference_list(&record.branch_refs, "contract target missing branchRefs")?;
+    validate_reference_list(
+        &record.subbranch_refs,
+        "contract target missing subbranchRefs",
+    )?;
+    require_non_empty_vec(
+        &record.capability_slot_refs,
+        "contract target requires capabilitySlotRefs",
+    )?;
+    validate_optional_ref(
+        record.adapter_pack_ref.as_deref(),
+        "contract target missing adapterPackRef",
+    )?;
+    validate_reference_list(&record.adapter_refs, "contract target missing adapterRefs")?;
+    validate_reference_list(
+        &record.negative_slot_refs,
+        "contract target missing negativeSlotRefs",
+    )?;
+    validate_reference_list(
+        &record.missing_slot_refs,
+        "contract target missing missingSlotRefs",
+    )?;
+    validate_reference_list(
+        &record.degraded_slot_refs,
+        "contract target missing degradedSlotRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_profile_refs,
+        "contract target missing proofProfileRefs",
+    )?;
+    validate_reference_list(&record.proof_refs, "contract target missing proofRefs")?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "contract target missing compatibilityRefs",
+    )?;
+    validate_reference_list(&record.evidence_refs, "contract target missing evidenceRefs")?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTRACT_TARGET_BLOCKED | FABRIC_CONTRACT_TARGET_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "contract target",
+    )?;
+    if record.state == FABRIC_CONTRACT_TARGET_READY && !record.missing_slot_refs.is_empty() {
+        return Err(anyhow!("ready contract target must not carry missingSlotRefs"));
+    }
+    if record.state == FABRIC_CONTRACT_TARGET_READY && !record.degraded_slot_refs.is_empty() {
+        return Err(anyhow!(
+            "ready contract target must not carry degradedSlotRefs"
+        ));
+    }
+    if record.compatibility_state == FABRIC_CONTRACT_TARGET_INCOMPATIBLE
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "incompatible contract target requires blockedReasons"
+        ));
+    }
+    require_non_empty(
+        &record.target_audience,
+        "contract target missing targetAudience",
+    )?;
+    validate_safe_facts(&record.safe_facts, "contract target safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "contract target")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "contract target")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("contract target missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!("contract target expiresAt must be after issuedAt"));
+    }
+    Ok(())
+}
+
 pub fn validate_runner_operation(record: &RunnerOperationRecord) -> Result<()> {
     validate_optional_kind(&record.kind, RECORD_RUNNER_OPERATION, "runner operation")?;
     require_non_empty(&record.operation_id, "runner operation missing operationId")?;
@@ -9369,6 +9522,35 @@ fn validate_unique_edge_classification_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported unique edge classification state"))
+    }
+}
+
+fn validate_contract_target_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTRACT_TARGET_SELECTED
+            | FABRIC_CONTRACT_TARGET_READY
+            | FABRIC_CONTRACT_TARGET_DEGRADED
+            | FABRIC_CONTRACT_TARGET_BLOCKED
+            | FABRIC_CONTRACT_TARGET_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported contract target state"))
+    }
+}
+
+fn validate_contract_target_compatibility_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTRACT_TARGET_COMPATIBLE
+            | FABRIC_CONTRACT_TARGET_COMPATIBILITY_DEGRADED
+            | FABRIC_CONTRACT_TARGET_INCOMPATIBLE
+            | FABRIC_CONTRACT_TARGET_COMPATIBILITY_UNKNOWN
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported contract target compatibility state"))
     }
 }
 
@@ -12196,6 +12378,67 @@ mod tests {
         let mut unsafe_contribution = contribution;
         unsafe_contribution.safe_facts = json!({ "token": "inline-secret" });
         assert!(validate_host_fabric_member_contribution(&unsafe_contribution).is_err());
+    }
+
+    #[test]
+    fn validates_contract_target_refs_slots_and_proof_posture() {
+        let issued_at = 1_700_000_050;
+        let target = ContractTarget {
+            kind: Some(RECORD_CONTRACT_TARGET.to_string()),
+            target_ref: "contract-target:desktop-dev:msa-transition".to_string(),
+            contract_ref: "app:contract:nvr@0.1.0".to_string(),
+            profile_ref: "host-profile:desktop".to_string(),
+            platform_ref: "platform:windows".to_string(),
+            state: FABRIC_CONTRACT_TARGET_DEGRADED.to_string(),
+            compatibility_state: FABRIC_CONTRACT_TARGET_COMPATIBLE.to_string(),
+            host_ref: Some("host:local-workstation".to_string()),
+            substrate_ref: Some("substrate:desktop-dev".to_string()),
+            modifier_refs: vec!["modifier:dev".to_string()],
+            branch_refs: vec!["branch:0x/msa-transition".to_string()],
+            subbranch_refs: vec!["subbranch:target-contract".to_string()],
+            capability_slot_refs: vec![
+                "slot:runtime".to_string(),
+                "slot:gateway".to_string(),
+                "slot:nvr-service".to_string(),
+                "slot:nvr-surface".to_string(),
+            ],
+            adapter_pack_ref: Some("adapter-pack:desktop-dev".to_string()),
+            adapter_refs: vec![
+                "adapter:webrtc:browser".to_string(),
+                "adapter:host-service:windows".to_string(),
+            ],
+            negative_slot_refs: vec!["slot:native-client".to_string()],
+            missing_slot_refs: vec![],
+            degraded_slot_refs: vec!["slot:operator-proof-focus".to_string()],
+            proof_profile_refs: vec![
+                "proof-profile:nvr-smoke-5s".to_string(),
+                "proof-profile:long-stream-10m".to_string(),
+            ],
+            proof_refs: vec!["proof:nvr-smoke-5s:20260522".to_string()],
+            compatibility_refs: vec!["compat:runtime-2.56".to_string()],
+            evidence_refs: vec!["evidence:target:selected".to_string()],
+            blocked_reasons: vec![],
+            target_audience: "developer".to_string(),
+            safe_facts: json!({ "profile": "desktop-dev" }),
+            issued_at,
+            expires_at: Some(issued_at + 3600),
+        };
+        validate_contract_target(&target).expect("valid contract target");
+
+        let mut bad_ready = target.clone();
+        bad_ready.state = FABRIC_CONTRACT_TARGET_READY.to_string();
+        bad_ready.missing_slot_refs = vec!["slot:gateway".to_string()];
+        assert!(validate_contract_target(&bad_ready).is_err());
+
+        let mut bad_incompatible = target.clone();
+        bad_incompatible.target_ref = "contract-target:bad:incompatible".to_string();
+        bad_incompatible.compatibility_state = FABRIC_CONTRACT_TARGET_INCOMPATIBLE.to_string();
+        assert!(validate_contract_target(&bad_incompatible).is_err());
+
+        let mut unsafe_target = target;
+        unsafe_target.target_ref = "contract-target:bad:secret".to_string();
+        unsafe_target.safe_facts = json!({ "token": "inline-secret" });
+        assert!(validate_contract_target(&unsafe_target).is_err());
     }
 
     #[test]
