@@ -44,6 +44,8 @@ pub struct BuildContract {
     pub recipe_ref: String,
     pub state: String,
     #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
     pub runner_role_refs: Vec<String>,
     #[serde(default)]
     pub runner_refs: Vec<String>,
@@ -53,6 +55,10 @@ pub struct BuildContract {
     pub secret_boundary_refs: Vec<String>,
     #[serde(default)]
     pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
     #[serde(default)]
     pub expected_artifact_refs: Vec<String>,
     #[serde(default)]
@@ -77,6 +83,8 @@ pub struct BuildRun {
     pub runner_operation_ref: String,
     pub state: String,
     #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
     pub grant_refs: Vec<String>,
     #[serde(default)]
     pub resource_grant_refs: Vec<String>,
@@ -96,6 +104,10 @@ pub struct BuildRun {
     pub compatibility_refs: Vec<String>,
     #[serde(default)]
     pub release_candidate_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
     #[serde(default)]
@@ -173,6 +185,10 @@ pub fn validate_build_contract(record: &BuildContract) -> Result<()> {
     )?;
     validate_contract_ref(&record.recipe_ref, "build contract recipeRef")?;
     validate_build_contract_state(&record.state)?;
+    validate_ref_list(
+        &record.content_index_refs,
+        "build contract contentIndexRefs",
+    )?;
     validate_ref_list(&record.runner_role_refs, "build contract runnerRoleRefs")?;
     validate_ref_list(&record.runner_refs, "build contract runnerRefs")?;
     validate_ref_list(
@@ -187,6 +203,8 @@ pub fn validate_build_contract(record: &BuildContract) -> Result<()> {
         &record.compatibility_refs,
         "build contract compatibilityRefs",
     )?;
+    validate_ref_list(&record.project_refs, "build contract projectRefs")?;
+    validate_ref_list(&record.work_item_refs, "build contract workItemRefs")?;
     validate_ref_list(
         &record.expected_artifact_refs,
         "build contract expectedArtifactRefs",
@@ -217,6 +235,7 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
     validate_contract_ref(&record.runner_ref, "build run runnerRef")?;
     validate_contract_ref(&record.runner_operation_ref, "build run runnerOperationRef")?;
     validate_build_run_state(&record.state)?;
+    validate_ref_list(&record.content_index_refs, "build run contentIndexRefs")?;
     validate_ref_list(&record.grant_refs, "build run grantRefs")?;
     validate_ref_list(&record.resource_grant_refs, "build run resourceGrantRefs")?;
     validate_ref_list(&record.secret_boundary_refs, "build run secretBoundaryRefs")?;
@@ -230,6 +249,8 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
         &record.release_candidate_refs,
         "build run releaseCandidateRefs",
     )?;
+    validate_ref_list(&record.project_refs, "build run projectRefs")?;
+    validate_ref_list(&record.work_item_refs, "build run workItemRefs")?;
     validate_ref_list(&record.evidence_refs, "build run evidenceRefs")?;
     validate_reason_list(&record.blocked_reasons, "build run blockedReasons")?;
     reject_private_fields(&record.safe_facts, "build run safeFacts")?;
@@ -507,11 +528,14 @@ mod tests {
             source_snapshot_ref: "source:snapshot:head".to_string(),
             recipe_ref: "build:recipe:browser-module".to_string(),
             state: BUILD_CONTRACT_STATE_READY.to_string(),
+            content_index_refs: vec!["content-index:source:constitute-git".to_string()],
             runner_role_refs: vec!["runner:role:build".to_string()],
             runner_refs: vec!["runner:instance:local".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
             compatibility_refs: vec!["compat:surface-app:0.1".to_string()],
+            project_refs: vec!["project:constituency".to_string()],
+            work_item_refs: vec!["work-item:source-build-lifecycle".to_string()],
             expected_artifact_refs: vec!["build:artifact:module".to_string()],
             evidence_refs: vec!["source:update:main".to_string()],
             blocked_reasons: vec![],
@@ -534,6 +558,7 @@ mod tests {
             runner_ref: "runner:instance:local".to_string(),
             runner_operation_ref: "runner:operation:build-1".to_string(),
             state: BUILD_RUN_STATE_SUCCEEDED.to_string(),
+            content_index_refs: contract.content_index_refs.clone(),
             grant_refs: vec!["authority:grant:runner-build".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
@@ -544,6 +569,8 @@ mod tests {
             storage_refs: vec!["storage:object:artifact-module".to_string()],
             compatibility_refs: vec!["compat:surface-app:0.1".to_string()],
             release_candidate_refs: vec!["release:candidate:module".to_string()],
+            project_refs: contract.project_refs.clone(),
+            work_item_refs: contract.work_item_refs.clone(),
             evidence_refs: vec!["runner:evidence:build-1".to_string()],
             blocked_reasons: vec![],
             safe_facts: serde_json::json!({ "durationMs": 42 }),
@@ -602,6 +629,7 @@ mod tests {
             runner_ref: "runner:instance:local".to_string(),
             runner_operation_ref: "runner:operation:build-bad".to_string(),
             state: BUILD_RUN_STATE_FAILED.to_string(),
+            content_index_refs: vec![],
             grant_refs: vec!["authority:grant:runner-build".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
@@ -612,6 +640,8 @@ mod tests {
             storage_refs: vec![],
             compatibility_refs: vec![],
             release_candidate_refs: vec![],
+            project_refs: vec![],
+            work_item_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
             safe_facts: serde_json::json!({ "build": "bad-run" }),

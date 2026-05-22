@@ -4291,6 +4291,22 @@ export function assertContractIntentionPosture(record) {
   requireString(record.intentionRef, "contract intention posture intentionRef");
   const state = assertEnumValue(record.state, FABRIC.CONTRACT_INTENTION_STATE, "contract intention posture state");
   const contentIndexRefs = assertOptionalReferenceList(record.contentIndexRefs, "contract intention posture contentIndexRefs");
+  const sourceGraphRefs = assertOptionalReferenceList(record.sourceGraphRefs, "contract intention posture sourceGraphRefs");
+  assertOptionalReferenceList(record.sourceSnapshotRefs, "contract intention posture sourceSnapshotRefs");
+  assertOptionalReferenceList(record.branchRefs, "contract intention posture branchRefs");
+  assertOptionalReferenceList(record.tagRefs, "contract intention posture tagRefs");
+  assertOptionalReferenceList(record.releaseRefs, "contract intention posture releaseRefs");
+  assertOptionalReferenceList(record.projectRefs, "contract intention posture projectRefs");
+  assertOptionalReferenceList(record.workItemRefs, "contract intention posture workItemRefs");
+  assertOptionalReferenceList(record.buildTargetRefs, "contract intention posture buildTargetRefs");
+  assertOptionalReferenceList(record.buildProfileRefs, "contract intention posture buildProfileRefs");
+  assertOptionalReferenceList(record.buildRefs, "contract intention posture buildRefs");
+  assertOptionalReferenceList(record.storageRefs, "contract intention posture storageRefs");
+  assertOptionalReferenceList(record.storagePinRefs, "contract intention posture storagePinRefs");
+  assertOptionalReferenceList(record.storageAvailabilityRefs, "contract intention posture storageAvailabilityRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "contract intention posture rollbackRefs");
+  assertOptionalReferenceList(record.cleanupRefs, "contract intention posture cleanupRefs");
+  assertOptionalReferenceList(record.compatibilityRefs, "contract intention posture compatibilityRefs");
   assertOptionalReferenceList(record.authoringSurfaceRefs, "contract intention posture authoringSurfaceRefs");
   assertOptionalReferenceList(record.proofGateRefs, "contract intention posture proofGateRefs");
   assertOptionalReferenceList(record.reducerRefs, "contract intention posture reducerRefs");
@@ -4308,11 +4324,20 @@ export function assertContractIntentionPosture(record) {
   if (state === FABRIC.CONTRACT_INTENTION_STATE.READY && contentIndexRefs.length === 0) {
     throw new Error("ready contract intention posture requires contentIndexRefs");
   }
+  if (state === FABRIC.CONTRACT_INTENTION_STATE.READY && sourceGraphRefs.length === 0) {
+    throw new Error("ready contract intention posture requires sourceGraphRefs");
+  }
+  if (state === FABRIC.CONTRACT_INTENTION_STATE.READY && !Array.isArray(record.proofGateRefs)) {
+    throw new Error("ready contract intention posture requires proofGateRefs");
+  }
+  if (state === FABRIC.CONTRACT_INTENTION_STATE.READY && record.proofGateRefs.length === 0) {
+    throw new Error("ready contract intention posture requires proofGateRefs");
+  }
   if (record.canonicalHashRef !== undefined) requireString(record.canonicalHashRef, "contract intention posture canonicalHashRef");
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "contract intention posture safeFacts");
   assertSurfaceManagerSensitiveBoundary(record, "contract intention posture");
   assertFabricObservedWindow(record, "contract intention posture");
-  return { ...record, state, contentIndexRefs, blockedReasons };
+  return { ...record, state, contentIndexRefs, sourceGraphRefs, blockedReasons };
 }
 
 export function assertUniqueEdgeClassification(record) {

@@ -2281,6 +2281,18 @@ pub struct ServiceManagerReleaseContractRecord {
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub build_ref: Option<String>,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub source_graph_refs: Vec<String>,
+    #[serde(default)]
+    pub source_snapshot_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
+    #[serde(default)]
+    pub build_proof_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -3331,6 +3343,38 @@ pub struct ContractIntentionPosture {
     pub canonical_hash_ref: Option<String>,
     #[serde(default)]
     pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub source_graph_refs: Vec<String>,
+    #[serde(default)]
+    pub source_snapshot_refs: Vec<String>,
+    #[serde(default)]
+    pub branch_refs: Vec<String>,
+    #[serde(default)]
+    pub tag_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
+    #[serde(default)]
+    pub build_target_refs: Vec<String>,
+    #[serde(default)]
+    pub build_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub build_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_pin_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_availability_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub cleanup_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
     #[serde(default)]
     pub authoring_surface_refs: Vec<String>,
     #[serde(default)]
@@ -5756,6 +5800,30 @@ pub fn validate_service_manager_release_contract(
     validate_optional_ref(
         record.build_ref.as_deref(),
         "service manager release contract missing buildRef",
+    )?;
+    validate_reference_list(
+        &record.content_index_refs,
+        "service manager release contract missing contentIndexRefs",
+    )?;
+    validate_reference_list(
+        &record.source_graph_refs,
+        "service manager release contract missing sourceGraphRefs",
+    )?;
+    validate_reference_list(
+        &record.source_snapshot_refs,
+        "service manager release contract missing sourceSnapshotRefs",
+    )?;
+    validate_reference_list(
+        &record.project_refs,
+        "service manager release contract missing projectRefs",
+    )?;
+    validate_reference_list(
+        &record.work_item_refs,
+        "service manager release contract missing workItemRefs",
+    )?;
+    validate_reference_list(
+        &record.build_proof_refs,
+        "service manager release contract missing buildProofRefs",
     )?;
     validate_optional_ref(
         record.release_ref.as_deref(),
@@ -8734,6 +8802,70 @@ pub fn validate_contract_intention_posture(record: &ContractIntentionPosture) ->
         "contract intention posture missing contentIndexRefs",
     )?;
     validate_reference_list(
+        &record.source_graph_refs,
+        "contract intention posture missing sourceGraphRefs",
+    )?;
+    validate_reference_list(
+        &record.source_snapshot_refs,
+        "contract intention posture missing sourceSnapshotRefs",
+    )?;
+    validate_reference_list(
+        &record.branch_refs,
+        "contract intention posture missing branchRefs",
+    )?;
+    validate_reference_list(
+        &record.tag_refs,
+        "contract intention posture missing tagRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "contract intention posture missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.project_refs,
+        "contract intention posture missing projectRefs",
+    )?;
+    validate_reference_list(
+        &record.work_item_refs,
+        "contract intention posture missing workItemRefs",
+    )?;
+    validate_reference_list(
+        &record.build_target_refs,
+        "contract intention posture missing buildTargetRefs",
+    )?;
+    validate_reference_list(
+        &record.build_profile_refs,
+        "contract intention posture missing buildProfileRefs",
+    )?;
+    validate_reference_list(
+        &record.build_refs,
+        "contract intention posture missing buildRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "contract intention posture missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_pin_refs,
+        "contract intention posture missing storagePinRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_availability_refs,
+        "contract intention posture missing storageAvailabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "contract intention posture missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.cleanup_refs,
+        "contract intention posture missing cleanupRefs",
+    )?;
+    validate_reference_list(
+        &record.compatibility_refs,
+        "contract intention posture missing compatibilityRefs",
+    )?;
+    validate_reference_list(
         &record.authoring_surface_refs,
         "contract intention posture missing authoringSurfaceRefs",
     )?;
@@ -8772,6 +8904,16 @@ pub fn validate_contract_intention_posture(record: &ContractIntentionPosture) ->
     if record.state == FABRIC_CONTRACT_INTENTION_READY && record.content_index_refs.is_empty() {
         return Err(anyhow!(
             "ready contract intention posture requires contentIndexRefs"
+        ));
+    }
+    if record.state == FABRIC_CONTRACT_INTENTION_READY && record.source_graph_refs.is_empty() {
+        return Err(anyhow!(
+            "ready contract intention posture requires sourceGraphRefs"
+        ));
+    }
+    if record.state == FABRIC_CONTRACT_INTENTION_READY && record.proof_gate_refs.is_empty() {
+        return Err(anyhow!(
+            "ready contract intention posture requires proofGateRefs"
         ));
     }
     validate_safe_facts(&record.safe_facts, "contract intention posture safeFacts")?;
@@ -12778,6 +12920,24 @@ mod tests {
             state: FABRIC_CONTRACT_INTENTION_READY.to_string(),
             canonical_hash_ref: Some("hash:contract-intention:gateway-association".to_string()),
             content_index_refs: vec![content_index.content_index_ref.clone()],
+            source_graph_refs: vec!["source:graph:gateway-association".to_string()],
+            source_snapshot_refs: vec!["source:snapshot:gateway-association:head".to_string()],
+            branch_refs: vec!["branch:main".to_string()],
+            tag_refs: vec!["tag:gateway-association@0.1.0".to_string()],
+            release_refs: vec!["release:gateway-association@0.1.0".to_string()],
+            project_refs: vec!["project:constituency".to_string()],
+            work_item_refs: vec!["work-item:msa-transition".to_string()],
+            build_target_refs: vec!["build-target:gateway-association".to_string()],
+            build_profile_refs: vec!["build-profile:rust-lib".to_string()],
+            build_refs: vec!["build:gateway-association:protocol-proof".to_string()],
+            storage_refs: content_index.storage_refs.clone(),
+            storage_pin_refs: vec!["storage:pin:gateway-association:contract".to_string()],
+            storage_availability_refs: vec![
+                "storage:availability:gateway-association:contract".to_string(),
+            ],
+            rollback_refs: vec!["rollback:gateway-association@0.1.0".to_string()],
+            cleanup_refs: vec!["cleanup:gateway-association:expired-builds".to_string()],
+            compatibility_refs: vec!["compat:protocol:0.1.0".to_string()],
             authoring_surface_refs: vec!["authoring:typed-library".to_string()],
             proof_gate_refs: vec!["proof-gate:protocol-validated".to_string()],
             reducer_refs: vec!["reducer:gateway-association".to_string()],
@@ -14326,6 +14486,12 @@ mod tests {
             app_contract_ref: Some("surface-app:gateway-ui@0.1.0".to_string()),
             version: Some("2026.05.18".to_string()),
             build_ref: Some("build:gateway:2026-05-18".to_string()),
+            content_index_refs: vec!["content-index:gateway-ui:2026-05-18".to_string()],
+            source_graph_refs: vec!["source:graph:gateway-ui".to_string()],
+            source_snapshot_refs: vec!["source:snapshot:gateway-ui:2026-05-18".to_string()],
+            project_refs: vec!["project:constituency".to_string()],
+            work_item_refs: vec!["work-item:surface-bootstrap:2026-05-18".to_string()],
+            build_proof_refs: vec!["build-proof:gateway:2026-05-18".to_string()],
             release_ref: Some("release:gateway:2026-05-18".to_string()),
             rollback_ref: Some("rollback:gateway:previous".to_string()),
             rollback_required: None,
