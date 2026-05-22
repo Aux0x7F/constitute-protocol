@@ -171,9 +171,9 @@
         "state": "available",
         "platformFitState": "compatible",
         "candidateFulfillmentRefs": [
-          "fulfillment:browser-webrtc:firefox-aux"
+          "fulfillment:browser-webrtc:authenticated-desktop-browser"
         ],
-        "selectedFulfillmentRef": "fulfillment:browser-webrtc:firefox-aux",
+        "selectedFulfillmentRef": "fulfillment:browser-webrtc:authenticated-desktop-browser",
         "adapterRefs": [
           "adapter:browser-webrtc"
         ],
@@ -203,7 +203,7 @@
       "fulfillment:service-manager:local-dev",
       "fulfillment:nvr-service:local-network",
       "fulfillment:nvr-surface:browser",
-      "fulfillment:browser-webrtc:firefox-aux"
+      "fulfillment:browser-webrtc:authenticated-desktop-browser"
     ],
     "sourceRefs": [
       "content-index:nvr-surface",
