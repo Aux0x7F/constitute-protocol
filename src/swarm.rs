@@ -2288,11 +2288,19 @@ pub struct ServiceManagerReleaseContractRecord {
     #[serde(default)]
     pub source_snapshot_refs: Vec<String>,
     #[serde(default)]
+    pub source_operation_refs: Vec<String>,
+    #[serde(default)]
     pub project_refs: Vec<String>,
     #[serde(default)]
     pub work_item_refs: Vec<String>,
     #[serde(default)]
+    pub build_run_refs: Vec<String>,
+    #[serde(default)]
+    pub build_artifact_refs: Vec<String>,
+    #[serde(default)]
     pub build_proof_refs: Vec<String>,
+    #[serde(default)]
+    pub release_candidate_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -5814,6 +5822,10 @@ pub fn validate_service_manager_release_contract(
         "service manager release contract missing sourceSnapshotRefs",
     )?;
     validate_reference_list(
+        &record.source_operation_refs,
+        "service manager release contract missing sourceOperationRefs",
+    )?;
+    validate_reference_list(
         &record.project_refs,
         "service manager release contract missing projectRefs",
     )?;
@@ -5822,8 +5834,20 @@ pub fn validate_service_manager_release_contract(
         "service manager release contract missing workItemRefs",
     )?;
     validate_reference_list(
+        &record.build_run_refs,
+        "service manager release contract missing buildRunRefs",
+    )?;
+    validate_reference_list(
+        &record.build_artifact_refs,
+        "service manager release contract missing buildArtifactRefs",
+    )?;
+    validate_reference_list(
         &record.build_proof_refs,
         "service manager release contract missing buildProofRefs",
+    )?;
+    validate_reference_list(
+        &record.release_candidate_refs,
+        "service manager release contract missing releaseCandidateRefs",
     )?;
     validate_optional_ref(
         record.release_ref.as_deref(),
@@ -14489,9 +14513,13 @@ mod tests {
             content_index_refs: vec!["content-index:gateway-ui:2026-05-18".to_string()],
             source_graph_refs: vec!["source:graph:gateway-ui".to_string()],
             source_snapshot_refs: vec!["source:snapshot:gateway-ui:2026-05-18".to_string()],
+            source_operation_refs: vec!["source:operation:gateway-ui:release".to_string()],
             project_refs: vec!["project:constituency".to_string()],
             work_item_refs: vec!["work-item:surface-bootstrap:2026-05-18".to_string()],
+            build_run_refs: vec!["build:run:gateway:2026-05-18".to_string()],
+            build_artifact_refs: vec!["build:artifact:gateway-ui:2026-05-18".to_string()],
             build_proof_refs: vec!["build-proof:gateway:2026-05-18".to_string()],
+            release_candidate_refs: vec!["release:candidate:gateway:2026-05-18".to_string()],
             release_ref: Some("release:gateway:2026-05-18".to_string()),
             rollback_ref: Some("rollback:gateway:previous".to_string()),
             rollback_required: None,
