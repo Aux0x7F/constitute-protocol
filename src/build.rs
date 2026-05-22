@@ -54,6 +54,10 @@ pub struct BuildContract {
     #[serde(default)]
     pub compatibility_refs: Vec<String>,
     #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
+    #[serde(default)]
     pub expected_artifact_refs: Vec<String>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
@@ -96,6 +100,10 @@ pub struct BuildRun {
     pub compatibility_refs: Vec<String>,
     #[serde(default)]
     pub release_candidate_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
     #[serde(default)]
@@ -187,6 +195,8 @@ pub fn validate_build_contract(record: &BuildContract) -> Result<()> {
         &record.compatibility_refs,
         "build contract compatibilityRefs",
     )?;
+    validate_ref_list(&record.project_refs, "build contract projectRefs")?;
+    validate_ref_list(&record.work_item_refs, "build contract workItemRefs")?;
     validate_ref_list(
         &record.expected_artifact_refs,
         "build contract expectedArtifactRefs",
@@ -230,6 +240,8 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
         &record.release_candidate_refs,
         "build run releaseCandidateRefs",
     )?;
+    validate_ref_list(&record.project_refs, "build run projectRefs")?;
+    validate_ref_list(&record.work_item_refs, "build run workItemRefs")?;
     validate_ref_list(&record.evidence_refs, "build run evidenceRefs")?;
     validate_reason_list(&record.blocked_reasons, "build run blockedReasons")?;
     reject_private_fields(&record.safe_facts, "build run safeFacts")?;
@@ -512,6 +524,8 @@ mod tests {
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
             compatibility_refs: vec!["compat:surface-app:0.1".to_string()],
+            project_refs: vec!["project:constituency".to_string()],
+            work_item_refs: vec!["work-item:source-build-lifecycle".to_string()],
             expected_artifact_refs: vec!["build:artifact:module".to_string()],
             evidence_refs: vec!["source:update:main".to_string()],
             blocked_reasons: vec![],
@@ -544,6 +558,8 @@ mod tests {
             storage_refs: vec!["storage:object:artifact-module".to_string()],
             compatibility_refs: vec!["compat:surface-app:0.1".to_string()],
             release_candidate_refs: vec!["release:candidate:module".to_string()],
+            project_refs: contract.project_refs.clone(),
+            work_item_refs: contract.work_item_refs.clone(),
             evidence_refs: vec!["runner:evidence:build-1".to_string()],
             blocked_reasons: vec![],
             safe_facts: serde_json::json!({ "durationMs": 42 }),
@@ -612,6 +628,8 @@ mod tests {
             storage_refs: vec![],
             compatibility_refs: vec![],
             release_candidate_refs: vec![],
+            project_refs: vec![],
+            work_item_refs: vec![],
             evidence_refs: vec![],
             blocked_reasons: vec![],
             safe_facts: serde_json::json!({ "build": "bad-run" }),
