@@ -5852,6 +5852,16 @@ export function assertServiceManagerReleaseContract(record) {
   if (record.appContractRef !== undefined) requireString(record.appContractRef, "service manager release contract appContractRef");
   if (record.version !== undefined) requireString(record.version, "service manager release contract version");
   if (record.buildRef !== undefined) requireString(record.buildRef, "service manager release contract buildRef");
+  assertOptionalReferenceList(record.contentIndexRefs, "service manager release contract contentIndexRefs");
+  assertOptionalReferenceList(record.sourceGraphRefs, "service manager release contract sourceGraphRefs");
+  assertOptionalReferenceList(record.sourceSnapshotRefs, "service manager release contract sourceSnapshotRefs");
+  assertOptionalReferenceList(record.sourceOperationRefs, "service manager release contract sourceOperationRefs");
+  assertOptionalReferenceList(record.projectRefs, "service manager release contract projectRefs");
+  assertOptionalReferenceList(record.workItemRefs, "service manager release contract workItemRefs");
+  assertOptionalReferenceList(record.buildRunRefs, "service manager release contract buildRunRefs");
+  assertOptionalReferenceList(record.buildArtifactRefs, "service manager release contract buildArtifactRefs");
+  assertOptionalReferenceList(record.buildProofRefs, "service manager release contract buildProofRefs");
+  assertOptionalReferenceList(record.releaseCandidateRefs, "service manager release contract releaseCandidateRefs");
   if (record.releaseRef !== undefined) requireString(record.releaseRef, "service manager release contract releaseRef");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "service manager release contract rollbackRef");
   assertOptionalReferenceList(record.compatibilityRefs, "service manager release contract compatibilityRefs");

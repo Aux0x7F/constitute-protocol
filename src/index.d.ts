@@ -2156,6 +2156,16 @@ export type ServiceManagerReleaseContract = {
   appContractRef?: string;
   version?: string;
   buildRef?: string;
+  contentIndexRefs?: string[];
+  sourceGraphRefs?: string[];
+  sourceSnapshotRefs?: string[];
+  sourceOperationRefs?: string[];
+  projectRefs?: string[];
+  workItemRefs?: string[];
+  buildRunRefs?: string[];
+  buildArtifactRefs?: string[];
+  buildProofRefs?: string[];
+  releaseCandidateRefs?: string[];
   releaseRef?: string;
   rollbackRef?: string;
   rollbackRequired?: boolean;

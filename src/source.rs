@@ -7,6 +7,7 @@ pub const RECORD_SOURCE_SNAPSHOT: &str = "source.snapshot";
 pub const RECORD_SOURCE_REF_UPDATE: &str = "source.ref.update";
 pub const RECORD_SOURCE_WRITER_GRANT: &str = "source.writer.grant";
 pub const RECORD_SOURCE_IMPORT_PROOF: &str = "source.import.proof";
+pub const RECORD_SOURCE_PROJECT_OPERATION: &str = "source.project.operation";
 
 pub const SOURCE_GRAPH_STATE_READY: &str = "ready";
 pub const SOURCE_GRAPH_STATE_DEGRADED: &str = "degraded";
@@ -23,6 +24,17 @@ pub const SOURCE_UPDATE_STATE_REJECTED: &str = "rejected";
 pub const SOURCE_UPDATE_STATE_BLOCKED: &str = "blocked";
 pub const SOURCE_UPDATE_STATE_SUPERSEDED: &str = "superseded";
 
+pub const SOURCE_PROJECT_OPERATION_STATE_REQUESTED: &str = "requested";
+pub const SOURCE_PROJECT_OPERATION_STATE_READY: &str = "ready";
+pub const SOURCE_PROJECT_OPERATION_STATE_APPLIED: &str = "applied";
+pub const SOURCE_PROJECT_OPERATION_STATE_BLOCKED: &str = "blocked";
+pub const SOURCE_PROJECT_OPERATION_STATE_REJECTED: &str = "rejected";
+pub const SOURCE_PROJECT_OPERATION_STATE_SUPERSEDED: &str = "superseded";
+
+pub const SOURCE_PROJECT_COMPATIBILITY_SUPPORTED: &str = "supported";
+pub const SOURCE_PROJECT_COMPATIBILITY_DEGRADED: &str = "degraded";
+pub const SOURCE_PROJECT_COMPATIBILITY_UNSUPPORTED: &str = "unsupported";
+
 pub const SOURCE_IMPORT_STATE_PENDING: &str = "pending";
 pub const SOURCE_IMPORT_STATE_IMPORTED: &str = "imported";
 pub const SOURCE_IMPORT_STATE_BLOCKED: &str = "blocked";
@@ -35,6 +47,9 @@ pub const SOURCE_OPERATION_STATUS: &str = "status";
 pub const SOURCE_OPERATION_REF_UPDATE: &str = "refUpdate";
 pub const SOURCE_OPERATION_BRANCH: &str = "branch";
 pub const SOURCE_OPERATION_TAG: &str = "tag";
+pub const SOURCE_OPERATION_RELEASE: &str = "release";
+pub const SOURCE_OPERATION_PROJECT_LINK: &str = "projectLink";
+pub const SOURCE_OPERATION_EXPORT: &str = "export";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -167,6 +182,59 @@ pub struct SourceImportProof {
     #[serde(default)]
     pub safe_facts: Value,
     pub observed_at: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceProjectOperation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub operation_ref: String,
+    pub source_graph_ref: String,
+    pub subject_ref: String,
+    pub actor_ref: String,
+    pub operation: String,
+    pub state: String,
+    pub compatibility_state: String,
+    #[serde(default)]
+    pub scope_refs: Vec<String>,
+    #[serde(default)]
+    pub source_snapshot_refs: Vec<String>,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub branch_refs: Vec<String>,
+    #[serde(default)]
+    pub tag_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
+    #[serde(default)]
+    pub build_target_refs: Vec<String>,
+    #[serde(default)]
+    pub build_profile_refs: Vec<String>,
+    #[serde(default)]
+    pub build_proof_refs: Vec<String>,
+    #[serde(default)]
+    pub compatibility_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
 }
 
 pub fn validate_source_version_graph(record: &SourceVersionGraph) -> Result<()> {
@@ -402,6 +470,122 @@ pub fn validate_source_import_proof(record: &SourceImportProof) -> Result<()> {
     Ok(())
 }
 
+pub fn validate_source_project_operation(record: &SourceProjectOperation) -> Result<()> {
+    validate_optional_kind(
+        record.kind.as_deref(),
+        RECORD_SOURCE_PROJECT_OPERATION,
+        "source project operation",
+    )?;
+    reject_private_fields(&serde_json::to_value(record)?, "source project operation")?;
+    reject_private_fields(&record.safe_facts, "source project operation safeFacts")?;
+    validate_contract_ref(
+        &record.operation_ref,
+        "source project operation operationRef",
+    )?;
+    validate_contract_ref(
+        &record.source_graph_ref,
+        "source project operation sourceGraphRef",
+    )?;
+    validate_contract_ref(&record.subject_ref, "source project operation subjectRef")?;
+    validate_contract_ref(&record.actor_ref, "source project operation actorRef")?;
+    validate_source_operation(&record.operation)?;
+    validate_source_project_operation_state(&record.state)?;
+    validate_source_project_compatibility_state(&record.compatibility_state)?;
+    validate_ref_list(&record.scope_refs, "source project operation scopeRefs")?;
+    validate_ref_list(
+        &record.source_snapshot_refs,
+        "source project operation sourceSnapshotRefs",
+    )?;
+    validate_ref_list(
+        &record.content_index_refs,
+        "source project operation contentIndexRefs",
+    )?;
+    validate_ref_list(&record.storage_refs, "source project operation storageRefs")?;
+    validate_ref_list(&record.branch_refs, "source project operation branchRefs")?;
+    validate_ref_list(&record.tag_refs, "source project operation tagRefs")?;
+    validate_ref_list(&record.release_refs, "source project operation releaseRefs")?;
+    validate_ref_list(&record.project_refs, "source project operation projectRefs")?;
+    validate_ref_list(
+        &record.work_item_refs,
+        "source project operation workItemRefs",
+    )?;
+    validate_ref_list(
+        &record.build_target_refs,
+        "source project operation buildTargetRefs",
+    )?;
+    validate_ref_list(
+        &record.build_profile_refs,
+        "source project operation buildProfileRefs",
+    )?;
+    validate_ref_list(
+        &record.build_proof_refs,
+        "source project operation buildProofRefs",
+    )?;
+    validate_ref_list(
+        &record.compatibility_refs,
+        "source project operation compatibilityRefs",
+    )?;
+    validate_ref_list(&record.proof_refs, "source project operation proofRefs")?;
+    validate_ref_list(
+        &record.evidence_refs,
+        "source project operation evidenceRefs",
+    )?;
+    validate_ref_list(
+        &record.rollback_refs,
+        "source project operation rollbackRefs",
+    )?;
+    validate_reason_list(
+        &record.blocked_reasons,
+        "source project operation blockedReasons",
+    )?;
+    validate_time_bounds(
+        record.issued_at,
+        record.expires_at,
+        "source project operation",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        SOURCE_PROJECT_OPERATION_STATE_BLOCKED | SOURCE_PROJECT_OPERATION_STATE_REJECTED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked or rejected source project operation needs blockedReasons"
+        ));
+    }
+    if record.compatibility_state == SOURCE_PROJECT_COMPATIBILITY_UNSUPPORTED
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "unsupported source project operation needs blockedReasons"
+        ));
+    }
+    if record.state == SOURCE_PROJECT_OPERATION_STATE_APPLIED
+        && record.proof_refs.is_empty()
+        && record.evidence_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "applied source project operation needs proofRefs or evidenceRefs"
+        ));
+    }
+    if record.operation == SOURCE_OPERATION_RELEASE
+        && record.release_refs.is_empty()
+        && record.state != SOURCE_PROJECT_OPERATION_STATE_BLOCKED
+    {
+        return Err(anyhow!(
+            "release source project operation needs releaseRefs unless blocked"
+        ));
+    }
+    if record.operation == SOURCE_OPERATION_PROJECT_LINK
+        && record.project_refs.is_empty()
+        && record.work_item_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "project link source project operation needs projectRefs or workItemRefs"
+        ));
+    }
+    Ok(())
+}
+
 pub fn source_ref(kind: &str, id: &str) -> String {
     format!("source:{kind}:{id}")
 }
@@ -416,20 +600,29 @@ fn validate_source_policy(policy: &SourceGraphPolicy) -> Result<()> {
 
 fn validate_source_operations(values: &[String]) -> Result<()> {
     for value in values {
-        if !matches!(
-            value.as_str(),
-            SOURCE_OPERATION_IMPORT
-                | SOURCE_OPERATION_FETCH
-                | SOURCE_OPERATION_PUSH
-                | SOURCE_OPERATION_STATUS
-                | SOURCE_OPERATION_REF_UPDATE
-                | SOURCE_OPERATION_BRANCH
-                | SOURCE_OPERATION_TAG
-        ) {
-            return Err(anyhow!("unsupported source operation"));
-        }
+        validate_source_operation(value)?;
     }
     Ok(())
+}
+
+fn validate_source_operation(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        SOURCE_OPERATION_IMPORT
+            | SOURCE_OPERATION_FETCH
+            | SOURCE_OPERATION_PUSH
+            | SOURCE_OPERATION_STATUS
+            | SOURCE_OPERATION_REF_UPDATE
+            | SOURCE_OPERATION_BRANCH
+            | SOURCE_OPERATION_TAG
+            | SOURCE_OPERATION_RELEASE
+            | SOURCE_OPERATION_PROJECT_LINK
+            | SOURCE_OPERATION_EXPORT
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported source operation"))
+    }
 }
 
 fn validate_source_graph_state(value: &str) -> Result<()> {
@@ -467,6 +660,37 @@ fn validate_source_update_state(value: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported source ref update state"))
+    }
+}
+
+fn validate_source_project_operation_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        SOURCE_PROJECT_OPERATION_STATE_REQUESTED
+            | SOURCE_PROJECT_OPERATION_STATE_READY
+            | SOURCE_PROJECT_OPERATION_STATE_APPLIED
+            | SOURCE_PROJECT_OPERATION_STATE_BLOCKED
+            | SOURCE_PROJECT_OPERATION_STATE_REJECTED
+            | SOURCE_PROJECT_OPERATION_STATE_SUPERSEDED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported source project operation state"))
+    }
+}
+
+fn validate_source_project_compatibility_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        SOURCE_PROJECT_COMPATIBILITY_SUPPORTED
+            | SOURCE_PROJECT_COMPATIBILITY_DEGRADED
+            | SOURCE_PROJECT_COMPATIBILITY_UNSUPPORTED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported source project operation compatibility state"
+        ))
     }
 }
 
@@ -766,5 +990,63 @@ mod tests {
             valid_until: Some(20),
         };
         validate_source_ref_update(&update).expect("blocked update can carry missing base posture");
+    }
+
+    #[test]
+    fn validates_source_project_operation_posture() {
+        let operation = SourceProjectOperation {
+            kind: Some(RECORD_SOURCE_PROJECT_OPERATION.to_string()),
+            operation_ref: "source:operation:release-main".to_string(),
+            source_graph_ref: "source:graph:constitute-git".to_string(),
+            subject_ref: "source:ref:main".to_string(),
+            actor_ref: "identity:device:agent".to_string(),
+            operation: SOURCE_OPERATION_RELEASE.to_string(),
+            state: SOURCE_PROJECT_OPERATION_STATE_APPLIED.to_string(),
+            compatibility_state: SOURCE_PROJECT_COMPATIBILITY_SUPPORTED.to_string(),
+            scope_refs: vec!["source:ref:main".to_string()],
+            source_snapshot_refs: vec!["source:snapshot:head".to_string()],
+            content_index_refs: vec!["content-index:source:constitute-git".to_string()],
+            storage_refs: vec!["storage:object:pack-1".to_string()],
+            branch_refs: vec!["source:ref:main".to_string()],
+            tag_refs: vec!["source:tag:v0.1.0".to_string()],
+            release_refs: vec!["release:source:v0.1.0".to_string()],
+            project_refs: vec!["project:constituency".to_string()],
+            work_item_refs: vec!["work-item:git-project-hardening".to_string()],
+            build_target_refs: vec!["build:target:web".to_string()],
+            build_profile_refs: vec!["build:profile:dev".to_string()],
+            build_proof_refs: vec!["build:proof:surface".to_string()],
+            compatibility_refs: vec!["compat:git:refs-v1".to_string()],
+            proof_refs: vec!["proof:source-release:main".to_string()],
+            evidence_refs: vec!["evidence:source-release:main".to_string()],
+            rollback_refs: vec!["rollback:source:previous".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: serde_json::json!({
+                "operation": "release",
+                "branch": "main",
+                "compatibility": "supported"
+            }),
+            issued_at: 3,
+            expires_at: Some(20),
+        };
+        validate_source_project_operation(&operation).expect("valid source project operation");
+
+        let mut unsupported = operation.clone();
+        unsupported.operation_ref = "source:operation:git-pack-export".to_string();
+        unsupported.operation = SOURCE_OPERATION_EXPORT.to_string();
+        unsupported.state = SOURCE_PROJECT_OPERATION_STATE_BLOCKED.to_string();
+        unsupported.compatibility_state = SOURCE_PROJECT_COMPATIBILITY_UNSUPPORTED.to_string();
+        unsupported.release_refs.clear();
+        unsupported.blocked_reasons = vec!["source.compatibility.gitPackUnsupported".to_string()];
+        validate_source_project_operation(&unsupported)
+            .expect("unsupported compatibility can be explicit posture");
+
+        let mut missing_evidence = operation.clone();
+        missing_evidence.proof_refs.clear();
+        missing_evidence.evidence_refs.clear();
+        assert!(validate_source_project_operation(&missing_evidence).is_err());
+
+        let mut unsafe_facts = operation;
+        unsafe_facts.safe_facts = serde_json::json!({ "raw": "secret source bytes" });
+        assert!(validate_source_project_operation(&unsafe_facts).is_err());
     }
 }
