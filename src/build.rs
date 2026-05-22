@@ -44,6 +44,8 @@ pub struct BuildContract {
     pub recipe_ref: String,
     pub state: String,
     #[serde(default)]
+    pub source_operation_refs: Vec<String>,
+    #[serde(default)]
     pub content_index_refs: Vec<String>,
     #[serde(default)]
     pub runner_role_refs: Vec<String>,
@@ -82,6 +84,8 @@ pub struct BuildRun {
     pub runner_ref: String,
     pub runner_operation_ref: String,
     pub state: String,
+    #[serde(default)]
+    pub source_operation_refs: Vec<String>,
     #[serde(default)]
     pub content_index_refs: Vec<String>,
     #[serde(default)]
@@ -152,6 +156,8 @@ pub struct BuildProof {
     pub source_snapshot_ref: String,
     pub runner_ref: String,
     #[serde(default)]
+    pub source_operation_refs: Vec<String>,
+    #[serde(default)]
     pub artifact_refs: Vec<String>,
     #[serde(default)]
     pub log_refs: Vec<String>,
@@ -185,6 +191,10 @@ pub fn validate_build_contract(record: &BuildContract) -> Result<()> {
     )?;
     validate_contract_ref(&record.recipe_ref, "build contract recipeRef")?;
     validate_build_contract_state(&record.state)?;
+    validate_ref_list(
+        &record.source_operation_refs,
+        "build contract sourceOperationRefs",
+    )?;
     validate_ref_list(
         &record.content_index_refs,
         "build contract contentIndexRefs",
@@ -235,6 +245,10 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
     validate_contract_ref(&record.runner_ref, "build run runnerRef")?;
     validate_contract_ref(&record.runner_operation_ref, "build run runnerOperationRef")?;
     validate_build_run_state(&record.state)?;
+    validate_ref_list(
+        &record.source_operation_refs,
+        "build run sourceOperationRefs",
+    )?;
     validate_ref_list(&record.content_index_refs, "build run contentIndexRefs")?;
     validate_ref_list(&record.grant_refs, "build run grantRefs")?;
     validate_ref_list(&record.resource_grant_refs, "build run resourceGrantRefs")?;
@@ -331,6 +345,10 @@ pub fn validate_build_proof(record: &BuildProof) -> Result<()> {
     validate_build_proof_state(&record.state)?;
     validate_contract_ref(&record.source_snapshot_ref, "build proof sourceSnapshotRef")?;
     validate_contract_ref(&record.runner_ref, "build proof runnerRef")?;
+    validate_ref_list(
+        &record.source_operation_refs,
+        "build proof sourceOperationRefs",
+    )?;
     validate_ref_list(&record.artifact_refs, "build proof artifactRefs")?;
     validate_ref_list(&record.log_refs, "build proof logRefs")?;
     validate_ref_list(&record.metric_refs, "build proof metricRefs")?;
@@ -528,6 +546,7 @@ mod tests {
             source_snapshot_ref: "source:snapshot:head".to_string(),
             recipe_ref: "build:recipe:browser-module".to_string(),
             state: BUILD_CONTRACT_STATE_READY.to_string(),
+            source_operation_refs: vec!["source:operation:ref-update".to_string()],
             content_index_refs: vec!["content-index:source:constitute-git".to_string()],
             runner_role_refs: vec!["runner:role:build".to_string()],
             runner_refs: vec!["runner:instance:local".to_string()],
@@ -558,6 +577,7 @@ mod tests {
             runner_ref: "runner:instance:local".to_string(),
             runner_operation_ref: "runner:operation:build-1".to_string(),
             state: BUILD_RUN_STATE_SUCCEEDED.to_string(),
+            source_operation_refs: contract.source_operation_refs.clone(),
             content_index_refs: contract.content_index_refs.clone(),
             grant_refs: vec!["authority:grant:runner-build".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
@@ -603,6 +623,7 @@ mod tests {
             state: BUILD_PROOF_STATE_PROVED.to_string(),
             source_snapshot_ref: contract.source_snapshot_ref,
             runner_ref: "runner:instance:local".to_string(),
+            source_operation_refs: run.source_operation_refs.clone(),
             artifact_refs: vec![artifact.artifact_ref],
             log_refs: vec!["storage:object:build-log".to_string()],
             metric_refs: vec!["metrics:build:1".to_string()],
@@ -629,6 +650,7 @@ mod tests {
             runner_ref: "runner:instance:local".to_string(),
             runner_operation_ref: "runner:operation:build-bad".to_string(),
             state: BUILD_RUN_STATE_FAILED.to_string(),
+            source_operation_refs: vec![],
             content_index_refs: vec![],
             grant_refs: vec!["authority:grant:runner-build".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
