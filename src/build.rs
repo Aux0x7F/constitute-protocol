@@ -44,6 +44,8 @@ pub struct BuildContract {
     pub recipe_ref: String,
     pub state: String,
     #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
     pub runner_role_refs: Vec<String>,
     #[serde(default)]
     pub runner_refs: Vec<String>,
@@ -80,6 +82,8 @@ pub struct BuildRun {
     pub runner_ref: String,
     pub runner_operation_ref: String,
     pub state: String,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
     #[serde(default)]
     pub grant_refs: Vec<String>,
     #[serde(default)]
@@ -181,6 +185,10 @@ pub fn validate_build_contract(record: &BuildContract) -> Result<()> {
     )?;
     validate_contract_ref(&record.recipe_ref, "build contract recipeRef")?;
     validate_build_contract_state(&record.state)?;
+    validate_ref_list(
+        &record.content_index_refs,
+        "build contract contentIndexRefs",
+    )?;
     validate_ref_list(&record.runner_role_refs, "build contract runnerRoleRefs")?;
     validate_ref_list(&record.runner_refs, "build contract runnerRefs")?;
     validate_ref_list(
@@ -227,6 +235,7 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
     validate_contract_ref(&record.runner_ref, "build run runnerRef")?;
     validate_contract_ref(&record.runner_operation_ref, "build run runnerOperationRef")?;
     validate_build_run_state(&record.state)?;
+    validate_ref_list(&record.content_index_refs, "build run contentIndexRefs")?;
     validate_ref_list(&record.grant_refs, "build run grantRefs")?;
     validate_ref_list(&record.resource_grant_refs, "build run resourceGrantRefs")?;
     validate_ref_list(&record.secret_boundary_refs, "build run secretBoundaryRefs")?;
@@ -519,6 +528,7 @@ mod tests {
             source_snapshot_ref: "source:snapshot:head".to_string(),
             recipe_ref: "build:recipe:browser-module".to_string(),
             state: BUILD_CONTRACT_STATE_READY.to_string(),
+            content_index_refs: vec!["content-index:source:constitute-git".to_string()],
             runner_role_refs: vec!["runner:role:build".to_string()],
             runner_refs: vec!["runner:instance:local".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
@@ -548,6 +558,7 @@ mod tests {
             runner_ref: "runner:instance:local".to_string(),
             runner_operation_ref: "runner:operation:build-1".to_string(),
             state: BUILD_RUN_STATE_SUCCEEDED.to_string(),
+            content_index_refs: contract.content_index_refs.clone(),
             grant_refs: vec!["authority:grant:runner-build".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
@@ -618,6 +629,7 @@ mod tests {
             runner_ref: "runner:instance:local".to_string(),
             runner_operation_ref: "runner:operation:build-bad".to_string(),
             state: BUILD_RUN_STATE_FAILED.to_string(),
+            content_index_refs: vec![],
             grant_refs: vec!["authority:grant:runner-build".to_string()],
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
