@@ -1,0 +1,243 @@
+{
+  "target": {
+    "kind": "contract.target",
+    "targetRef": "contract-target:desktop-windows-dev:msa-transition",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "profileRef": "host-profile:desktop",
+    "platformRef": "platform:windows.desktop",
+    "state": "ready",
+    "compatibilityState": "compatible",
+    "hostRef": "host:local-workstation",
+    "substrateRef": "substrate:desktop-dev",
+    "modifierRefs": [
+      "modifier:dev"
+    ],
+    "branchRefs": [
+      "branch:0x/msa-transition"
+    ],
+    "subbranchRefs": [
+      "subbranch:target-contract"
+    ],
+    "capabilitySlotRefs": [
+      "slot:gateway",
+      "slot:runtime",
+      "slot:service-manager",
+      "slot:nvr-service",
+      "slot:nvr-surface",
+      "slot:browser-webrtc",
+      "slot:native-client"
+    ],
+    "adapterPackRef": "adapter-pack:desktop-dev",
+    "adapterRefs": [
+      "adapter:runtime-surface-client",
+      "adapter:browser-webrtc",
+      "adapter:host-service:windows"
+    ],
+    "negativeSlotRefs": [
+      "slot:native-client"
+    ],
+    "proofProfileRefs": [
+      "proof-profile:nvr-smoke-5s",
+      "proof-profile:long-stream-10m"
+    ],
+    "proofRefs": [
+      "proof:nvr-smoke-5s:20260522T073913Z",
+      "proof:long-stream-10m:20260522T074937Z"
+    ],
+    "compatibilityRefs": [
+      "compat:runtime-2.56",
+      "compat:branch-family:msa-transition"
+    ],
+    "evidenceRefs": [
+      "evidence:desktop-target:local-workstation",
+      "evidence:media:nonzero-video-dimensions",
+      "evidence:media:transport-usable"
+    ],
+    "targetAudience": "developer",
+    "safeFacts": {
+      "profile": "desktop-dev",
+      "platform": "windows.desktop",
+      "nativeClient": "notRequired"
+    },
+    "issuedAt": 1778760000,
+    "expiresAt": 1778846400
+  },
+  "registry": {
+    "kind": "contract.target.registry.posture",
+    "registryRef": "contract-target-registry:desktop-windows-dev:msa-transition",
+    "targetRef": "contract-target:desktop-windows-dev:msa-transition",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "state": "ready",
+    "slotPostures": [
+      {
+        "slotRef": "slot:gateway",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:gateway:local-dev"
+        ],
+        "selectedFulfillmentRef": "fulfillment:gateway:local-dev",
+        "platformRefs": [
+          "platform:windows.desktop"
+        ],
+        "adapterRefs": [
+          "adapter:host-service:windows"
+        ],
+        "proofRefs": [
+          "proof:nvr-smoke-5s:20260522T073913Z"
+        ],
+        "evidenceRefs": [
+          "evidence:gateway:local-dev:ready"
+        ]
+      },
+      {
+        "slotRef": "slot:runtime",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:runtime:browser"
+        ],
+        "selectedFulfillmentRef": "fulfillment:runtime:browser",
+        "sourceRefs": [
+          "content-index:runtime-surface-client"
+        ],
+        "platformRefs": [
+          "platform:browser"
+        ],
+        "adapterRefs": [
+          "adapter:runtime-surface-client"
+        ],
+        "proofRefs": [
+          "proof:nvr-smoke-5s:20260522T073913Z"
+        ],
+        "evidenceRefs": [
+          "evidence:runtime:attached"
+        ]
+      },
+      {
+        "slotRef": "slot:service-manager",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:service-manager:local-dev"
+        ],
+        "selectedFulfillmentRef": "fulfillment:service-manager:local-dev",
+        "platformRefs": [
+          "platform:windows.desktop"
+        ],
+        "adapterRefs": [
+          "adapter:host-service:windows"
+        ],
+        "evidenceRefs": [
+          "evidence:service-manager:target-reducer"
+        ]
+      },
+      {
+        "slotRef": "slot:nvr-service",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:nvr-service:local-network"
+        ],
+        "selectedFulfillmentRef": "fulfillment:nvr-service:local-network",
+        "proofRefs": [
+          "proof:long-stream-10m:20260522T074937Z"
+        ],
+        "evidenceRefs": [
+          "evidence:media:answer-materialized",
+          "evidence:media:transport-usable"
+        ]
+      },
+      {
+        "slotRef": "slot:nvr-surface",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:nvr-surface:browser"
+        ],
+        "selectedFulfillmentRef": "fulfillment:nvr-surface:browser",
+        "sourceRefs": [
+          "content-index:nvr-surface"
+        ],
+        "proofRefs": [
+          "proof:long-stream-10m:20260522T074937Z"
+        ],
+        "evidenceRefs": [
+          "evidence:media:nonzero-video-dimensions"
+        ]
+      },
+      {
+        "slotRef": "slot:browser-webrtc",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:browser-webrtc:firefox-aux"
+        ],
+        "selectedFulfillmentRef": "fulfillment:browser-webrtc:firefox-aux",
+        "adapterRefs": [
+          "adapter:browser-webrtc"
+        ],
+        "proofRefs": [
+          "proof:long-stream-10m:20260522T074937Z"
+        ],
+        "evidenceRefs": [
+          "evidence:media:track-live",
+          "evidence:media:visible-frame"
+        ]
+      },
+      {
+        "slotRef": "slot:native-client",
+        "state": "notRequired",
+        "platformFitState": "unknown",
+        "evidenceRefs": [
+          "evidence:target:native-client:not-required"
+        ],
+        "safeFacts": {
+          "reason": "browser target"
+        }
+      }
+    ],
+    "candidateFulfillmentRefs": [
+      "fulfillment:gateway:local-dev",
+      "fulfillment:runtime:browser",
+      "fulfillment:service-manager:local-dev",
+      "fulfillment:nvr-service:local-network",
+      "fulfillment:nvr-surface:browser",
+      "fulfillment:browser-webrtc:firefox-aux"
+    ],
+    "sourceRefs": [
+      "content-index:nvr-surface",
+      "content-index:runtime-surface-client"
+    ],
+    "buildRefs": [
+      "build:local:constitute-nvr-ui",
+      "build:local:constitute-account"
+    ],
+    "adapterRefs": [
+      "adapter:runtime-surface-client",
+      "adapter:browser-webrtc",
+      "adapter:host-service:windows"
+    ],
+    "proofRequirementRefs": [
+      "proof-requirement:surface-load",
+      "proof-requirement:media-nonzero-dimensions",
+      "proof-requirement:long-stream-10m"
+    ],
+    "proofRefs": [
+      "proof:nvr-smoke-5s:20260522T073913Z",
+      "proof:long-stream-10m:20260522T074937Z"
+    ],
+    "evidenceRefs": [
+      "evidence:desktop-target:local-workstation",
+      "evidence:media:transport-usable",
+      "evidence:media:nonzero-video-dimensions"
+    ],
+    "safeFacts": {
+      "profile": "desktop-dev",
+      "platform": "windows.desktop",
+      "nativeClient": "notRequired"
+    },
+    "observedAt": 1778760000,
+    "expiresAt": 1778846400
+  }
+}

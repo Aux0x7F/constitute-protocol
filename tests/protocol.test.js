@@ -2173,6 +2173,22 @@ test("contract target registry posture maps slots to candidates and blockers", (
   }), /unsafe safe fact key|forbidden protocol field/);
 });
 
+test("local workstation contract target vector validates desktop dev proof posture", () => {
+  const vector = JSON.parse(readFileSync(new URL("../vectors/contract-target-local-workstation-v1.json", import.meta.url), "utf8"));
+  const target = assertContractTarget(vector.target);
+  const registry = assertContractTargetRegistryPosture(vector.registry);
+
+  assert.equal(target.platformRef, "platform:windows.desktop");
+  assert.deepEqual(target.branchRefs, ["branch:0x/msa-transition"]);
+  assert.deepEqual(target.negativeSlotRefs, ["slot:native-client"]);
+  assert.equal(registry.state, FABRIC.CONTRACT_TARGET_REGISTRY_STATE.READY);
+  assert.equal(
+    registry.slotPostures.find((slot) => slot.slotRef === "slot:native-client")?.state,
+    FABRIC.CONTRACT_TARGET_SLOT_STATE.NOT_REQUIRED,
+  );
+  assert.ok(registry.proofRefs.includes("proof:long-stream-10m:20260522T074937Z"));
+});
+
 test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {
   const observedAt = 1700000020;
   const report = assertAppRunnerFulfillmentReport({

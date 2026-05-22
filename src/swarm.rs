@@ -12820,6 +12820,36 @@ mod tests {
     }
 
     #[test]
+    fn validates_local_workstation_contract_target_vector() {
+        let vector: Value = serde_json::from_str(include_str!(
+            "../vectors/contract-target-local-workstation-v1.json"
+        ))
+        .expect("local workstation target vector");
+        let target: ContractTarget =
+            serde_json::from_value(vector["target"].clone()).expect("target record");
+        let registry: ContractTargetRegistryPosture =
+            serde_json::from_value(vector["registry"].clone()).expect("registry record");
+
+        validate_contract_target(&target).expect("target validates");
+        validate_contract_target_registry_posture(&registry).expect("registry validates");
+        assert_eq!(target.platform_ref, "platform:windows.desktop");
+        assert_eq!(
+            target.negative_slot_refs,
+            vec!["slot:native-client".to_string()]
+        );
+        assert_eq!(registry.state, FABRIC_CONTRACT_TARGET_REGISTRY_READY);
+        assert!(registry.slot_postures.iter().any(|slot| {
+            slot.slot_ref == "slot:native-client"
+                && slot.state == FABRIC_CONTRACT_TARGET_SLOT_NOT_REQUIRED
+        }));
+        assert!(
+            registry
+                .proof_refs
+                .contains(&"proof:long-stream-10m:20260522T074937Z".to_string())
+        );
+    }
+
+    #[test]
     fn validates_participant_self_capability_resource_and_retention_posture() {
         let participant_ref = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
         let service_member_ref = pubkey_from_sk_hex(GATEWAY_SK).expect("gateway pk");
