@@ -2189,6 +2189,28 @@ test("local workstation contract target vector validates desktop dev proof postu
   assert.ok(registry.proofRefs.includes("proof:long-stream-10m:20260522T074937Z"));
 });
 
+test("lab linux contract target vector marks host slots apart from protected client proof", () => {
+  const vector = JSON.parse(readFileSync(new URL("../vectors/contract-target-lab-linux-v1.json", import.meta.url), "utf8"));
+  const target = assertContractTarget(vector.target);
+  const registry = assertContractTargetRegistryPosture(vector.registry);
+
+  assert.equal(target.platformRef, "platform:linux.lab");
+  assert.equal(target.state, FABRIC.CONTRACT_TARGET_STATE.SELECTED);
+  assert.equal(target.compatibilityState, FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.DEGRADED);
+  assert.ok(target.missingSlotRefs.includes("slot:runtime-client"));
+  assert.ok(target.missingSlotRefs.includes("slot:lab-proof-automation"));
+  assert.equal(registry.state, FABRIC.CONTRACT_TARGET_REGISTRY_STATE.DEGRADED);
+  assert.equal(
+    registry.slotPostures.find((slot) => slot.slotRef === "slot:gateway")?.state,
+    FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+  );
+  assert.equal(
+    registry.slotPostures.find((slot) => slot.slotRef === "slot:lab-proof-automation")?.state,
+    FABRIC.CONTRACT_TARGET_SLOT_STATE.MISSING,
+  );
+  assert.ok(registry.proofRequirementRefs.includes("proof-requirement:lab-live"));
+});
+
 test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {
   const observedAt = 1700000020;
   const report = assertAppRunnerFulfillmentReport({
