@@ -431,6 +431,34 @@ pub fn validate_storage_backend_snapshot(snapshot: &StorageBackendSnapshot) -> R
     Ok(())
 }
 
+pub fn validate_storage_graph_edge(edge: &StorageGraphEdge) -> Result<()> {
+    require_non_empty(&edge.edge_id, "storage graph edge missing edgeId")?;
+    require_non_empty(&edge.container_id, "storage graph edge missing containerId")?;
+    require_non_empty(&edge.from_ref, "storage graph edge missing fromRef")?;
+    require_non_empty(&edge.relation, "storage graph edge missing relation")?;
+    require_non_empty(&edge.to_ref, "storage graph edge missing toRef")?;
+    if edge.created_at == 0 {
+        return Err(anyhow!("storage graph edge missing createdAt"));
+    }
+    let refs = [
+        edge.edge_id.as_str(),
+        edge.container_id.as_str(),
+        edge.from_ref.as_str(),
+        edge.to_ref.as_str(),
+    ];
+    if refs.iter().any(|value| {
+        value.chars().any(char::is_whitespace)
+            || value.contains('\\')
+            || value.starts_with('/')
+            || value.starts_with("file:")
+            || value.starts_with("http:")
+            || value.starts_with("https:")
+    }) {
+        return Err(anyhow!("storage graph edge refs must be virtual refs"));
+    }
+    Ok(())
+}
+
 pub fn validate_storage_filesystem_view(view: &StorageFilesystemView) -> Result<()> {
     validate_optional_kind(
         view.kind.as_deref(),
@@ -526,6 +554,9 @@ pub fn validate_storage_index_shard(shard: &StorageIndexShard) -> Result<()> {
     }
     if shard.chunks.is_empty() {
         return Err(anyhow!("storage index shard has no chunks"));
+    }
+    for edge in &shard.graph_edges {
+        validate_storage_graph_edge(edge)?;
     }
     Ok(())
 }
@@ -698,6 +729,50 @@ mod tests {
         bad_posture.state = STORAGE_BACKEND_STATE_READY.to_string();
         bad_posture.missing_chunk_count = 1;
         assert!(validate_storage_backend_posture(&bad_posture).is_err());
+    }
+
+    #[test]
+    fn validates_storage_graph_edge_and_index_shard_refs() {
+        let bytes = b"encrypted source graph";
+        let hash = storage_ciphertext_hash(bytes);
+        let chunk = StorageChunkRef {
+            chunk_id: storage_chunk_id(&hash),
+            hash: hash.clone(),
+            hash_alg: STORAGE_CHUNK_HASH_ALG.to_string(),
+            size: bytes.len() as u64,
+        };
+        let edge = StorageGraphEdge {
+            edge_id: "storage-graph-edge:source:root:module".to_string(),
+            container_id: "container-source".to_string(),
+            from_ref: "source:graph:root".to_string(),
+            relation: "contains".to_string(),
+            to_ref: "source:module:nvr-preview".to_string(),
+            detail_ref: None,
+            created_at: 1_700_000_000,
+        };
+        validate_storage_graph_edge(&edge).expect("valid storage graph edge");
+
+        let shard = StorageIndexShard {
+            shard_id: "storage-index-shard:source:1".to_string(),
+            container_id: "container-source".to_string(),
+            shard_type: "sourceGraph".to_string(),
+            key_ref: "container-source:key".to_string(),
+            ciphertext_hash: hash,
+            hash_alg: STORAGE_CHUNK_HASH_ALG.to_string(),
+            chunks: vec![chunk],
+            object_refs: vec!["storage:object:source-root".to_string()],
+            graph_edges: vec![edge.clone()],
+            created_at: 1_700_000_000,
+        };
+        validate_storage_index_shard(&shard).expect("valid storage index shard");
+
+        let mut filesystem_ref = edge.clone();
+        filesystem_ref.to_ref = "file:C:/secrets/source".to_string();
+        assert!(validate_storage_graph_edge(&filesystem_ref).is_err());
+
+        let mut absolute_ref = shard;
+        absolute_ref.graph_edges[0].from_ref = "/source/root".to_string();
+        assert!(validate_storage_index_shard(&absolute_ref).is_err());
     }
 
     #[test]
