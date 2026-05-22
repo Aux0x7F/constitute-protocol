@@ -7,6 +7,7 @@ import {
   AGREEMENT,
   APP,
   LOGGING,
+  FABRIC,
   PROJECTION,
   RUNNER,
   ReplayCache,
@@ -21,8 +22,18 @@ import {
   assertAppRunnerAdvertisement,
   assertAppRunnerFulfillmentReport,
   assertAppRunnerFulfillmentLifecycle,
+  assertContractTarget,
+  assertContractTargetRegistryPosture,
+  assertContentIndexRefPosture,
+  assertContractIntentionPosture,
+  assertAssociationBoundaryProof,
+  assertHostFabricFulfillmentPlan,
+  assertHostFabricMemberContribution,
+  assertLifecyclePlanPosture,
   assertRunnerHostFulfillmentPosture,
   assertRunnerOperation,
+  assertSubstrateAssociationHandoff,
+  assertUniqueEdgeClassification,
   assertCapabilityAdvertisement,
   assertCapabilityDefinition,
   assertCapabilityName,
@@ -1860,6 +1871,393 @@ test("runner operations bind host fulfillment to grants, resources, secrets, rel
     state: RUNNER.HOST_FULFILLMENT_STATE.BLOCKED,
     blockedReasons: [],
   }), /requires blockedReasons/);
+});
+
+test("host fabric records separate association, composition, lifecycle, source truth, and unique edges", () => {
+  const observedAt = 1700000040;
+  const handoff = assertSubstrateAssociationHandoff({
+    kind: SWARM.RECORD_KIND.SUBSTRATE_ASSOCIATION_HANDOFF,
+    handoffId: "handoff:lab-gateway:initial-owner",
+    substrateRef: "substrate:first-trust:lab",
+    hostRef: "host:lab-gateway",
+    ownerRef: "identity:aux",
+    fabricRef: "fabric:lab-gateway",
+    state: FABRIC.ASSOCIATION_HANDOFF_STATE.HANDED_OFF,
+    initialAssociationRefs: ["association:substrate:aux:lab-gateway"],
+    gatewayAssociationRefs: ["association:gateway:lab-gateway:ongoing"],
+    evidenceRefs: ["evidence:substrate:verified"],
+    safeFacts: { handoff: "substrate-to-gateway-association" },
+    issuedAt: observedAt - 10,
+    handedOffAt: observedAt - 1,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(handoff.state, FABRIC.ASSOCIATION_HANDOFF_STATE.HANDED_OFF);
+
+  const memberContribution = assertHostFabricMemberContribution({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION,
+    contributionId: "fabric-contribution:gateway-association:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    memberRef: BROWSER_PK,
+    role: FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION,
+    state: FABRIC.MEMBER_CONTRIBUTION_STATE.RUNNING,
+    contractRef: "contract:gateway-association@0.1.0",
+    subjectRef: "association:gateway:lab-gateway:ongoing",
+    capabilityRefs: ["gateway.association.fulfill"],
+    grantRefs: ["grant:gateway-association:fulfill"],
+    evidenceRefs: ["evidence:gateway-association:presence"],
+    lifecyclePlanRefs: ["lifecycle-plan:gateway-association:1"],
+    safeFacts: { role: "gatewayAssociation" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(memberContribution.role, FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION);
+
+  const lifecycle = assertLifecyclePlanPosture({
+    kind: SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
+    lifecyclePlanId: "lifecycle-plan:gateway-association:1",
+    subjectRef: "association:gateway:lab-gateway:ongoing",
+    contractRef: "contract:lifecycle.gateway-association@0.1.0",
+    state: FABRIC.LIFECYCLE_PLAN_STATE.READY,
+    lifecycleContractRefs: ["contract:lifecycle.gateway-association@0.1.0"],
+    phasePostures: [
+      { phase: FABRIC.LIFECYCLE_PHASE.SOURCE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:source:indexed"] },
+      { phase: FABRIC.LIFECYCLE_PHASE.RUN, state: FABRIC.LIFECYCLE_PHASE_STATE.RUNNING, evidenceRefs: ["evidence:association:running"] },
+      { phase: FABRIC.LIFECYCLE_PHASE.OBSERVE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:association:observed"] },
+    ],
+    memberContributionRefs: [memberContribution.contributionId],
+    evidenceRefs: ["evidence:lifecycle:reduced"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(lifecycle.phasePostures.length, 3);
+
+  const plan = assertHostFabricFulfillmentPlan({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
+    planId: "fabric-plan:lab-gateway:association",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    contractRef: "contract:gateway-association@0.1.0",
+    state: FABRIC.FULFILLMENT_PLAN_STATE.READY,
+    requiredRoleRefs: ["role:gatewayAssociation"],
+    memberContributionRefs: [memberContribution.contributionId],
+    lifecyclePlanRefs: [lifecycle.lifecyclePlanId],
+    materializationBudgetRefs: ["materialization-budget:gateway-association"],
+    associationHandoffRef: handoff.handoffId,
+    evidenceRefs: ["evidence:fabric:plan-ready"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(plan.memberContributionRefs[0], memberContribution.contributionId);
+
+  const associationBoundary = assertAssociationBoundaryProof({
+    kind: SWARM.RECORD_KIND.ASSOCIATION_BOUNDARY_PROOF,
+    proofId: "association-boundary-proof:lab-gateway",
+    hostRef: "host:lab-gateway",
+    ownerRef: "identity:aux",
+    fabricRef: "fabric:lab-gateway",
+    state: FABRIC.ASSOCIATION_BOUNDARY_PROOF_STATE.READY,
+    substrateHandoffRef: handoff.handoffId,
+    initialAssociationRefs: handoff.initialAssociationRefs,
+    gatewayAssociationRefs: handoff.gatewayAssociationRefs,
+    routeAssociationRefs: ["route-association:gateway:lab-gateway"],
+    servicePresenceRefs: ["service-presence:nvr:lab-gateway"],
+    membershipRefs: ["member-presence:service:nvr:lab-gateway"],
+    fabricPlanRefs: [plan.planId],
+    evidenceRefs: ["evidence:association-boundary:distinct"],
+    safeFacts: { phaseSplit: "substrate-gateway-route-service-membership" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(associationBoundary.routeAssociationRefs[0], "route-association:gateway:lab-gateway");
+
+  const contentIndex = assertContentIndexRefPosture({
+    kind: SWARM.RECORD_KIND.CONTENT_INDEX_REF_POSTURE,
+    postureId: "content-index-posture:gateway-association",
+    contentIndexRef: "content-index:gateway-association@0.1.0",
+    state: FABRIC.CONTENT_INDEX_STATE.READY,
+    sourceRefs: ["source:gateway-association:contract"],
+    materializedProjectionRefs: ["projection:gateway-association:hot"],
+    storageRefs: ["storage:pin:gateway-association:contract"],
+    schemaRefs: ["schema:content-index:v1"],
+    evidenceRefs: ["evidence:content-index:materialized"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(contentIndex.sourceRefs[0], "source:gateway-association:contract");
+
+  const intention = assertContractIntentionPosture({
+    kind: SWARM.RECORD_KIND.CONTRACT_INTENTION_POSTURE,
+    postureId: "contract-intention-posture:gateway-association",
+    intentionRef: "contract-intention:gateway-association@0.1.0",
+    state: FABRIC.CONTRACT_INTENTION_STATE.READY,
+    canonicalHashRef: "hash:contract-intention:gateway-association",
+    contentIndexRefs: [contentIndex.contentIndexRef],
+    authoringSurfaceRefs: ["authoring:typed-library"],
+    proofGateRefs: ["proof-gate:protocol-validated"],
+    reducerRefs: ["reducer:gateway-association"],
+    evidenceRefs: ["evidence:intention:signed"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(intention.contentIndexRefs[0], contentIndex.contentIndexRef);
+
+  const uniqueEdge = assertUniqueEdgeClassification({
+    kind: SWARM.RECORD_KIND.UNIQUE_EDGE_CLASSIFICATION,
+    classificationId: "unique-edge:host-service-adapter:systemd",
+    subjectRef: "adapter:host-service:systemd",
+    state: FABRIC.UNIQUE_EDGE_CLASSIFICATION.UNIQUE_EDGE,
+    externalRealityRef: "external:host-os:systemd",
+    interactionRef: "interaction:service-lifecycle:systemd-unit",
+    policyRefs: ["policy:host-service-adapter"],
+    grantRefs: ["grant:host-service-adapter"],
+    evidenceRefs: ["evidence:systemd:unit-state"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(uniqueEdge.state, FABRIC.UNIQUE_EDGE_CLASSIFICATION.UNIQUE_EDGE);
+
+  const genericPrimitive = assertUniqueEdgeClassification({
+    kind: SWARM.RECORD_KIND.UNIQUE_EDGE_CLASSIFICATION,
+    classificationId: "unique-edge:runtime-client:generic",
+    subjectRef: "module:runtime-client",
+    state: FABRIC.UNIQUE_EDGE_CLASSIFICATION.GENERIC_PRIMITIVE,
+    primitiveRef: "primitive:surface-runtime-client",
+    evidenceRefs: ["evidence:runtime-client:generic"],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(genericPrimitive.primitiveRef, "primitive:surface-runtime-client");
+
+  assert.throws(() => assertSubstrateAssociationHandoff({
+    ...handoff,
+    gatewayAssociationRefs: [],
+  }), /gatewayAssociationRefs/);
+  assert.throws(() => assertAssociationBoundaryProof({
+    ...associationBoundary,
+    membershipRefs: associationBoundary.gatewayAssociationRefs,
+  }), /collapses phase ref/);
+  assert.throws(() => assertAssociationBoundaryProof({
+    ...associationBoundary,
+    routeAssociationRefs: [],
+  }), /routeAssociationRefs/);
+  assert.throws(() => assertLifecyclePlanPosture({
+    ...lifecycle,
+    lifecyclePlanId: "lifecycle-plan:bad:blocked",
+    state: FABRIC.LIFECYCLE_PLAN_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /requires blockedReasons/);
+  assert.throws(() => assertContentIndexRefPosture({
+    ...contentIndex,
+    postureId: "content-index-posture:bad:storage-only",
+    sourceRefs: [],
+  }), /requires sourceRefs/);
+  assert.throws(() => assertContractIntentionPosture({
+    ...intention,
+    postureId: "contract-intention-posture:bad:no-hash",
+    canonicalHashRef: "",
+  }), /canonicalHashRef/);
+  assert.throws(() => assertUniqueEdgeClassification({
+    ...uniqueEdge,
+    classificationId: "unique-edge:bad:no-external",
+    externalRealityRef: "",
+  }), /externalRealityRef/);
+  assert.throws(() => assertHostFabricMemberContribution({
+    ...memberContribution,
+    contributionId: "fabric-contribution:bad:secret",
+    safeFacts: { token: "nope" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("contract targets declare platform branch adapter slots and proof posture", () => {
+  const issuedAt = 1700000050;
+  const target = assertContractTarget({
+    kind: SWARM.RECORD_KIND.CONTRACT_TARGET,
+    targetRef: "contract-target:desktop-dev:msa-transition",
+    contractRef: "app:contract:nvr@0.1.0",
+    profileRef: "host-profile:desktop",
+    platformRef: "platform:windows",
+    substrateRef: "substrate:desktop-dev",
+    hostRef: "host:local-workstation",
+    state: FABRIC.CONTRACT_TARGET_STATE.DEGRADED,
+    compatibilityState: FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.COMPATIBLE,
+    modifierRefs: ["modifier:dev"],
+    branchRefs: ["branch:0x/msa-transition"],
+    subbranchRefs: ["subbranch:target-contract"],
+    capabilitySlotRefs: [
+      "slot:runtime",
+      "slot:gateway",
+      "slot:nvr-service",
+      "slot:nvr-surface",
+    ],
+    adapterPackRef: "adapter-pack:desktop-dev",
+    adapterRefs: ["adapter:webrtc:browser", "adapter:host-service:windows"],
+    negativeSlotRefs: ["slot:native-client"],
+    degradedSlotRefs: ["slot:operator-proof-focus"],
+    proofProfileRefs: ["proof-profile:nvr-smoke-5s", "proof-profile:long-stream-10m"],
+    proofRefs: ["proof:nvr-smoke-5s:20260522"],
+    compatibilityRefs: ["compat:runtime-2.56"],
+    evidenceRefs: ["evidence:target:selected"],
+    targetAudience: "developer",
+    safeFacts: { profile: "desktop-dev" },
+    issuedAt,
+    expiresAt: issuedAt + 3600,
+  });
+  assert.equal(target.negativeSlotRefs[0], "slot:native-client");
+  assert.equal(target.compatibilityState, FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.COMPATIBLE);
+
+  assert.throws(() => assertContractTarget({
+    ...target,
+    targetRef: "contract-target:bad:ready-with-missing",
+    state: FABRIC.CONTRACT_TARGET_STATE.READY,
+    missingSlotRefs: ["slot:gateway"],
+  }), /missingSlotRefs/);
+  assert.throws(() => assertContractTarget({
+    ...target,
+    targetRef: "contract-target:bad:incompatible",
+    compatibilityState: FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.INCOMPATIBLE,
+    blockedReasons: [],
+  }), /blockedReasons/);
+  assert.throws(() => assertContractTarget({
+    ...target,
+    targetRef: "contract-target:bad:secret",
+    safeFacts: { token: "nope" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("contract target registry posture maps slots to candidates and blockers", () => {
+  const observedAt = 1700000060;
+  const registry = assertContractTargetRegistryPosture({
+    kind: SWARM.RECORD_KIND.CONTRACT_TARGET_REGISTRY_POSTURE,
+    registryRef: "contract-target-registry:desktop-dev:msa-transition",
+    targetRef: "contract-target:desktop-dev:msa-transition",
+    contractRef: "app:contract:nvr@0.1.0",
+    state: FABRIC.CONTRACT_TARGET_REGISTRY_STATE.DEGRADED,
+    slotPostures: [
+      {
+        slotRef: "slot:runtime",
+        state: FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+        platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.COMPATIBLE,
+        candidateFulfillmentRefs: ["fulfillment:runtime:browser"],
+        selectedFulfillmentRef: "fulfillment:runtime:browser",
+        sourceRefs: ["content-index:runtime-client"],
+        buildRefs: ["build:runtime-client:local"],
+        platformRefs: ["platform:browser"],
+        adapterRefs: ["adapter:runtime-surface-client"],
+        proofRequirementRefs: ["proof-requirement:surface-load"],
+        proofRefs: ["proof:nvr-smoke-5s:20260522"],
+        evidenceRefs: ["evidence:runtime:attached"],
+      },
+      {
+        slotRef: "slot:native-client",
+        state: FABRIC.CONTRACT_TARGET_SLOT_STATE.NOT_REQUIRED,
+        platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.UNKNOWN,
+      },
+      {
+        slotRef: "slot:operator-focus",
+        state: FABRIC.CONTRACT_TARGET_SLOT_STATE.DEGRADED,
+        platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.COMPATIBLE,
+        candidateFulfillmentRefs: ["fulfillment:operator:aux-firefox"],
+        evidenceRefs: ["evidence:operator:focus-repaired"],
+      },
+    ],
+    candidateFulfillmentRefs: ["fulfillment:runtime:browser", "fulfillment:operator:aux-firefox"],
+    sourceRefs: ["content-index:nvr-surface"],
+    buildRefs: ["build:nvr-surface:local"],
+    adapterRefs: ["adapter:webrtc:browser"],
+    proofRequirementRefs: ["proof-requirement:long-stream-10m"],
+    proofRefs: ["proof:long-stream-10m:20260522"],
+    evidenceRefs: ["evidence:registry:reduced"],
+    safeFacts: { target: "desktop-dev" },
+    observedAt,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(registry.slotPostures.length, 3);
+  assert.equal(registry.slotPostures[0].candidateFulfillmentRefs[0], "fulfillment:runtime:browser");
+
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:ready-with-degraded-slot",
+    state: FABRIC.CONTRACT_TARGET_REGISTRY_STATE.READY,
+  }), /ready contract target registry posture/);
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:available-without-candidate",
+    slotPostures: [{
+      slotRef: "slot:runtime",
+      state: FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+      platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.COMPATIBLE,
+      candidateFulfillmentRefs: [],
+    }],
+  }), /candidateFulfillmentRefs/);
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:blocked",
+    state: FABRIC.CONTRACT_TARGET_REGISTRY_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blockedReasons/);
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:secret",
+    safeFacts: { secret: "nope" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("local workstation contract target vector validates desktop dev proof posture", () => {
+  const vector = JSON.parse(readFileSync(new URL("../vectors/contract-target-local-workstation-v1.json", import.meta.url), "utf8"));
+  const target = assertContractTarget(vector.target);
+  const registry = assertContractTargetRegistryPosture(vector.registry);
+
+  assert.equal(target.platformRef, "platform:windows.desktop");
+  assert.deepEqual(target.branchRefs, ["branch:0x/msa-transition"]);
+  assert.deepEqual(target.negativeSlotRefs, ["slot:native-client"]);
+  assert.equal(registry.state, FABRIC.CONTRACT_TARGET_REGISTRY_STATE.READY);
+  assert.equal(
+    registry.slotPostures.find((slot) => slot.slotRef === "slot:native-client")?.state,
+    FABRIC.CONTRACT_TARGET_SLOT_STATE.NOT_REQUIRED,
+  );
+  assert.ok(registry.proofRefs.includes("proof:long-stream-10m:20260522T074937Z"));
+});
+
+test("lab linux contract target vector marks host slots apart from protected client proof", () => {
+  const vector = JSON.parse(readFileSync(new URL("../vectors/contract-target-lab-linux-v1.json", import.meta.url), "utf8"));
+  const target = assertContractTarget(vector.target);
+  const registry = assertContractTargetRegistryPosture(vector.registry);
+
+  assert.equal(target.platformRef, "platform:linux.lab");
+  assert.equal(target.state, FABRIC.CONTRACT_TARGET_STATE.SELECTED);
+  assert.equal(target.compatibilityState, FABRIC.CONTRACT_TARGET_COMPATIBILITY_STATE.DEGRADED);
+  assert.ok(target.missingSlotRefs.includes("slot:runtime-client"));
+  assert.ok(target.missingSlotRefs.includes("slot:lab-proof-automation"));
+  assert.equal(registry.state, FABRIC.CONTRACT_TARGET_REGISTRY_STATE.DEGRADED);
+  assert.equal(
+    registry.slotPostures.find((slot) => slot.slotRef === "slot:gateway")?.state,
+    FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+  );
+  assert.equal(
+    registry.slotPostures.find((slot) => slot.slotRef === "slot:lab-proof-automation")?.state,
+    FABRIC.CONTRACT_TARGET_SLOT_STATE.MISSING,
+  );
+  assert.ok(registry.proofRequirementRefs.includes("proof-requirement:lab-live"));
+});
+
+test("multi-gateway contract target vector keeps candidates in registry and fabric contributions", () => {
+  const vector = JSON.parse(readFileSync(new URL("../vectors/contract-target-multi-gateway-v1.json", import.meta.url), "utf8"));
+  const target = assertContractTarget(vector.target);
+  const registry = assertContractTargetRegistryPosture(vector.registry);
+  const contributions = vector.hostFabricContributions.map(assertHostFabricMemberContribution);
+  const plan = assertHostFabricFulfillmentPlan(vector.fulfillmentPlan);
+
+  assert.equal(target.state, FABRIC.CONTRACT_TARGET_STATE.READY);
+  const gatewaySlot = registry.slotPostures.find((slot) => slot.slotRef === "slot:gateway-association");
+  assert.equal(gatewaySlot.state, FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE);
+  assert.equal(gatewaySlot.candidateFulfillmentRefs.length, 2);
+  assert.equal(gatewaySlot.selectedFulfillmentRef, "fulfillment:gateway-association:local-dev");
+  assert.equal(contributions.filter((entry) => entry.role === FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION).length, 2);
+  assert.equal(contributions.find((entry) => entry.role === FABRIC.MEMBER_ROLE.SERVICE_EDGE_ADAPTER)?.subjectRef, "service:nvr");
+  assert.equal(plan.state, FABRIC.FULFILLMENT_PLAN_STATE.READY);
+  assert.ok(plan.memberContributionRefs.includes("fabric-contribution:gateway-association:lab-dev"));
+  assert.ok(!registry.slotPostures.some((slot) => slot.safeFacts?.serviceIdentityMutation));
 });
 
 test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {

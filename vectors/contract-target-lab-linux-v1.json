@@ -1,0 +1,278 @@
+{
+  "target": {
+    "kind": "contract.target",
+    "targetRef": "contract-target:home-linux-lab:msa-transition",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "profileRef": "host-profile:home",
+    "platformRef": "platform:linux.lab",
+    "state": "selected",
+    "compatibilityState": "degraded",
+    "hostRef": "host:lab-gateway",
+    "substrateRef": "substrate:home-dev",
+    "modifierRefs": [
+      "modifier:home",
+      "modifier:dev"
+    ],
+    "branchRefs": [
+      "branch:0x/msa-transition"
+    ],
+    "subbranchRefs": [
+      "subbranch:target-contract"
+    ],
+    "capabilitySlotRefs": [
+      "slot:gateway",
+      "slot:storage",
+      "slot:service-manager",
+      "slot:nvr-service",
+      "slot:runtime-client",
+      "slot:nvr-surface",
+      "slot:browser-webrtc",
+      "slot:rollback",
+      "slot:lab-proof-automation"
+    ],
+    "adapterPackRef": "adapter-pack:linux-lab-dev",
+    "adapterRefs": [
+      "adapter:host-service:linux",
+      "adapter:gateway:linux",
+      "adapter:storage:local"
+    ],
+    "negativeSlotRefs": [
+      "slot:browser-webrtc"
+    ],
+    "missingSlotRefs": [
+      "slot:runtime-client",
+      "slot:nvr-surface",
+      "slot:lab-proof-automation"
+    ],
+    "degradedSlotRefs": [
+      "slot:rollback"
+    ],
+    "proofProfileRefs": [
+      "proof-profile:service-manager-lab",
+      "proof-profile:gateway-native-smoke",
+      "proof-profile:nvr-smoke-5s"
+    ],
+    "proofRefs": [
+      "proof:service-manager-cargo-test:20260522"
+    ],
+    "compatibilityRefs": [
+      "compat:runtime-2.56",
+      "compat:branch-family:msa-transition"
+    ],
+    "evidenceRefs": [
+      "evidence:lab-target:contract-only",
+      "evidence:service-manager:target-reducer"
+    ],
+    "targetAudience": "developer",
+    "safeFacts": {
+      "profile": "home-dev",
+      "platform": "linux.lab",
+      "proofAutomation": "manualProtected"
+    },
+    "issuedAt": 1778760000,
+    "expiresAt": 1778846400
+  },
+  "registry": {
+    "kind": "contract.target.registry.posture",
+    "registryRef": "contract-target-registry:home-linux-lab:msa-transition",
+    "targetRef": "contract-target:home-linux-lab:msa-transition",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "state": "degraded",
+    "slotPostures": [
+      {
+        "slotRef": "slot:gateway",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:gateway:lab-dev"
+        ],
+        "selectedFulfillmentRef": "fulfillment:gateway:lab-dev",
+        "platformRefs": [
+          "platform:linux.lab"
+        ],
+        "adapterRefs": [
+          "adapter:gateway:linux"
+        ],
+        "evidenceRefs": [
+          "evidence:gateway:lab:configured"
+        ]
+      },
+      {
+        "slotRef": "slot:storage",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:storage:lab-local"
+        ],
+        "selectedFulfillmentRef": "fulfillment:storage:lab-local",
+        "platformRefs": [
+          "platform:linux.lab"
+        ],
+        "adapterRefs": [
+          "adapter:storage:local"
+        ],
+        "proofRequirementRefs": [
+          "proof-requirement:storage-availability"
+        ],
+        "evidenceRefs": [
+          "evidence:storage:lab:configured"
+        ]
+      },
+      {
+        "slotRef": "slot:service-manager",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:service-manager:lab"
+        ],
+        "selectedFulfillmentRef": "fulfillment:service-manager:lab",
+        "platformRefs": [
+          "platform:linux.lab"
+        ],
+        "adapterRefs": [
+          "adapter:host-service:linux"
+        ],
+        "proofRefs": [
+          "proof:service-manager-cargo-test:20260522"
+        ],
+        "evidenceRefs": [
+          "evidence:service-manager:target-reducer"
+        ]
+      },
+      {
+        "slotRef": "slot:nvr-service",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:nvr-service:lab-network"
+        ],
+        "selectedFulfillmentRef": "fulfillment:nvr-service:lab-network",
+        "platformRefs": [
+          "platform:linux.lab"
+        ],
+        "proofRequirementRefs": [
+          "proof-requirement:nvr-service-live"
+        ],
+        "evidenceRefs": [
+          "evidence:nvr-service:lab:configured"
+        ]
+      },
+      {
+        "slotRef": "slot:runtime-client",
+        "state": "missing",
+        "platformFitState": "unknown",
+        "proofRequirementRefs": [
+          "proof-requirement:client-target-selected"
+        ],
+        "blockedReasons": [
+          "blocked:lab-client-target-unselected"
+        ],
+        "safeFacts": {
+          "reason": "lab host target does not include a proved local client"
+        }
+      },
+      {
+        "slotRef": "slot:nvr-surface",
+        "state": "missing",
+        "platformFitState": "unknown",
+        "sourceRefs": [
+          "content-index:nvr-surface"
+        ],
+        "proofRequirementRefs": [
+          "proof-requirement:surface-load"
+        ],
+        "blockedReasons": [
+          "blocked:lab-client-target-unselected"
+        ],
+        "safeFacts": {
+          "reason": "surface proof belongs to a client target"
+        }
+      },
+      {
+        "slotRef": "slot:browser-webrtc",
+        "state": "notRequired",
+        "platformFitState": "unknown",
+        "evidenceRefs": [
+          "evidence:target:browser-webrtc:not-host-slot"
+        ],
+        "safeFacts": {
+          "reason": "lab host target"
+        }
+      },
+      {
+        "slotRef": "slot:rollback",
+        "state": "degraded",
+        "platformFitState": "degraded",
+        "candidateFulfillmentRefs": [
+          "fulfillment:rollback:manual"
+        ],
+        "selectedFulfillmentRef": "fulfillment:rollback:manual",
+        "proofRequirementRefs": [
+          "proof-requirement:rollback-automation"
+        ],
+        "safeFacts": {
+          "reason": "manual rollback only"
+        }
+      },
+      {
+        "slotRef": "slot:lab-proof-automation",
+        "state": "missing",
+        "platformFitState": "unknown",
+        "proofRequirementRefs": [
+          "proof-requirement:bootstrap",
+          "proof-requirement:secrets",
+          "proof-requirement:rollback",
+          "proof-requirement:lab-live"
+        ],
+        "blockedReasons": [
+          "blocked:lab-proof-protected-manual"
+        ],
+        "safeFacts": {
+          "reason": "lab proof remains protected until bootstrap, secrets, and rollback contracts automate it"
+        }
+      }
+    ],
+    "candidateFulfillmentRefs": [
+      "fulfillment:gateway:lab-dev",
+      "fulfillment:storage:lab-local",
+      "fulfillment:service-manager:lab",
+      "fulfillment:nvr-service:lab-network",
+      "fulfillment:rollback:manual"
+    ],
+    "sourceRefs": [
+      "content-index:nvr-surface",
+      "content-index:runtime-surface-client"
+    ],
+    "buildRefs": [
+      "build:lab:gateway",
+      "build:lab:service-manager",
+      "build:lab:nvr-service"
+    ],
+    "adapterRefs": [
+      "adapter:host-service:linux",
+      "adapter:gateway:linux",
+      "adapter:storage:local"
+    ],
+    "proofRequirementRefs": [
+      "proof-requirement:bootstrap",
+      "proof-requirement:secrets",
+      "proof-requirement:rollback",
+      "proof-requirement:lab-live",
+      "proof-requirement:client-target-selected"
+    ],
+    "proofRefs": [
+      "proof:service-manager-cargo-test:20260522"
+    ],
+    "evidenceRefs": [
+      "evidence:lab-target:contract-only",
+      "evidence:service-manager:target-reducer"
+    ],
+    "safeFacts": {
+      "profile": "home-dev",
+      "platform": "linux.lab",
+      "proofAutomation": "manualProtected"
+    },
+    "observedAt": 1778760000,
+    "expiresAt": 1778846400
+  }
+}

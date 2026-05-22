@@ -1,0 +1,311 @@
+{
+  "target": {
+    "kind": "contract.target",
+    "targetRef": "contract-target:multi-gateway:msa-transition",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "profileRef": "host-profile:mixed-dev",
+    "platformRef": "platform:mixed.local-lab",
+    "state": "ready",
+    "compatibilityState": "compatible",
+    "hostRef": "host:fabric-dev",
+    "substrateRef": "substrate:mixed-dev",
+    "modifierRefs": [
+      "modifier:dev",
+      "modifier:multi-gateway"
+    ],
+    "branchRefs": [
+      "branch:0x/msa-transition"
+    ],
+    "subbranchRefs": [
+      "subbranch:target-contract"
+    ],
+    "capabilitySlotRefs": [
+      "slot:gateway-association",
+      "slot:service-edge-adapter",
+      "slot:platform-adapter",
+      "slot:runtime",
+      "slot:nvr-service"
+    ],
+    "adapterPackRef": "adapter-pack:mixed-dev",
+    "adapterRefs": [
+      "adapter:gateway:windows",
+      "adapter:gateway:linux",
+      "adapter:browser-webrtc",
+      "adapter:nvr-service-edge"
+    ],
+    "proofProfileRefs": [
+      "proof-profile:target-registry-candidate-reduction"
+    ],
+    "proofRefs": [
+      "proof:protocol-multi-gateway-vector:20260522"
+    ],
+    "compatibilityRefs": [
+      "compat:branch-family:msa-transition"
+    ],
+    "evidenceRefs": [
+      "evidence:target-registry:multi-gateway",
+      "evidence:host-fabric:member-contributions"
+    ],
+    "targetAudience": "developer",
+    "safeFacts": {
+      "profile": "mixed-dev",
+      "gatewayCandidates": 2,
+      "serviceEdgeCandidates": 2
+    },
+    "issuedAt": 1778760000,
+    "expiresAt": 1778846400
+  },
+  "registry": {
+    "kind": "contract.target.registry.posture",
+    "registryRef": "contract-target-registry:multi-gateway:msa-transition",
+    "targetRef": "contract-target:multi-gateway:msa-transition",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "state": "ready",
+    "slotPostures": [
+      {
+        "slotRef": "slot:gateway-association",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:gateway-association:local-dev",
+          "fulfillment:gateway-association:lab-dev"
+        ],
+        "selectedFulfillmentRef": "fulfillment:gateway-association:local-dev",
+        "platformRefs": [
+          "platform:windows.desktop",
+          "platform:linux.lab"
+        ],
+        "adapterRefs": [
+          "adapter:gateway:windows",
+          "adapter:gateway:linux"
+        ],
+        "evidenceRefs": [
+          "evidence:gateway-association:candidates"
+        ]
+      },
+      {
+        "slotRef": "slot:service-edge-adapter",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:nvr-service-edge:local-network",
+          "fulfillment:nvr-service-edge:lab-network"
+        ],
+        "selectedFulfillmentRef": "fulfillment:nvr-service-edge:local-network",
+        "platformRefs": [
+          "platform:windows.desktop",
+          "platform:linux.lab"
+        ],
+        "adapterRefs": [
+          "adapter:nvr-service-edge"
+        ],
+        "evidenceRefs": [
+          "evidence:service-edge:candidates"
+        ]
+      },
+      {
+        "slotRef": "slot:platform-adapter",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:platform-adapter:browser-webrtc"
+        ],
+        "selectedFulfillmentRef": "fulfillment:platform-adapter:browser-webrtc",
+        "adapterRefs": [
+          "adapter:browser-webrtc"
+        ],
+        "evidenceRefs": [
+          "evidence:platform-adapter:browser-webrtc"
+        ]
+      },
+      {
+        "slotRef": "slot:runtime",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:runtime:browser"
+        ],
+        "selectedFulfillmentRef": "fulfillment:runtime:browser",
+        "sourceRefs": [
+          "content-index:runtime-surface-client"
+        ],
+        "evidenceRefs": [
+          "evidence:runtime:surface-client"
+        ]
+      },
+      {
+        "slotRef": "slot:nvr-service",
+        "state": "available",
+        "platformFitState": "compatible",
+        "candidateFulfillmentRefs": [
+          "fulfillment:nvr-service:local-network",
+          "fulfillment:nvr-service:lab-network"
+        ],
+        "selectedFulfillmentRef": "fulfillment:nvr-service:local-network",
+        "evidenceRefs": [
+          "evidence:nvr-service:candidates"
+        ]
+      }
+    ],
+    "candidateFulfillmentRefs": [
+      "fulfillment:gateway-association:local-dev",
+      "fulfillment:gateway-association:lab-dev",
+      "fulfillment:nvr-service-edge:local-network",
+      "fulfillment:nvr-service-edge:lab-network",
+      "fulfillment:platform-adapter:browser-webrtc",
+      "fulfillment:runtime:browser",
+      "fulfillment:nvr-service:local-network",
+      "fulfillment:nvr-service:lab-network"
+    ],
+    "sourceRefs": [
+      "content-index:nvr-service-edge",
+      "content-index:runtime-surface-client"
+    ],
+    "adapterRefs": [
+      "adapter:gateway:windows",
+      "adapter:gateway:linux",
+      "adapter:browser-webrtc",
+      "adapter:nvr-service-edge"
+    ],
+    "proofRequirementRefs": [
+      "proof-requirement:candidate-reduction",
+      "proof-requirement:selected-fulfillment",
+      "proof-requirement:no-service-identity-mutation"
+    ],
+    "proofRefs": [
+      "proof:protocol-multi-gateway-vector:20260522"
+    ],
+    "evidenceRefs": [
+      "evidence:target-registry:multi-gateway",
+      "evidence:host-fabric:member-contributions"
+    ],
+    "safeFacts": {
+      "gatewayCandidates": 2,
+      "serviceEdgeCandidates": 2,
+      "selectedGateway": "fulfillment:gateway-association:local-dev"
+    },
+    "observedAt": 1778760000,
+    "expiresAt": 1778846400
+  },
+  "hostFabricContributions": [
+    {
+      "kind": "hostFabric.member.contribution",
+      "contributionId": "fabric-contribution:gateway-association:local-dev",
+      "fabricRef": "fabric:multi-gateway-dev",
+      "hostRef": "host:local-workstation",
+      "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "role": "gatewayAssociation",
+      "state": "running",
+      "contractRef": "contract:gateway-association@0.1.0",
+      "subjectRef": "association:gateway:local-dev",
+      "capabilityRefs": [
+        "gateway.association.fulfill"
+      ],
+      "grantRefs": [
+        "grant:gateway-association:local-dev"
+      ],
+      "outputRefs": [
+        "fulfillment:gateway-association:local-dev"
+      ],
+      "evidenceRefs": [
+        "evidence:gateway-association:local-dev"
+      ],
+      "safeFacts": {
+        "role": "gatewayAssociation",
+        "candidate": "local-dev"
+      },
+      "observedAt": 1778760000,
+      "expiresAt": 1778846400
+    },
+    {
+      "kind": "hostFabric.member.contribution",
+      "contributionId": "fabric-contribution:gateway-association:lab-dev",
+      "fabricRef": "fabric:multi-gateway-dev",
+      "hostRef": "host:lab-gateway",
+      "memberRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "role": "gatewayAssociation",
+      "state": "running",
+      "contractRef": "contract:gateway-association@0.1.0",
+      "subjectRef": "association:gateway:lab-dev",
+      "capabilityRefs": [
+        "gateway.association.fulfill"
+      ],
+      "grantRefs": [
+        "grant:gateway-association:lab-dev"
+      ],
+      "outputRefs": [
+        "fulfillment:gateway-association:lab-dev"
+      ],
+      "evidenceRefs": [
+        "evidence:gateway-association:lab-dev"
+      ],
+      "safeFacts": {
+        "role": "gatewayAssociation",
+        "candidate": "lab-dev"
+      },
+      "observedAt": 1778760000,
+      "expiresAt": 1778846400
+    },
+    {
+      "kind": "hostFabric.member.contribution",
+      "contributionId": "fabric-contribution:service-edge:nvr",
+      "fabricRef": "fabric:multi-gateway-dev",
+      "hostRef": "host:nvr-service",
+      "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "role": "serviceEdgeAdapter",
+      "state": "running",
+      "contractRef": "contract:nvr-service-edge@0.1.0",
+      "subjectRef": "service:nvr",
+      "capabilityRefs": [
+        "service.edge.fulfill"
+      ],
+      "grantRefs": [
+        "grant:nvr-service-edge:fulfill"
+      ],
+      "outputRefs": [
+        "fulfillment:nvr-service-edge:local-network",
+        "fulfillment:nvr-service-edge:lab-network"
+      ],
+      "evidenceRefs": [
+        "evidence:service-edge:nvr"
+      ],
+      "safeFacts": {
+        "role": "serviceEdgeAdapter",
+        "domain": "nvr"
+      },
+      "observedAt": 1778760000,
+      "expiresAt": 1778846400
+    }
+  ],
+  "fulfillmentPlan": {
+    "kind": "hostFabric.fulfillment.plan",
+    "planId": "fabric-plan:multi-gateway:target-registry",
+    "fabricRef": "fabric:multi-gateway-dev",
+    "hostRef": "host:fabric-dev",
+    "contractRef": "app:contract:constitute-nvr@0.1.0",
+    "state": "ready",
+    "requiredRoleRefs": [
+      "role:gatewayAssociation",
+      "role:serviceEdgeAdapter",
+      "role:platformAdapter"
+    ],
+    "memberContributionRefs": [
+      "fabric-contribution:gateway-association:local-dev",
+      "fabric-contribution:gateway-association:lab-dev",
+      "fabric-contribution:service-edge:nvr"
+    ],
+    "materializationBudgetRefs": [
+      "materialization-budget:target-registry:hot"
+    ],
+    "evidenceRefs": [
+      "contract-target-registry:multi-gateway:msa-transition",
+      "evidence:host-fabric:member-contributions"
+    ],
+    "safeFacts": {
+      "gatewayCandidates": 2,
+      "selectedBy": "target-registry"
+    },
+    "observedAt": 1778760000,
+    "expiresAt": 1778846400
+  }
+}
