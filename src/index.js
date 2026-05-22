@@ -397,6 +397,25 @@ export const FABRIC = Object.freeze({
     INCOMPATIBLE: "incompatible",
     UNKNOWN: "unknown",
   }),
+  CONTRACT_TARGET_REGISTRY_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  CONTRACT_TARGET_SLOT_STATE: Object.freeze({
+    AVAILABLE: "available",
+    DEGRADED: "degraded",
+    MISSING: "missing",
+    BLOCKED: "blocked",
+    NOT_REQUIRED: "notRequired",
+  }),
+  CONTRACT_TARGET_PLATFORM_FIT_STATE: Object.freeze({
+    COMPATIBLE: "compatible",
+    DEGRADED: "degraded",
+    INCOMPATIBLE: "incompatible",
+    UNKNOWN: "unknown",
+  }),
 });
 
 export const BUILD = Object.freeze({
@@ -1564,6 +1583,7 @@ export const SWARM = Object.freeze({
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
     UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
     CONTRACT_TARGET: "contract.target",
+    CONTRACT_TARGET_REGISTRY_POSTURE: "contract.target.registry.posture",
     RUNNER_OPERATION: "runner.operation",
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
@@ -1660,6 +1680,7 @@ export const SWARM = Object.freeze({
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
     UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
     CONTRACT_TARGET: "contract.target",
+    CONTRACT_TARGET_REGISTRY_POSTURE: "contract.target.registry.posture",
     RUNNER_OPERATION: "runner.operation",
     RUNNER_HOST_FULFILLMENT_POSTURE: "runner.host.fulfillment.posture",
     APP_RUNNER_FULFILLMENT_REPORT: "app.runner.fulfillment.report",
@@ -4338,6 +4359,96 @@ export function assertContractTarget(record) {
     evidenceRefs,
     blockedReasons,
   };
+}
+
+function assertContractTargetSlotPosture(value, context) {
+  if (!isObject(value)) throw new Error(`${context} must be an object`);
+  requireString(value.slotRef, `${context} slotRef`);
+  const state = assertEnumValue(value.state, FABRIC.CONTRACT_TARGET_SLOT_STATE, `${context} state`);
+  const platformFitState = assertEnumValue(
+    value.platformFitState,
+    FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE,
+    `${context} platformFitState`,
+  );
+  const candidateFulfillmentRefs = assertOptionalReferenceList(
+    value.candidateFulfillmentRefs,
+    `${context} candidateFulfillmentRefs`,
+  );
+  if (value.selectedFulfillmentRef !== undefined) requireString(value.selectedFulfillmentRef, `${context} selectedFulfillmentRef`);
+  assertOptionalReferenceList(value.sourceRefs, `${context} sourceRefs`);
+  assertOptionalReferenceList(value.buildRefs, `${context} buildRefs`);
+  assertOptionalReferenceList(value.platformRefs, `${context} platformRefs`);
+  assertOptionalReferenceList(value.adapterRefs, `${context} adapterRefs`);
+  assertOptionalReferenceList(value.proofRequirementRefs, `${context} proofRequirementRefs`);
+  assertOptionalReferenceList(value.proofRefs, `${context} proofRefs`);
+  assertOptionalReferenceList(value.evidenceRefs, `${context} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(value.blockedReasons, `${context} blockedReasons`);
+  if (state === FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE && candidateFulfillmentRefs.length === 0) {
+    throw new Error(`${context} available slot requires candidateFulfillmentRefs`);
+  }
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTRACT_TARGET_SLOT_STATE.MISSING, FABRIC.CONTRACT_TARGET_SLOT_STATE.BLOCKED],
+    blockedReasons,
+    context,
+  );
+  if (platformFitState === FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.INCOMPATIBLE && blockedReasons.length === 0) {
+    throw new Error(`${context} incompatible platform fit requires blockedReasons`);
+  }
+  if (value.safeFacts !== undefined) assertSafeObject(value.safeFacts, `${context} safeFacts`);
+  assertSurfaceManagerSensitiveBoundary(value, context);
+  return { ...value, state, platformFitState, candidateFulfillmentRefs, blockedReasons };
+}
+
+export function assertContractTargetRegistryPosture(record) {
+  if (!isObject(record)) throw new Error("contract target registry posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTRACT_TARGET_REGISTRY_POSTURE, "contract target registry posture");
+  requireString(record.registryRef, "contract target registry posture registryRef");
+  requireString(record.targetRef, "contract target registry posture targetRef");
+  requireString(record.contractRef, "contract target registry posture contractRef");
+  const state = assertEnumValue(
+    record.state,
+    FABRIC.CONTRACT_TARGET_REGISTRY_STATE,
+    "contract target registry posture state",
+  );
+  const slotPostures = requireArray(
+    record.slotPostures,
+    "contract target registry posture slotPostures",
+  ).map((slot, index) => assertContractTargetSlotPosture(
+    slot,
+    `contract target registry posture slotPostures[${index}]`,
+  ));
+  if (slotPostures.length === 0) throw new Error("contract target registry posture requires slotPostures");
+  const candidateFulfillmentRefs = assertOptionalReferenceList(
+    record.candidateFulfillmentRefs,
+    "contract target registry posture candidateFulfillmentRefs",
+  );
+  assertOptionalReferenceList(record.sourceRefs, "contract target registry posture sourceRefs");
+  assertOptionalReferenceList(record.buildRefs, "contract target registry posture buildRefs");
+  assertOptionalReferenceList(record.adapterRefs, "contract target registry posture adapterRefs");
+  assertOptionalReferenceList(record.proofRequirementRefs, "contract target registry posture proofRequirementRefs");
+  assertOptionalReferenceList(record.proofRefs, "contract target registry posture proofRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "contract target registry posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "contract target registry posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTRACT_TARGET_REGISTRY_STATE.BLOCKED, FABRIC.CONTRACT_TARGET_REGISTRY_STATE.EXPIRED],
+    blockedReasons,
+    "contract target registry posture",
+  );
+  if (
+    state === FABRIC.CONTRACT_TARGET_REGISTRY_STATE.READY
+    && slotPostures.some((slot) => ![
+      FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+      FABRIC.CONTRACT_TARGET_SLOT_STATE.NOT_REQUIRED,
+    ].includes(slot.state))
+  ) {
+    throw new Error("ready contract target registry posture must not carry missing, degraded, or blocked slotPostures");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "contract target registry posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "contract target registry posture");
+  assertFabricObservedWindow(record, "contract target registry posture");
+  return { ...record, state, slotPostures, candidateFulfillmentRefs, blockedReasons };
 }
 
 function assertPrivateRefList(value, name = "privateRefs") {

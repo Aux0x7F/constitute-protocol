@@ -145,6 +145,7 @@ pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
 pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
 pub const RECORD_UNIQUE_EDGE_CLASSIFICATION: &str = "uniqueEdge.classification";
 pub const RECORD_CONTRACT_TARGET: &str = "contract.target";
+pub const RECORD_CONTRACT_TARGET_REGISTRY_POSTURE: &str = "contract.target.registry.posture";
 pub const RECORD_RUNNER_OPERATION: &str = "runner.operation";
 pub const RECORD_APP_RUNNER_FULFILLMENT_REPORT: &str = "app.runner.fulfillment.report";
 pub const RECORD_APP_RUNNER_FULFILLMENT_LIFECYCLE: &str = "app.runner.fulfillment.lifecycle";
@@ -331,6 +332,19 @@ pub const FABRIC_CONTRACT_TARGET_COMPATIBLE: &str = "compatible";
 pub const FABRIC_CONTRACT_TARGET_COMPATIBILITY_DEGRADED: &str = "degraded";
 pub const FABRIC_CONTRACT_TARGET_INCOMPATIBLE: &str = "incompatible";
 pub const FABRIC_CONTRACT_TARGET_COMPATIBILITY_UNKNOWN: &str = "unknown";
+pub const FABRIC_CONTRACT_TARGET_REGISTRY_READY: &str = "ready";
+pub const FABRIC_CONTRACT_TARGET_REGISTRY_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTRACT_TARGET_REGISTRY_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTRACT_TARGET_REGISTRY_EXPIRED: &str = "expired";
+pub const FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE: &str = "available";
+pub const FABRIC_CONTRACT_TARGET_SLOT_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTRACT_TARGET_SLOT_MISSING: &str = "missing";
+pub const FABRIC_CONTRACT_TARGET_SLOT_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTRACT_TARGET_SLOT_NOT_REQUIRED: &str = "notRequired";
+pub const FABRIC_CONTRACT_TARGET_PLATFORM_FIT_COMPATIBLE: &str = "compatible";
+pub const FABRIC_CONTRACT_TARGET_PLATFORM_FIT_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTRACT_TARGET_PLATFORM_FIT_INCOMPATIBLE: &str = "incompatible";
+pub const FABRIC_CONTRACT_TARGET_PLATFORM_FIT_UNKNOWN: &str = "unknown";
 
 pub const SURFACE_FULFILLMENT_MODE_BUNDLED: &str = "bundled";
 pub const SURFACE_FULFILLMENT_MODE_SWARM_PACKAGE: &str = "swarmPackage";
@@ -3375,6 +3389,70 @@ pub struct ContractTarget {
     #[serde(default)]
     pub safe_facts: Value,
     pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractTargetSlotPosture {
+    pub slot_ref: String,
+    pub state: String,
+    pub platform_fit_state: String,
+    #[serde(default)]
+    pub candidate_fulfillment_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selected_fulfillment_ref: Option<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub build_refs: Vec<String>,
+    #[serde(default)]
+    pub platform_refs: Vec<String>,
+    #[serde(default)]
+    pub adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContractTargetRegistryPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub registry_ref: String,
+    pub target_ref: String,
+    pub contract_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub slot_postures: Vec<ContractTargetSlotPosture>,
+    #[serde(default)]
+    pub candidate_fulfillment_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub build_refs: Vec<String>,
+    #[serde(default)]
+    pub adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -8739,6 +8817,151 @@ pub fn validate_contract_target(record: &ContractTarget) -> Result<()> {
     Ok(())
 }
 
+fn validate_contract_target_slot_posture(
+    record: &ContractTargetSlotPosture,
+    context: &str,
+) -> Result<()> {
+    require_non_empty(&record.slot_ref, &format!("{context} missing slotRef"))?;
+    validate_contract_target_slot_state(&record.state)?;
+    validate_contract_target_platform_fit_state(&record.platform_fit_state)?;
+    validate_reference_list(
+        &record.candidate_fulfillment_refs,
+        &format!("{context} missing candidateFulfillmentRefs"),
+    )?;
+    validate_optional_ref(
+        record.selected_fulfillment_ref.as_deref(),
+        &format!("{context} missing selectedFulfillmentRef"),
+    )?;
+    validate_reference_list(&record.source_refs, &format!("{context} missing sourceRefs"))?;
+    validate_reference_list(&record.build_refs, &format!("{context} missing buildRefs"))?;
+    validate_reference_list(&record.platform_refs, &format!("{context} missing platformRefs"))?;
+    validate_reference_list(&record.adapter_refs, &format!("{context} missing adapterRefs"))?;
+    validate_reference_list(
+        &record.proof_requirement_refs,
+        &format!("{context} missing proofRequirementRefs"),
+    )?;
+    validate_reference_list(&record.proof_refs, &format!("{context} missing proofRefs"))?;
+    validate_reference_list(&record.evidence_refs, &format!("{context} missing evidenceRefs"))?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTRACT_TARGET_SLOT_MISSING | FABRIC_CONTRACT_TARGET_SLOT_BLOCKED
+        ),
+        &record.blocked_reasons,
+        context,
+    )?;
+    if record.state == FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE
+        && record.candidate_fulfillment_refs.is_empty()
+    {
+        return Err(anyhow!("{context} available slot requires candidateFulfillmentRefs"));
+    }
+    if record.platform_fit_state == FABRIC_CONTRACT_TARGET_PLATFORM_FIT_INCOMPATIBLE
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!("{context} incompatible platform fit requires blockedReasons"));
+    }
+    validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))?;
+    reject_private_content_fields(&serde_json::to_value(record)?, context)?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, context)
+}
+
+pub fn validate_contract_target_registry_posture(
+    record: &ContractTargetRegistryPosture,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CONTRACT_TARGET_REGISTRY_POSTURE,
+        "contract target registry posture",
+    )?;
+    require_non_empty(
+        &record.registry_ref,
+        "contract target registry posture missing registryRef",
+    )?;
+    require_non_empty(
+        &record.target_ref,
+        "contract target registry posture missing targetRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "contract target registry posture missing contractRef",
+    )?;
+    validate_contract_target_registry_state(&record.state)?;
+    if record.slot_postures.is_empty() {
+        return Err(anyhow!(
+            "contract target registry posture requires slotPostures"
+        ));
+    }
+    for (index, slot) in record.slot_postures.iter().enumerate() {
+        validate_contract_target_slot_posture(
+            slot,
+            &format!("contract target registry posture slotPostures[{index}]"),
+        )?;
+    }
+    validate_reference_list(
+        &record.candidate_fulfillment_refs,
+        "contract target registry posture missing candidateFulfillmentRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "contract target registry posture missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.build_refs,
+        "contract target registry posture missing buildRefs",
+    )?;
+    validate_reference_list(
+        &record.adapter_refs,
+        "contract target registry posture missing adapterRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_requirement_refs,
+        "contract target registry posture missing proofRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "contract target registry posture missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "contract target registry posture missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTRACT_TARGET_REGISTRY_BLOCKED | FABRIC_CONTRACT_TARGET_REGISTRY_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "contract target registry posture",
+    )?;
+    if record.state == FABRIC_CONTRACT_TARGET_REGISTRY_READY
+        && record.slot_postures.iter().any(|slot| {
+            !matches!(
+                slot.state.as_str(),
+                FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE | FABRIC_CONTRACT_TARGET_SLOT_NOT_REQUIRED
+            )
+        })
+    {
+        return Err(anyhow!("ready contract target registry posture must not carry missing, degraded, or blocked slotPostures"));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "contract target registry posture safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "contract target registry posture",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "contract target registry posture",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "contract target registry posture",
+    )
+}
+
 pub fn validate_runner_operation(record: &RunnerOperationRecord) -> Result<()> {
     validate_optional_kind(&record.kind, RECORD_RUNNER_OPERATION, "runner operation")?;
     require_non_empty(&record.operation_id, "runner operation missing operationId")?;
@@ -9551,6 +9774,49 @@ fn validate_contract_target_compatibility_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported contract target compatibility state"))
+    }
+}
+
+fn validate_contract_target_registry_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTRACT_TARGET_REGISTRY_READY
+            | FABRIC_CONTRACT_TARGET_REGISTRY_DEGRADED
+            | FABRIC_CONTRACT_TARGET_REGISTRY_BLOCKED
+            | FABRIC_CONTRACT_TARGET_REGISTRY_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported contract target registry state"))
+    }
+}
+
+fn validate_contract_target_slot_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE
+            | FABRIC_CONTRACT_TARGET_SLOT_DEGRADED
+            | FABRIC_CONTRACT_TARGET_SLOT_MISSING
+            | FABRIC_CONTRACT_TARGET_SLOT_BLOCKED
+            | FABRIC_CONTRACT_TARGET_SLOT_NOT_REQUIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported contract target slot state"))
+    }
+}
+
+fn validate_contract_target_platform_fit_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTRACT_TARGET_PLATFORM_FIT_COMPATIBLE
+            | FABRIC_CONTRACT_TARGET_PLATFORM_FIT_DEGRADED
+            | FABRIC_CONTRACT_TARGET_PLATFORM_FIT_INCOMPATIBLE
+            | FABRIC_CONTRACT_TARGET_PLATFORM_FIT_UNKNOWN
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported contract target platform fit state"))
     }
 }
 
@@ -12439,6 +12705,118 @@ mod tests {
         unsafe_target.target_ref = "contract-target:bad:secret".to_string();
         unsafe_target.safe_facts = json!({ "token": "inline-secret" });
         assert!(validate_contract_target(&unsafe_target).is_err());
+    }
+
+    #[test]
+    fn validates_contract_target_registry_posture_slots_candidates_and_blockers() {
+        let observed_at = 1_700_000_060;
+        let registry = ContractTargetRegistryPosture {
+            kind: Some(RECORD_CONTRACT_TARGET_REGISTRY_POSTURE.to_string()),
+            registry_ref: "contract-target-registry:desktop-dev:msa-transition".to_string(),
+            target_ref: "contract-target:desktop-dev:msa-transition".to_string(),
+            contract_ref: "app:contract:nvr@0.1.0".to_string(),
+            state: FABRIC_CONTRACT_TARGET_REGISTRY_DEGRADED.to_string(),
+            slot_postures: vec![
+                ContractTargetSlotPosture {
+                    slot_ref: "slot:runtime".to_string(),
+                    state: FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE.to_string(),
+                    platform_fit_state: FABRIC_CONTRACT_TARGET_PLATFORM_FIT_COMPATIBLE.to_string(),
+                    candidate_fulfillment_refs: vec!["fulfillment:runtime:browser".to_string()],
+                    selected_fulfillment_ref: Some("fulfillment:runtime:browser".to_string()),
+                    source_refs: vec!["content-index:runtime-client".to_string()],
+                    build_refs: vec!["build:runtime-client:local".to_string()],
+                    platform_refs: vec!["platform:browser".to_string()],
+                    adapter_refs: vec!["adapter:runtime-surface-client".to_string()],
+                    proof_requirement_refs: vec!["proof-requirement:surface-load".to_string()],
+                    proof_refs: vec!["proof:nvr-smoke-5s:20260522".to_string()],
+                    evidence_refs: vec!["evidence:runtime:attached".to_string()],
+                    blocked_reasons: vec![],
+                    safe_facts: json!({ "slot": "runtime" }),
+                },
+                ContractTargetSlotPosture {
+                    slot_ref: "slot:native-client".to_string(),
+                    state: FABRIC_CONTRACT_TARGET_SLOT_NOT_REQUIRED.to_string(),
+                    platform_fit_state: FABRIC_CONTRACT_TARGET_PLATFORM_FIT_UNKNOWN.to_string(),
+                    candidate_fulfillment_refs: vec![],
+                    selected_fulfillment_ref: None,
+                    source_refs: vec![],
+                    build_refs: vec![],
+                    platform_refs: vec![],
+                    adapter_refs: vec![],
+                    proof_requirement_refs: vec![],
+                    proof_refs: vec![],
+                    evidence_refs: vec![],
+                    blocked_reasons: vec![],
+                    safe_facts: Value::Null,
+                },
+                ContractTargetSlotPosture {
+                    slot_ref: "slot:operator-focus".to_string(),
+                    state: FABRIC_CONTRACT_TARGET_SLOT_DEGRADED.to_string(),
+                    platform_fit_state: FABRIC_CONTRACT_TARGET_PLATFORM_FIT_COMPATIBLE.to_string(),
+                    candidate_fulfillment_refs: vec!["fulfillment:operator:aux-firefox".to_string()],
+                    selected_fulfillment_ref: None,
+                    source_refs: vec![],
+                    build_refs: vec![],
+                    platform_refs: vec![],
+                    adapter_refs: vec![],
+                    proof_requirement_refs: vec![],
+                    proof_refs: vec![],
+                    evidence_refs: vec!["evidence:operator:focus-repaired".to_string()],
+                    blocked_reasons: vec![],
+                    safe_facts: Value::Null,
+                },
+            ],
+            candidate_fulfillment_refs: vec![
+                "fulfillment:runtime:browser".to_string(),
+                "fulfillment:operator:aux-firefox".to_string(),
+            ],
+            source_refs: vec!["content-index:nvr-surface".to_string()],
+            build_refs: vec!["build:nvr-surface:local".to_string()],
+            adapter_refs: vec!["adapter:webrtc:browser".to_string()],
+            proof_requirement_refs: vec!["proof-requirement:long-stream-10m".to_string()],
+            proof_refs: vec!["proof:long-stream-10m:20260522".to_string()],
+            evidence_refs: vec!["evidence:registry:reduced".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "target": "desktop-dev" }),
+            observed_at,
+            expires_at: Some(observed_at + 3600),
+        };
+        validate_contract_target_registry_posture(&registry).expect("valid registry posture");
+
+        let mut bad_ready = registry.clone();
+        bad_ready.registry_ref = "contract-target-registry:bad:ready".to_string();
+        bad_ready.state = FABRIC_CONTRACT_TARGET_REGISTRY_READY.to_string();
+        assert!(validate_contract_target_registry_posture(&bad_ready).is_err());
+
+        let mut bad_available = registry.clone();
+        bad_available.registry_ref = "contract-target-registry:bad:available".to_string();
+        bad_available.slot_postures = vec![ContractTargetSlotPosture {
+            slot_ref: "slot:runtime".to_string(),
+            state: FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE.to_string(),
+            platform_fit_state: FABRIC_CONTRACT_TARGET_PLATFORM_FIT_COMPATIBLE.to_string(),
+            candidate_fulfillment_refs: vec![],
+            selected_fulfillment_ref: None,
+            source_refs: vec![],
+            build_refs: vec![],
+            platform_refs: vec![],
+            adapter_refs: vec![],
+            proof_requirement_refs: vec![],
+            proof_refs: vec![],
+            evidence_refs: vec![],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+        }];
+        assert!(validate_contract_target_registry_posture(&bad_available).is_err());
+
+        let mut bad_blocked = registry.clone();
+        bad_blocked.registry_ref = "contract-target-registry:bad:blocked".to_string();
+        bad_blocked.state = FABRIC_CONTRACT_TARGET_REGISTRY_BLOCKED.to_string();
+        assert!(validate_contract_target_registry_posture(&bad_blocked).is_err());
+
+        let mut unsafe_registry = registry;
+        unsafe_registry.registry_ref = "contract-target-registry:bad:secret".to_string();
+        unsafe_registry.safe_facts = json!({ "secret": "nope" });
+        assert!(validate_contract_target_registry_posture(&unsafe_registry).is_err());
     }
 
     #[test]

@@ -23,6 +23,7 @@ import {
   assertAppRunnerFulfillmentReport,
   assertAppRunnerFulfillmentLifecycle,
   assertContractTarget,
+  assertContractTargetRegistryPosture,
   assertContentIndexRefPosture,
   assertContractIntentionPosture,
   assertHostFabricFulfillmentPlan,
@@ -2091,6 +2092,84 @@ test("contract targets declare platform branch adapter slots and proof posture",
     ...target,
     targetRef: "contract-target:bad:secret",
     safeFacts: { token: "nope" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("contract target registry posture maps slots to candidates and blockers", () => {
+  const observedAt = 1700000060;
+  const registry = assertContractTargetRegistryPosture({
+    kind: SWARM.RECORD_KIND.CONTRACT_TARGET_REGISTRY_POSTURE,
+    registryRef: "contract-target-registry:desktop-dev:msa-transition",
+    targetRef: "contract-target:desktop-dev:msa-transition",
+    contractRef: "app:contract:nvr@0.1.0",
+    state: FABRIC.CONTRACT_TARGET_REGISTRY_STATE.DEGRADED,
+    slotPostures: [
+      {
+        slotRef: "slot:runtime",
+        state: FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+        platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.COMPATIBLE,
+        candidateFulfillmentRefs: ["fulfillment:runtime:browser"],
+        selectedFulfillmentRef: "fulfillment:runtime:browser",
+        sourceRefs: ["content-index:runtime-client"],
+        buildRefs: ["build:runtime-client:local"],
+        platformRefs: ["platform:browser"],
+        adapterRefs: ["adapter:runtime-surface-client"],
+        proofRequirementRefs: ["proof-requirement:surface-load"],
+        proofRefs: ["proof:nvr-smoke-5s:20260522"],
+        evidenceRefs: ["evidence:runtime:attached"],
+      },
+      {
+        slotRef: "slot:native-client",
+        state: FABRIC.CONTRACT_TARGET_SLOT_STATE.NOT_REQUIRED,
+        platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.UNKNOWN,
+      },
+      {
+        slotRef: "slot:operator-focus",
+        state: FABRIC.CONTRACT_TARGET_SLOT_STATE.DEGRADED,
+        platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.COMPATIBLE,
+        candidateFulfillmentRefs: ["fulfillment:operator:aux-firefox"],
+        evidenceRefs: ["evidence:operator:focus-repaired"],
+      },
+    ],
+    candidateFulfillmentRefs: ["fulfillment:runtime:browser", "fulfillment:operator:aux-firefox"],
+    sourceRefs: ["content-index:nvr-surface"],
+    buildRefs: ["build:nvr-surface:local"],
+    adapterRefs: ["adapter:webrtc:browser"],
+    proofRequirementRefs: ["proof-requirement:long-stream-10m"],
+    proofRefs: ["proof:long-stream-10m:20260522"],
+    evidenceRefs: ["evidence:registry:reduced"],
+    safeFacts: { target: "desktop-dev" },
+    observedAt,
+    expiresAt: observedAt + 3600,
+  });
+  assert.equal(registry.slotPostures.length, 3);
+  assert.equal(registry.slotPostures[0].candidateFulfillmentRefs[0], "fulfillment:runtime:browser");
+
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:ready-with-degraded-slot",
+    state: FABRIC.CONTRACT_TARGET_REGISTRY_STATE.READY,
+  }), /ready contract target registry posture/);
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:available-without-candidate",
+    slotPostures: [{
+      slotRef: "slot:runtime",
+      state: FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE,
+      platformFitState: FABRIC.CONTRACT_TARGET_PLATFORM_FIT_STATE.COMPATIBLE,
+      candidateFulfillmentRefs: [],
+    }],
+  }), /candidateFulfillmentRefs/);
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:blocked",
+    state: FABRIC.CONTRACT_TARGET_REGISTRY_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blockedReasons/);
+  assert.throws(() => assertContractTargetRegistryPosture({
+    ...registry,
+    registryRef: "contract-target-registry:bad:secret",
+    safeFacts: { secret: "nope" },
   }), /unsafe safe fact key|forbidden protocol field/);
 });
 

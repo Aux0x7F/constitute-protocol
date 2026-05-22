@@ -2949,6 +2949,9 @@ export type FabricContractIntentionState = "draft" | "ready" | "degraded" | "blo
 export type FabricUniqueEdgeClassificationState = "genericPrimitive" | "uniqueEdge" | "blocked";
 export type FabricContractTargetState = "selected" | "ready" | "degraded" | "blocked" | "expired";
 export type FabricContractTargetCompatibilityState = "compatible" | "degraded" | "incompatible" | "unknown";
+export type FabricContractTargetRegistryState = "ready" | "degraded" | "blocked" | "expired";
+export type FabricContractTargetSlotState = "available" | "degraded" | "missing" | "blocked" | "notRequired";
+export type FabricContractTargetPlatformFitState = "compatible" | "degraded" | "incompatible" | "unknown";
 
 export type SubstrateAssociationHandoff = {
   kind?: "substrate.association.handoff";
@@ -3118,6 +3121,43 @@ export type ContractTarget = {
   targetAudience: string;
   safeFacts?: Record<string, unknown>;
   issuedAt: number;
+  expiresAt?: number;
+};
+
+export type ContractTargetSlotPosture = {
+  slotRef: string;
+  state: FabricContractTargetSlotState;
+  platformFitState: FabricContractTargetPlatformFitState;
+  candidateFulfillmentRefs?: string[];
+  selectedFulfillmentRef?: string;
+  sourceRefs?: string[];
+  buildRefs?: string[];
+  platformRefs?: string[];
+  adapterRefs?: string[];
+  proofRequirementRefs?: string[];
+  proofRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type ContractTargetRegistryPosture = {
+  kind?: "contract.target.registry.posture";
+  registryRef: string;
+  targetRef: string;
+  contractRef: string;
+  state: FabricContractTargetRegistryState;
+  slotPostures: ContractTargetSlotPosture[];
+  candidateFulfillmentRefs?: string[];
+  sourceRefs?: string[];
+  buildRefs?: string[];
+  adapterRefs?: string[];
+  proofRequirementRefs?: string[];
+  proofRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
   expiresAt?: number;
 };
 
@@ -3351,3 +3391,4 @@ export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPo
 export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;
 export function assertUniqueEdgeClassification(record: unknown): UniqueEdgeClassification;
 export function assertContractTarget(record: unknown): ContractTarget;
+export function assertContractTargetRegistryPosture(record: unknown): ContractTargetRegistryPosture;
