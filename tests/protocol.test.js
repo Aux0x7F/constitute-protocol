@@ -26,6 +26,7 @@ import {
   assertContractTargetRegistryPosture,
   assertContentIndexRefPosture,
   assertContractIntentionPosture,
+  assertAssociationBoundaryProof,
   assertHostFabricFulfillmentPlan,
   assertHostFabricMemberContribution,
   assertLifecyclePlanPosture,
@@ -1949,6 +1950,27 @@ test("host fabric records separate association, composition, lifecycle, source t
   });
   assert.equal(plan.memberContributionRefs[0], memberContribution.contributionId);
 
+  const associationBoundary = assertAssociationBoundaryProof({
+    kind: SWARM.RECORD_KIND.ASSOCIATION_BOUNDARY_PROOF,
+    proofId: "association-boundary-proof:lab-gateway",
+    hostRef: "host:lab-gateway",
+    ownerRef: "identity:aux",
+    fabricRef: "fabric:lab-gateway",
+    state: FABRIC.ASSOCIATION_BOUNDARY_PROOF_STATE.READY,
+    substrateHandoffRef: handoff.handoffId,
+    initialAssociationRefs: handoff.initialAssociationRefs,
+    gatewayAssociationRefs: handoff.gatewayAssociationRefs,
+    routeAssociationRefs: ["route-association:gateway:lab-gateway"],
+    servicePresenceRefs: ["service-presence:nvr:lab-gateway"],
+    membershipRefs: ["member-presence:service:nvr:lab-gateway"],
+    fabricPlanRefs: [plan.planId],
+    evidenceRefs: ["evidence:association-boundary:distinct"],
+    safeFacts: { phaseSplit: "substrate-gateway-route-service-membership" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(associationBoundary.routeAssociationRefs[0], "route-association:gateway:lab-gateway");
+
   const contentIndex = assertContentIndexRefPosture({
     kind: SWARM.RECORD_KIND.CONTENT_INDEX_REF_POSTURE,
     postureId: "content-index-posture:gateway-association",
@@ -2011,6 +2033,14 @@ test("host fabric records separate association, composition, lifecycle, source t
     ...handoff,
     gatewayAssociationRefs: [],
   }), /gatewayAssociationRefs/);
+  assert.throws(() => assertAssociationBoundaryProof({
+    ...associationBoundary,
+    membershipRefs: associationBoundary.gatewayAssociationRefs,
+  }), /collapses phase ref/);
+  assert.throws(() => assertAssociationBoundaryProof({
+    ...associationBoundary,
+    routeAssociationRefs: [],
+  }), /routeAssociationRefs/);
   assert.throws(() => assertLifecyclePlanPosture({
     ...lifecycle,
     lifecyclePlanId: "lifecycle-plan:bad:blocked",

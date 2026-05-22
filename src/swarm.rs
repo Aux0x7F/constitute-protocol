@@ -138,6 +138,7 @@ pub const RECORD_SURFACE_APP_FULFILLMENT_IDENTITY_POSTURE: &str =
 pub const RECORD_SURFACE_APP_AUTHORITY_ACCESS_POSTURE: &str =
     "surface.app.authority.access.posture";
 pub const RECORD_SUBSTRATE_ASSOCIATION_HANDOFF: &str = "substrate.association.handoff";
+pub const RECORD_ASSOCIATION_BOUNDARY_PROOF: &str = "association.boundary.proof";
 pub const RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION: &str = "hostFabric.member.contribution";
 pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.plan";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
@@ -259,6 +260,10 @@ pub const FABRIC_ASSOCIATION_HANDOFF_HANDED_OFF: &str = "handedOff";
 pub const FABRIC_ASSOCIATION_HANDOFF_DEGRADED: &str = "degraded";
 pub const FABRIC_ASSOCIATION_HANDOFF_BLOCKED: &str = "blocked";
 pub const FABRIC_ASSOCIATION_HANDOFF_EXPIRED: &str = "expired";
+pub const FABRIC_ASSOCIATION_BOUNDARY_PROOF_READY: &str = "ready";
+pub const FABRIC_ASSOCIATION_BOUNDARY_PROOF_DEGRADED: &str = "degraded";
+pub const FABRIC_ASSOCIATION_BOUNDARY_PROOF_BLOCKED: &str = "blocked";
+pub const FABRIC_ASSOCIATION_BOUNDARY_PROOF_EXPIRED: &str = "expired";
 pub const FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION: &str = "gatewayAssociation";
 pub const FABRIC_MEMBER_ROLE_HOST_SERVICE_ADAPTER: &str = "hostServiceAdapter";
 pub const FABRIC_MEMBER_ROLE_EXECUTION_FULFILLMENT: &str = "executionFulfillment";
@@ -3133,6 +3138,40 @@ pub struct SubstrateAssociationHandoff {
     pub issued_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub handed_off_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AssociationBoundaryProof {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub proof_id: String,
+    pub host_ref: String,
+    pub owner_ref: String,
+    pub fabric_ref: String,
+    pub state: String,
+    pub substrate_handoff_ref: String,
+    #[serde(default)]
+    pub initial_association_refs: Vec<String>,
+    #[serde(default)]
+    pub gateway_association_refs: Vec<String>,
+    #[serde(default)]
+    pub route_association_refs: Vec<String>,
+    #[serde(default)]
+    pub service_presence_refs: Vec<String>,
+    #[serde(default)]
+    pub membership_refs: Vec<String>,
+    #[serde(default)]
+    pub fabric_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -8249,6 +8288,104 @@ pub fn validate_substrate_association_handoff(record: &SubstrateAssociationHando
     Ok(())
 }
 
+pub fn validate_association_boundary_proof(record: &AssociationBoundaryProof) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_ASSOCIATION_BOUNDARY_PROOF,
+        "association boundary proof",
+    )?;
+    require_non_empty(
+        &record.proof_id,
+        "association boundary proof missing proofId",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "association boundary proof missing hostRef",
+    )?;
+    require_non_empty(
+        &record.owner_ref,
+        "association boundary proof missing ownerRef",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "association boundary proof missing fabricRef",
+    )?;
+    validate_association_boundary_proof_state(&record.state)?;
+    require_non_empty(
+        &record.substrate_handoff_ref,
+        "association boundary proof missing substrateHandoffRef",
+    )?;
+    let mut phase_refs = BTreeSet::new();
+    validate_association_boundary_phase_refs(
+        &record.initial_association_refs,
+        "initialAssociationRefs",
+        &mut phase_refs,
+    )?;
+    validate_association_boundary_phase_refs(
+        &record.gateway_association_refs,
+        "gatewayAssociationRefs",
+        &mut phase_refs,
+    )?;
+    validate_association_boundary_phase_refs(
+        &record.route_association_refs,
+        "routeAssociationRefs",
+        &mut phase_refs,
+    )?;
+    validate_association_boundary_phase_refs(
+        &record.service_presence_refs,
+        "servicePresenceRefs",
+        &mut phase_refs,
+    )?;
+    validate_association_boundary_phase_refs(
+        &record.membership_refs,
+        "membershipRefs",
+        &mut phase_refs,
+    )?;
+    require_non_empty_vec(
+        &record.fabric_plan_refs,
+        "association boundary proof requires fabricPlanRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "association boundary proof missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_ASSOCIATION_BOUNDARY_PROOF_BLOCKED | FABRIC_ASSOCIATION_BOUNDARY_PROOF_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "association boundary proof",
+    )?;
+    validate_safe_facts(&record.safe_facts, "association boundary proof safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "association boundary proof")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "association boundary proof")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "association boundary proof",
+    )
+}
+
+fn validate_association_boundary_phase_refs(
+    refs: &[String],
+    field_name: &str,
+    seen: &mut BTreeSet<String>,
+) -> Result<()> {
+    require_non_empty_vec(
+        refs,
+        &format!("association boundary proof requires {field_name}"),
+    )?;
+    for reference in refs {
+        if !seen.insert(reference.clone()) {
+            return Err(anyhow!(
+                "association boundary proof collapses phase ref across boundaries: {reference}"
+            ));
+        }
+    }
+    Ok(())
+}
+
 pub fn validate_host_fabric_member_contribution(
     record: &HostFabricMemberContribution,
 ) -> Result<()> {
@@ -8733,12 +8870,18 @@ pub fn validate_contract_target(record: &ContractTarget) -> Result<()> {
     require_non_empty(&record.platform_ref, "contract target missing platformRef")?;
     validate_contract_target_state(&record.state)?;
     validate_contract_target_compatibility_state(&record.compatibility_state)?;
-    validate_optional_ref(record.host_ref.as_deref(), "contract target missing hostRef")?;
+    validate_optional_ref(
+        record.host_ref.as_deref(),
+        "contract target missing hostRef",
+    )?;
     validate_optional_ref(
         record.substrate_ref.as_deref(),
         "contract target missing substrateRef",
     )?;
-    validate_reference_list(&record.modifier_refs, "contract target missing modifierRefs")?;
+    validate_reference_list(
+        &record.modifier_refs,
+        "contract target missing modifierRefs",
+    )?;
     validate_reference_list(&record.branch_refs, "contract target missing branchRefs")?;
     validate_reference_list(
         &record.subbranch_refs,
@@ -8774,7 +8917,10 @@ pub fn validate_contract_target(record: &ContractTarget) -> Result<()> {
         &record.compatibility_refs,
         "contract target missing compatibilityRefs",
     )?;
-    validate_reference_list(&record.evidence_refs, "contract target missing evidenceRefs")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "contract target missing evidenceRefs",
+    )?;
     validate_blocked_reasons(
         matches!(
             record.state.as_str(),
@@ -8784,7 +8930,9 @@ pub fn validate_contract_target(record: &ContractTarget) -> Result<()> {
         "contract target",
     )?;
     if record.state == FABRIC_CONTRACT_TARGET_READY && !record.missing_slot_refs.is_empty() {
-        return Err(anyhow!("ready contract target must not carry missingSlotRefs"));
+        return Err(anyhow!(
+            "ready contract target must not carry missingSlotRefs"
+        ));
     }
     if record.state == FABRIC_CONTRACT_TARGET_READY && !record.degraded_slot_refs.is_empty() {
         return Err(anyhow!(
@@ -8832,16 +8980,28 @@ fn validate_contract_target_slot_posture(
         record.selected_fulfillment_ref.as_deref(),
         &format!("{context} missing selectedFulfillmentRef"),
     )?;
-    validate_reference_list(&record.source_refs, &format!("{context} missing sourceRefs"))?;
+    validate_reference_list(
+        &record.source_refs,
+        &format!("{context} missing sourceRefs"),
+    )?;
     validate_reference_list(&record.build_refs, &format!("{context} missing buildRefs"))?;
-    validate_reference_list(&record.platform_refs, &format!("{context} missing platformRefs"))?;
-    validate_reference_list(&record.adapter_refs, &format!("{context} missing adapterRefs"))?;
+    validate_reference_list(
+        &record.platform_refs,
+        &format!("{context} missing platformRefs"),
+    )?;
+    validate_reference_list(
+        &record.adapter_refs,
+        &format!("{context} missing adapterRefs"),
+    )?;
     validate_reference_list(
         &record.proof_requirement_refs,
         &format!("{context} missing proofRequirementRefs"),
     )?;
     validate_reference_list(&record.proof_refs, &format!("{context} missing proofRefs"))?;
-    validate_reference_list(&record.evidence_refs, &format!("{context} missing evidenceRefs"))?;
+    validate_reference_list(
+        &record.evidence_refs,
+        &format!("{context} missing evidenceRefs"),
+    )?;
     validate_blocked_reasons(
         matches!(
             record.state.as_str(),
@@ -8853,12 +9013,16 @@ fn validate_contract_target_slot_posture(
     if record.state == FABRIC_CONTRACT_TARGET_SLOT_AVAILABLE
         && record.candidate_fulfillment_refs.is_empty()
     {
-        return Err(anyhow!("{context} available slot requires candidateFulfillmentRefs"));
+        return Err(anyhow!(
+            "{context} available slot requires candidateFulfillmentRefs"
+        ));
     }
     if record.platform_fit_state == FABRIC_CONTRACT_TARGET_PLATFORM_FIT_INCOMPATIBLE
         && record.blocked_reasons.is_empty()
     {
-        return Err(anyhow!("{context} incompatible platform fit requires blockedReasons"));
+        return Err(anyhow!(
+            "{context} incompatible platform fit requires blockedReasons"
+        ));
     }
     validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))?;
     reject_private_content_fields(&serde_json::to_value(record)?, context)?;
@@ -8941,7 +9105,9 @@ pub fn validate_contract_target_registry_posture(
             )
         })
     {
-        return Err(anyhow!("ready contract target registry posture must not carry missing, degraded, or blocked slotPostures"));
+        return Err(anyhow!(
+            "ready contract target registry posture must not carry missing, degraded, or blocked slotPostures"
+        ));
     }
     validate_safe_facts(
         &record.safe_facts,
@@ -9591,6 +9757,20 @@ fn validate_fabric_association_handoff_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported fabric association handoff state"))
+    }
+}
+
+fn validate_association_boundary_proof_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ASSOCIATION_BOUNDARY_PROOF_READY
+            | FABRIC_ASSOCIATION_BOUNDARY_PROOF_DEGRADED
+            | FABRIC_ASSOCIATION_BOUNDARY_PROOF_BLOCKED
+            | FABRIC_ASSOCIATION_BOUNDARY_PROOF_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported association boundary proof state"))
     }
 }
 
@@ -12550,6 +12730,29 @@ mod tests {
         };
         validate_host_fabric_fulfillment_plan(&plan).expect("valid fabric plan");
 
+        let association_boundary = AssociationBoundaryProof {
+            kind: Some(RECORD_ASSOCIATION_BOUNDARY_PROOF.to_string()),
+            proof_id: "association-boundary-proof:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            owner_ref: "identity:aux".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            state: FABRIC_ASSOCIATION_BOUNDARY_PROOF_READY.to_string(),
+            substrate_handoff_ref: handoff.handoff_id.clone(),
+            initial_association_refs: handoff.initial_association_refs.clone(),
+            gateway_association_refs: handoff.gateway_association_refs.clone(),
+            route_association_refs: vec!["route-association:gateway:lab-gateway".to_string()],
+            service_presence_refs: vec!["service-presence:nvr:lab-gateway".to_string()],
+            membership_refs: vec!["member-presence:service:nvr:lab-gateway".to_string()],
+            fabric_plan_refs: vec![plan.plan_id.clone()],
+            evidence_refs: vec!["evidence:association-boundary:distinct".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "phaseSplit": "substrate-gateway-route-service-membership" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_association_boundary_proof(&association_boundary)
+            .expect("valid association boundary proof");
+
         let content_index = ContentIndexRefPosture {
             kind: Some(RECORD_CONTENT_INDEX_REF_POSTURE.to_string()),
             posture_id: "content-index-posture:gateway-association".to_string(),
@@ -12629,6 +12832,12 @@ mod tests {
         let mut bad_handoff = handoff.clone();
         bad_handoff.gateway_association_refs.clear();
         assert!(validate_substrate_association_handoff(&bad_handoff).is_err());
+        let mut collapsed_boundary = association_boundary.clone();
+        collapsed_boundary.membership_refs = collapsed_boundary.gateway_association_refs.clone();
+        assert!(validate_association_boundary_proof(&collapsed_boundary).is_err());
+        let mut missing_route_boundary = association_boundary.clone();
+        missing_route_boundary.route_association_refs.clear();
+        assert!(validate_association_boundary_proof(&missing_route_boundary).is_err());
         let mut bad_lifecycle = lifecycle.clone();
         bad_lifecycle.state = FABRIC_LIFECYCLE_PLAN_BLOCKED.to_string();
         assert!(validate_lifecycle_plan_posture(&bad_lifecycle).is_err());
@@ -12753,7 +12962,9 @@ mod tests {
                     slot_ref: "slot:operator-focus".to_string(),
                     state: FABRIC_CONTRACT_TARGET_SLOT_DEGRADED.to_string(),
                     platform_fit_state: FABRIC_CONTRACT_TARGET_PLATFORM_FIT_COMPATIBLE.to_string(),
-                    candidate_fulfillment_refs: vec!["fulfillment:operator:aux-firefox".to_string()],
+                    candidate_fulfillment_refs: vec![
+                        "fulfillment:operator:aux-firefox".to_string(),
+                    ],
                     selected_fulfillment_ref: None,
                     source_refs: vec![],
                     build_refs: vec![],

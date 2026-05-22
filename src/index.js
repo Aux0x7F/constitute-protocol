@@ -302,6 +302,12 @@ export const FABRIC = Object.freeze({
     BLOCKED: "blocked",
     EXPIRED: "expired",
   }),
+  ASSOCIATION_BOUNDARY_PROOF_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
   MEMBER_ROLE: Object.freeze({
     GATEWAY_ASSOCIATION: "gatewayAssociation",
     HOST_SERVICE_ADAPTER: "hostServiceAdapter",
@@ -1576,6 +1582,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     SUBSTRATE_ASSOCIATION_HANDOFF: "substrate.association.handoff",
+    ASSOCIATION_BOUNDARY_PROOF: "association.boundary.proof",
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
@@ -1673,6 +1680,7 @@ export const SWARM = Object.freeze({
     SURFACE_APP_MODULE_BINDING_POSTURE: "surface.app.module.binding.posture",
     SURFACE_ADAPTER_LIFECYCLE_POSTURE: "surface.adapter.lifecycle.posture",
     SUBSTRATE_ASSOCIATION_HANDOFF: "substrate.association.handoff",
+    ASSOCIATION_BOUNDARY_PROOF: "association.boundary.proof",
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
@@ -4103,6 +4111,57 @@ export function assertSubstrateAssociationHandoff(record) {
     throw new Error("substrate association handoff expiresAt must be after issuedAt");
   }
   return { ...record, state, gatewayAssociationRefs, blockedReasons };
+}
+
+function assertAssociationBoundaryRefs(record, fieldName, seen) {
+  const refs = assertReferenceList(record[fieldName], `association boundary proof ${fieldName}`);
+  for (const ref of refs) {
+    if (seen.has(ref)) {
+      throw new Error(`association boundary proof collapses phase ref across boundaries: ${ref}`);
+    }
+    seen.add(ref);
+  }
+  return refs;
+}
+
+export function assertAssociationBoundaryProof(record) {
+  if (!isObject(record)) throw new Error("association boundary proof must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ASSOCIATION_BOUNDARY_PROOF, "association boundary proof");
+  requireString(record.proofId, "association boundary proof proofId");
+  requireString(record.hostRef, "association boundary proof hostRef");
+  requireString(record.ownerRef, "association boundary proof ownerRef");
+  requireString(record.fabricRef, "association boundary proof fabricRef");
+  const state = assertEnumValue(record.state, FABRIC.ASSOCIATION_BOUNDARY_PROOF_STATE, "association boundary proof state");
+  requireString(record.substrateHandoffRef, "association boundary proof substrateHandoffRef");
+  const seen = new Set();
+  const initialAssociationRefs = assertAssociationBoundaryRefs(record, "initialAssociationRefs", seen);
+  const gatewayAssociationRefs = assertAssociationBoundaryRefs(record, "gatewayAssociationRefs", seen);
+  const routeAssociationRefs = assertAssociationBoundaryRefs(record, "routeAssociationRefs", seen);
+  const servicePresenceRefs = assertAssociationBoundaryRefs(record, "servicePresenceRefs", seen);
+  const membershipRefs = assertAssociationBoundaryRefs(record, "membershipRefs", seen);
+  const fabricPlanRefs = assertReferenceList(record.fabricPlanRefs, "association boundary proof fabricPlanRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "association boundary proof evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "association boundary proof blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.ASSOCIATION_BOUNDARY_PROOF_STATE.BLOCKED, FABRIC.ASSOCIATION_BOUNDARY_PROOF_STATE.EXPIRED],
+    blockedReasons,
+    "association boundary proof",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "association boundary proof safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "association boundary proof");
+  assertFabricObservedWindow(record, "association boundary proof");
+  return {
+    ...record,
+    state,
+    initialAssociationRefs,
+    gatewayAssociationRefs,
+    routeAssociationRefs,
+    servicePresenceRefs,
+    membershipRefs,
+    fabricPlanRefs,
+    blockedReasons,
+  };
 }
 
 export function assertHostFabricMemberContribution(record) {
