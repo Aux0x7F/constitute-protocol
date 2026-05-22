@@ -12885,6 +12885,58 @@ mod tests {
     }
 
     #[test]
+    fn validates_multi_gateway_contract_target_vector() {
+        let vector: Value = serde_json::from_str(include_str!(
+            "../vectors/contract-target-multi-gateway-v1.json"
+        ))
+        .expect("multi-gateway target vector");
+        let target: ContractTarget =
+            serde_json::from_value(vector["target"].clone()).expect("target record");
+        let registry: ContractTargetRegistryPosture =
+            serde_json::from_value(vector["registry"].clone()).expect("registry record");
+        let contributions: Vec<HostFabricMemberContribution> =
+            serde_json::from_value(vector["hostFabricContributions"].clone())
+                .expect("fabric contributions");
+        let plan: HostFabricFulfillmentPlan =
+            serde_json::from_value(vector["fulfillmentPlan"].clone())
+                .expect("fabric fulfillment plan");
+
+        validate_contract_target(&target).expect("target validates");
+        validate_contract_target_registry_posture(&registry).expect("registry validates");
+        for contribution in &contributions {
+            validate_host_fabric_member_contribution(contribution)
+                .expect("fabric contribution validates");
+        }
+        validate_host_fabric_fulfillment_plan(&plan).expect("fabric plan validates");
+        let gateway_slot = registry
+            .slot_postures
+            .iter()
+            .find(|slot| slot.slot_ref == "slot:gateway-association")
+            .expect("gateway slot");
+        assert_eq!(target.state, FABRIC_CONTRACT_TARGET_READY);
+        assert_eq!(gateway_slot.candidate_fulfillment_refs.len(), 2);
+        assert_eq!(
+            gateway_slot.selected_fulfillment_ref.as_deref(),
+            Some("fulfillment:gateway-association:local-dev")
+        );
+        assert_eq!(
+            contributions
+                .iter()
+                .filter(|entry| entry.role == FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION)
+                .count(),
+            2
+        );
+        assert!(contributions.iter().any(|entry| {
+            entry.role == FABRIC_MEMBER_ROLE_SERVICE_EDGE_ADAPTER
+                && entry.subject_ref == "service:nvr"
+        }));
+        assert!(
+            plan.member_contribution_refs
+                .contains(&"fabric-contribution:gateway-association:lab-dev".to_string())
+        );
+    }
+
+    #[test]
     fn validates_participant_self_capability_resource_and_retention_posture() {
         let participant_ref = pubkey_from_sk_hex(BROWSER_SK).expect("browser pk");
         let service_member_ref = pubkey_from_sk_hex(GATEWAY_SK).expect("gateway pk");

@@ -2211,6 +2211,25 @@ test("lab linux contract target vector marks host slots apart from protected cli
   assert.ok(registry.proofRequirementRefs.includes("proof-requirement:lab-live"));
 });
 
+test("multi-gateway contract target vector keeps candidates in registry and fabric contributions", () => {
+  const vector = JSON.parse(readFileSync(new URL("../vectors/contract-target-multi-gateway-v1.json", import.meta.url), "utf8"));
+  const target = assertContractTarget(vector.target);
+  const registry = assertContractTargetRegistryPosture(vector.registry);
+  const contributions = vector.hostFabricContributions.map(assertHostFabricMemberContribution);
+  const plan = assertHostFabricFulfillmentPlan(vector.fulfillmentPlan);
+
+  assert.equal(target.state, FABRIC.CONTRACT_TARGET_STATE.READY);
+  const gatewaySlot = registry.slotPostures.find((slot) => slot.slotRef === "slot:gateway-association");
+  assert.equal(gatewaySlot.state, FABRIC.CONTRACT_TARGET_SLOT_STATE.AVAILABLE);
+  assert.equal(gatewaySlot.candidateFulfillmentRefs.length, 2);
+  assert.equal(gatewaySlot.selectedFulfillmentRef, "fulfillment:gateway-association:local-dev");
+  assert.equal(contributions.filter((entry) => entry.role === FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION).length, 2);
+  assert.equal(contributions.find((entry) => entry.role === FABRIC.MEMBER_ROLE.SERVICE_EDGE_ADAPTER)?.subjectRef, "service:nvr");
+  assert.equal(plan.state, FABRIC.FULFILLMENT_PLAN_STATE.READY);
+  assert.ok(plan.memberContributionRefs.includes("fabric-contribution:gateway-association:lab-dev"));
+  assert.ok(!registry.slotPostures.some((slot) => slot.safeFacts?.serviceIdentityMutation));
+});
+
 test("app runner fulfillment reports reduce operation lifecycle, release, resources, and proof", () => {
   const observedAt = 1700000020;
   const report = assertAppRunnerFulfillmentReport({
