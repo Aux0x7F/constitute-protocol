@@ -2281,6 +2281,18 @@ pub struct ServiceManagerReleaseContractRecord {
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub build_ref: Option<String>,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub source_graph_refs: Vec<String>,
+    #[serde(default)]
+    pub source_snapshot_refs: Vec<String>,
+    #[serde(default)]
+    pub project_refs: Vec<String>,
+    #[serde(default)]
+    pub work_item_refs: Vec<String>,
+    #[serde(default)]
+    pub build_proof_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub release_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -5788,6 +5800,30 @@ pub fn validate_service_manager_release_contract(
     validate_optional_ref(
         record.build_ref.as_deref(),
         "service manager release contract missing buildRef",
+    )?;
+    validate_reference_list(
+        &record.content_index_refs,
+        "service manager release contract missing contentIndexRefs",
+    )?;
+    validate_reference_list(
+        &record.source_graph_refs,
+        "service manager release contract missing sourceGraphRefs",
+    )?;
+    validate_reference_list(
+        &record.source_snapshot_refs,
+        "service manager release contract missing sourceSnapshotRefs",
+    )?;
+    validate_reference_list(
+        &record.project_refs,
+        "service manager release contract missing projectRefs",
+    )?;
+    validate_reference_list(
+        &record.work_item_refs,
+        "service manager release contract missing workItemRefs",
+    )?;
+    validate_reference_list(
+        &record.build_proof_refs,
+        "service manager release contract missing buildProofRefs",
     )?;
     validate_optional_ref(
         record.release_ref.as_deref(),
@@ -14450,6 +14486,12 @@ mod tests {
             app_contract_ref: Some("surface-app:gateway-ui@0.1.0".to_string()),
             version: Some("2026.05.18".to_string()),
             build_ref: Some("build:gateway:2026-05-18".to_string()),
+            content_index_refs: vec!["content-index:gateway-ui:2026-05-18".to_string()],
+            source_graph_refs: vec!["source:graph:gateway-ui".to_string()],
+            source_snapshot_refs: vec!["source:snapshot:gateway-ui:2026-05-18".to_string()],
+            project_refs: vec!["project:constituency".to_string()],
+            work_item_refs: vec!["work-item:surface-bootstrap:2026-05-18".to_string()],
+            build_proof_refs: vec!["build-proof:gateway:2026-05-18".to_string()],
             release_ref: Some("release:gateway:2026-05-18".to_string()),
             rollback_ref: Some("rollback:gateway:previous".to_string()),
             rollback_required: None,
