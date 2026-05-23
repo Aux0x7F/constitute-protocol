@@ -106,6 +106,8 @@ pub const RECORD_CYBERSEC_PROCESSOR_SEED: &str = "cybersec.processor.seed";
 pub const RECORD_CYBERSEC_FINDING: &str = "cybersec.finding";
 pub const RECORD_CYBERSEC_EVIDENCE_HOLD: &str = "cybersec.evidence.hold";
 pub const RECORD_CYBERSEC_MITIGATION_RECOMMENDATION: &str = "cybersec.mitigation.recommendation";
+pub const RECORD_CYBERSEC_MITIGATION_CONSUMER_POSTURE: &str =
+    "cybersec.mitigation.consumer.posture";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -2205,6 +2207,34 @@ pub struct CybersecMitigationRecommendationRecord {
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CybersecMitigationConsumerPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub recommendation_ref: String,
+    pub finding_ref: String,
+    pub processor_report_ref: String,
+    pub consumer_ref: String,
+    pub action_kind: String,
+    pub target_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub supported_action_kinds: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -6029,6 +6059,111 @@ pub fn validate_cybersec_mitigation_recommendation(
     {
         return Err(anyhow!(
             "cybersec mitigation recommendation expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_cybersec_mitigation_consumer_posture(
+    record: &CybersecMitigationConsumerPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CYBERSEC_MITIGATION_CONSUMER_POSTURE,
+        "cybersec mitigation consumer posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "cybersec mitigation consumer posture missing postureId",
+    )?;
+    require_non_empty(
+        &record.recommendation_ref,
+        "cybersec mitigation consumer posture missing recommendationRef",
+    )?;
+    require_non_empty(
+        &record.finding_ref,
+        "cybersec mitigation consumer posture missing findingRef",
+    )?;
+    require_non_empty(
+        &record.processor_report_ref,
+        "cybersec mitigation consumer posture missing processorReportRef",
+    )?;
+    require_non_empty(
+        &record.consumer_ref,
+        "cybersec mitigation consumer posture missing consumerRef",
+    )?;
+    validate_cybersec_mitigation_action(&record.action_kind)?;
+    require_non_empty(
+        &record.target_ref,
+        "cybersec mitigation consumer posture missing targetRef",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "unsupported"
+            | "waitingAuthority"
+            | "actionable"
+            | "accepted"
+            | "rejected"
+            | "applied"
+            | "blocked"
+            | "expired"
+    ) {
+        return Err(anyhow!(
+            "invalid cybersec mitigation consumer posture state"
+        ));
+    }
+    validate_reference_list(
+        &record.authority_refs,
+        "cybersec mitigation consumer posture missing authorityRefs",
+    )?;
+    for action_kind in &record.supported_action_kinds {
+        validate_cybersec_mitigation_action(action_kind)?;
+    }
+    validate_reference_list(
+        &record.evidence_refs,
+        "cybersec mitigation consumer posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "cybersec mitigation consumer posture missing blockedReasons",
+    )?;
+    if matches!(record.state.as_str(), "actionable" | "accepted" | "applied")
+        && record.authority_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "cybersec mitigation consumer actionable state requires authorityRefs"
+        ));
+    }
+    if matches!(record.state.as_str(), "unsupported" | "blocked")
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "cybersec mitigation consumer blocked state requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "cybersec mitigation consumer posture safeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "cybersec mitigation consumer posture safeFacts",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "cybersec mitigation consumer posture",
+    )?;
+    if record.observed_at == 0 {
+        return Err(anyhow!(
+            "cybersec mitigation consumer posture missing observedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "cybersec mitigation consumer posture expiresAt must be after observedAt"
         ));
     }
     Ok(())
@@ -14833,6 +14968,33 @@ mod tests {
         };
         validate_cybersec_mitigation_recommendation(&recommendation)
             .expect("valid cybersec mitigation recommendation");
+        let consumer_posture = CybersecMitigationConsumerPostureRecord {
+            kind: Some(RECORD_CYBERSEC_MITIGATION_CONSUMER_POSTURE.to_string()),
+            posture_id: "cybersec:mitigation-consumer:gateway:runtime-media-path".to_string(),
+            recommendation_ref: recommendation.recommendation_id.clone(),
+            finding_ref: recommendation.finding_ref.clone(),
+            processor_report_ref: recommendation.processor_report_ref.clone(),
+            consumer_ref: "gateway:ops".to_string(),
+            action_kind: recommendation.action_kind.clone(),
+            target_ref: recommendation.target_ref.clone(),
+            state: "actionable".to_string(),
+            authority_refs: vec!["authority:security-ops".to_string()],
+            supported_action_kinds: vec!["requestEvidence".to_string(), "notify".to_string()],
+            evidence_refs: vec![recommendation.recommendation_id.clone()],
+            blocked_reasons: Vec::new(),
+            safe_facts: json!({
+                "recommendationOnly": true,
+                "enforcementOwner": "gateway.consumer"
+            }),
+            observed_at: 1_700_000_079,
+            expires_at: Some(1_700_000_439),
+        };
+        validate_cybersec_mitigation_consumer_posture(&consumer_posture)
+            .expect("valid cybersec mitigation consumer posture");
+        let mut unsupported_consumer = consumer_posture.clone();
+        unsupported_consumer.state = "unsupported".to_string();
+        unsupported_consumer.blocked_reasons.clear();
+        assert!(validate_cybersec_mitigation_consumer_posture(&unsupported_consumer).is_err());
         let mut unauthoritative_recommendation = recommendation;
         unauthoritative_recommendation.authority_refs.clear();
         assert!(

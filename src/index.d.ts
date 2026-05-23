@@ -1518,6 +1518,25 @@ export type CybersecMitigationRecommendationRecord = {
   expiresAt?: number;
 };
 
+export type CybersecMitigationConsumerPostureRecord = {
+  kind?: "cybersec.mitigation.consumer.posture";
+  postureId: string;
+  recommendationRef: string;
+  findingRef: string;
+  processorReportRef: string;
+  consumerRef: string;
+  actionKind: "observe" | "requestEvidence" | "retainEvidence" | "quarantine" | "block" | "rateLimit" | "degrade" | "notify";
+  targetRef: string;
+  state: "unsupported" | "waitingAuthority" | "actionable" | "accepted" | "rejected" | "applied" | "blocked" | "expired";
+  authorityRefs?: string[];
+  supportedActionKinds?: Array<"observe" | "requestEvidence" | "retainEvidence" | "quarantine" | "block" | "rateLimit" | "degrade" | "notify">;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type ProjectionSnapshot = {
   projectionId: string;
   policyId: string;
@@ -3393,6 +3412,7 @@ export function assertCybersecProcessorSeed(record: unknown): CybersecProcessorS
 export function assertCybersecFinding(record: unknown): CybersecFindingRecord;
 export function assertCybersecEvidenceHold(record: unknown): CybersecEvidenceHoldRecord;
 export function assertCybersecMitigationRecommendation(record: unknown): CybersecMitigationRecommendationRecord;
+export function assertCybersecMitigationConsumerPosture(record: unknown): CybersecMitigationConsumerPostureRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {

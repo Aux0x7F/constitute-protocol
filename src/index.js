@@ -1544,6 +1544,7 @@ export const SWARM = Object.freeze({
     CYBERSEC_FINDING: "cybersec.finding",
     CYBERSEC_EVIDENCE_HOLD: "cybersec.evidence.hold",
     CYBERSEC_MITIGATION_RECOMMENDATION: "cybersec.mitigation.recommendation",
+    CYBERSEC_MITIGATION_CONSUMER_POSTURE: "cybersec.mitigation.consumer.posture",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -5400,6 +5401,44 @@ export function assertCybersecMitigationRecommendation(record) {
   if (!Number(record.issuedAt || 0)) throw new Error("cybersec mitigation recommendation missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
     throw new Error("cybersec mitigation recommendation expires before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertCybersecMitigationConsumerPosture(record) {
+  if (!isObject(record)) throw new Error("cybersec mitigation consumer posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CYBERSEC_MITIGATION_CONSUMER_POSTURE, "cybersec mitigation consumer posture");
+  requireString(record.postureId, "cybersec mitigation consumer posture postureId");
+  requireString(record.recommendationRef, "cybersec mitigation consumer posture recommendationRef");
+  requireString(record.findingRef, "cybersec mitigation consumer posture findingRef");
+  requireString(record.processorReportRef, "cybersec mitigation consumer posture processorReportRef");
+  requireString(record.consumerRef, "cybersec mitigation consumer posture consumerRef");
+  assertCybersecMitigationAction(record.actionKind);
+  requireString(record.targetRef, "cybersec mitigation consumer posture targetRef");
+  const state = requireString(record.state, "cybersec mitigation consumer posture state");
+  if (!["unsupported", "waitingAuthority", "actionable", "accepted", "rejected", "applied", "blocked", "expired"].includes(state)) {
+    throw new Error("invalid cybersec mitigation consumer posture state");
+  }
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "cybersec mitigation consumer posture authorityRefs");
+  const supportedActionKinds = requireArray(record.supportedActionKinds || [], "cybersec mitigation consumer posture supportedActionKinds")
+    .map((actionKind) => requireString(actionKind, "cybersec mitigation consumer posture supportedActionKind"));
+  for (const actionKind of supportedActionKinds) assertCybersecMitigationAction(actionKind);
+  assertOptionalReferenceList(record.evidenceRefs, "cybersec mitigation consumer posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "cybersec mitigation consumer posture blockedReasons");
+  if (["actionable", "accepted", "applied"].includes(state) && authorityRefs.length === 0) {
+    throw new Error("cybersec mitigation consumer actionable state requires authorityRefs");
+  }
+  if (["unsupported", "blocked"].includes(state) && blockedReasons.length === 0) {
+    throw new Error("cybersec mitigation consumer blocked state requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "cybersec mitigation consumer posture safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "cybersec mitigation consumer posture safeFacts");
+  }
+  rejectRouteControlByteFields(record, "cybersec mitigation consumer posture");
+  if (!Number(record.observedAt || 0)) throw new Error("cybersec mitigation consumer posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("cybersec mitigation consumer posture expires before observedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }

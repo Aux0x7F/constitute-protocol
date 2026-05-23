@@ -148,6 +148,7 @@ import {
   assertCybersecFinding,
   assertCybersecEvidenceHold,
   assertCybersecMitigationRecommendation,
+  assertCybersecMitigationConsumerPosture,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -4033,6 +4034,30 @@ test("agreement grammar separates action authority, access epochs, private reada
     expiresAt: 1700000438,
   });
   assert.equal(recommendation.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  const consumerPosture = assertCybersecMitigationConsumerPosture({
+    kind: SWARM.RECORD_KIND.CYBERSEC_MITIGATION_CONSUMER_POSTURE,
+    postureId: "cybersec:mitigation-consumer:gateway:runtime-media-path",
+    recommendationRef: recommendation.recommendationId,
+    findingRef: recommendation.findingRef,
+    processorReportRef: recommendation.processorReportRef,
+    consumerRef: "gateway:ops",
+    actionKind: recommendation.actionKind,
+    targetRef: recommendation.targetRef,
+    state: "actionable",
+    authorityRefs: recommendation.authorityRefs,
+    supportedActionKinds: ["requestEvidence", "notify"],
+    evidenceRefs: [recommendation.recommendationId],
+    safeFacts: { recommendationOnly: true, enforcementOwner: "gateway.consumer" },
+    observedAt: 1700000079,
+    expiresAt: 1700000439,
+  });
+  assert.equal(consumerPosture.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertCybersecMitigationConsumerPosture({
+    ...consumerPosture,
+    postureId: "cybersec:mitigation-consumer:gateway:unsupported",
+    state: "unsupported",
+    blockedReasons: [],
+  }), /blocked state requires blockedReasons/);
   assert.throws(() => assertCybersecMitigationRecommendation({
     ...recommendation,
     recommendationId: "cybersec:recommendation:unauthorized",
