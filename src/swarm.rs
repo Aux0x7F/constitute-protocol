@@ -103,6 +103,9 @@ pub const RECORD_EVENT_FABRIC_ACCESS_CLASS: &str = "event.fabric.accessClass";
 pub const RECORD_EVENT_FABRIC_PROCESSOR_CONTRACT: &str = "event.fabric.processor.contract";
 pub const RECORD_EVENT_FABRIC_PROCESSOR_REPORT: &str = "event.fabric.processor.report";
 pub const RECORD_CYBERSEC_PROCESSOR_SEED: &str = "cybersec.processor.seed";
+pub const RECORD_CYBERSEC_FINDING: &str = "cybersec.finding";
+pub const RECORD_CYBERSEC_EVIDENCE_HOLD: &str = "cybersec.evidence.hold";
+pub const RECORD_CYBERSEC_MITIGATION_RECOMMENDATION: &str = "cybersec.mitigation.recommendation";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -2041,6 +2044,16 @@ pub struct EventFabricProcessorReportRecord {
     #[serde(default)]
     pub storage_refs: Vec<String>,
     #[serde(default)]
+    pub finding_refs: Vec<String>,
+    #[serde(default)]
+    pub alert_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_hold_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_demand_refs: Vec<String>,
+    #[serde(default)]
+    pub mitigation_recommendation_refs: Vec<String>,
+    #[serde(default)]
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
@@ -2094,6 +2107,101 @@ pub struct CybersecProcessorSeedRecord {
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CybersecFindingRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub finding_id: String,
+    pub processor_report_ref: String,
+    pub processor_ref: String,
+    pub processor_role_ref: String,
+    pub subject_ref: String,
+    pub finding_kind: String,
+    pub severity: String,
+    pub state: String,
+    pub confidence_score: f64,
+    #[serde(default)]
+    pub input_access_class_refs: Vec<String>,
+    #[serde(default)]
+    pub observed_event_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_hold_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_demand_refs: Vec<String>,
+    #[serde(default)]
+    pub mitigation_recommendation_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CybersecEvidenceHoldRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub hold_id: String,
+    pub finding_ref: String,
+    pub processor_report_ref: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub event_refs: Vec<String>,
+    #[serde(default)]
+    pub detail_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub retention_demand_refs: Vec<String>,
+    #[serde(default)]
+    pub access_group_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CybersecMitigationRecommendationRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub recommendation_id: String,
+    pub finding_ref: String,
+    pub processor_report_ref: String,
+    pub recommender_ref: String,
+    pub action_kind: String,
+    pub target_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub consumer_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
@@ -5430,6 +5538,26 @@ pub fn validate_event_fabric_processor_report(
         "event fabric processor report missing storageRefs",
     )?;
     validate_reference_list(
+        &record.finding_refs,
+        "event fabric processor report missing findingRefs",
+    )?;
+    validate_reference_list(
+        &record.alert_refs,
+        "event fabric processor report missing alertRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_hold_refs,
+        "event fabric processor report missing evidenceHoldRefs",
+    )?;
+    validate_reference_list(
+        &record.retention_demand_refs,
+        "event fabric processor report missing retentionDemandRefs",
+    )?;
+    validate_reference_list(
+        &record.mitigation_recommendation_refs,
+        "event fabric processor report missing mitigationRecommendationRefs",
+    )?;
+    validate_reference_list(
         &record.evidence_refs,
         "event fabric processor report missing evidenceRefs",
     )?;
@@ -5615,6 +5743,292 @@ pub fn validate_cybersec_processor_seed(record: &CybersecProcessorSeedRecord) ->
     {
         return Err(anyhow!(
             "cybersec processor seed expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_cybersec_severity(severity: &str) -> Result<()> {
+    if matches!(severity, "info" | "low" | "medium" | "high" | "critical") {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid cybersec finding severity"))
+    }
+}
+
+fn validate_cybersec_mitigation_action(action_kind: &str) -> Result<()> {
+    if matches!(
+        action_kind,
+        "observe"
+            | "requestEvidence"
+            | "retainEvidence"
+            | "quarantine"
+            | "block"
+            | "rateLimit"
+            | "degrade"
+            | "notify"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid cybersec mitigation actionKind"))
+    }
+}
+
+pub fn validate_cybersec_finding(record: &CybersecFindingRecord) -> Result<()> {
+    validate_optional_kind(&record.kind, RECORD_CYBERSEC_FINDING, "cybersec finding")?;
+    require_non_empty(&record.finding_id, "cybersec finding missing findingId")?;
+    require_non_empty(
+        &record.processor_report_ref,
+        "cybersec finding missing processorReportRef",
+    )?;
+    require_non_empty(
+        &record.processor_ref,
+        "cybersec finding missing processorRef",
+    )?;
+    require_non_empty(
+        &record.processor_role_ref,
+        "cybersec finding missing processorRoleRef",
+    )?;
+    require_non_empty(&record.subject_ref, "cybersec finding missing subjectRef")?;
+    require_non_empty(&record.finding_kind, "cybersec finding missing findingKind")?;
+    validate_cybersec_severity(&record.severity)?;
+    if !matches!(
+        record.state.as_str(),
+        "open" | "triaged" | "suppressed" | "resolved" | "blocked" | "expired"
+    ) {
+        return Err(anyhow!("invalid cybersec finding state"));
+    }
+    if !(0.0..=1.0).contains(&record.confidence_score) {
+        return Err(anyhow!(
+            "cybersec finding confidenceScore must be between 0 and 1"
+        ));
+    }
+    validate_reference_list(
+        &record.input_access_class_refs,
+        "cybersec finding missing inputAccessClassRefs",
+    )?;
+    validate_reference_list(
+        &record.observed_event_refs,
+        "cybersec finding missing observedEventRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "cybersec finding missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "cybersec finding missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_hold_refs,
+        "cybersec finding missing evidenceHoldRefs",
+    )?;
+    validate_reference_list(
+        &record.retention_demand_refs,
+        "cybersec finding missing retentionDemandRefs",
+    )?;
+    validate_reference_list(
+        &record.mitigation_recommendation_refs,
+        "cybersec finding missing mitigationRecommendationRefs",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "cybersec finding blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "cybersec finding missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "cybersec finding safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "cybersec finding safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "cybersec finding")?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("cybersec finding missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "cybersec finding expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_cybersec_evidence_hold(record: &CybersecEvidenceHoldRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CYBERSEC_EVIDENCE_HOLD,
+        "cybersec evidence hold",
+    )?;
+    require_non_empty(&record.hold_id, "cybersec evidence hold missing holdId")?;
+    require_non_empty(
+        &record.finding_ref,
+        "cybersec evidence hold missing findingRef",
+    )?;
+    require_non_empty(
+        &record.processor_report_ref,
+        "cybersec evidence hold missing processorReportRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "cybersec evidence hold missing subjectRef",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "requested" | "holding" | "released" | "blocked" | "expired"
+    ) {
+        return Err(anyhow!("invalid cybersec evidence hold state"));
+    }
+    validate_reference_list(
+        &record.event_refs,
+        "cybersec evidence hold missing eventRefs",
+    )?;
+    validate_reference_list(
+        &record.detail_refs,
+        "cybersec evidence hold missing detailRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "cybersec evidence hold missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.retention_demand_refs,
+        "cybersec evidence hold missing retentionDemandRefs",
+    )?;
+    validate_reference_list(
+        &record.access_group_refs,
+        "cybersec evidence hold missing accessGroupRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "cybersec evidence hold missing evidenceRefs",
+    )?;
+    if record.state == "holding"
+        && record.event_refs.is_empty()
+        && record.detail_refs.is_empty()
+        && record.storage_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "cybersec evidence hold holding state requires eventRefs, detailRefs, or storageRefs"
+        ));
+    }
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "cybersec evidence hold blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "cybersec evidence hold missing blockedReasons",
+    )?;
+    validate_safe_facts(&record.safe_facts, "cybersec evidence hold safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "cybersec evidence hold safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "cybersec evidence hold")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("cybersec evidence hold missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "cybersec evidence hold expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_cybersec_mitigation_recommendation(
+    record: &CybersecMitigationRecommendationRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CYBERSEC_MITIGATION_RECOMMENDATION,
+        "cybersec mitigation recommendation",
+    )?;
+    require_non_empty(
+        &record.recommendation_id,
+        "cybersec mitigation recommendation missing recommendationId",
+    )?;
+    require_non_empty(
+        &record.finding_ref,
+        "cybersec mitigation recommendation missing findingRef",
+    )?;
+    require_non_empty(
+        &record.processor_report_ref,
+        "cybersec mitigation recommendation missing processorReportRef",
+    )?;
+    require_non_empty(
+        &record.recommender_ref,
+        "cybersec mitigation recommendation missing recommenderRef",
+    )?;
+    validate_cybersec_mitigation_action(&record.action_kind)?;
+    require_non_empty(
+        &record.target_ref,
+        "cybersec mitigation recommendation missing targetRef",
+    )?;
+    if !matches!(
+        record.state.as_str(),
+        "recommended" | "accepted" | "rejected" | "applied" | "blocked" | "expired"
+    ) {
+        return Err(anyhow!("invalid cybersec mitigation recommendation state"));
+    }
+    validate_reference_list(
+        &record.authority_refs,
+        "cybersec mitigation recommendation missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.consumer_refs,
+        "cybersec mitigation recommendation missing consumerRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "cybersec mitigation recommendation missing evidenceRefs",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        "recommended" | "accepted" | "applied"
+    ) && record.authority_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "cybersec mitigation recommendation actionable state requires authorityRefs"
+        ));
+    }
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "cybersec mitigation recommendation blocked state requires blockedReasons"
+        ));
+    }
+    validate_reference_list(
+        &record.blocked_reasons,
+        "cybersec mitigation recommendation missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "cybersec mitigation recommendation safeFacts",
+    )?;
+    reject_private_content_fields(
+        &record.safe_facts,
+        "cybersec mitigation recommendation safeFacts",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "cybersec mitigation recommendation",
+    )?;
+    if record.issued_at == 0 {
+        return Err(anyhow!(
+            "cybersec mitigation recommendation missing issuedAt"
+        ));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "cybersec mitigation recommendation expiresAt must be after issuedAt"
         ));
     }
     Ok(())
@@ -11955,6 +12369,8 @@ fn is_unsafe_safe_fact_key(key: &str) -> bool {
             | "sdp"
             | "offerSdp"
             | "answerSdp"
+            | "rawPayload"
+            | "requestBody"
             | "cameraUrl"
             | "servicePrivateUrl"
             | "rtspUrl"
@@ -14265,6 +14681,13 @@ mod tests {
             observed_event_refs: vec!["event:runtime:media-path:1".to_string()],
             held_event_refs: vec!["event:runtime:media-path:1".to_string()],
             storage_refs: vec!["storage:logging.archive".to_string()],
+            finding_refs: vec!["cybersec:finding:runtime-media-path:1".to_string()],
+            alert_refs: vec!["cybersec:alert:runtime-media-path:1".to_string()],
+            evidence_hold_refs: vec!["cybersec:evidence-hold:runtime-media-path:1".to_string()],
+            retention_demand_refs: vec!["retention:cybersec:runtime-media-path:1".to_string()],
+            mitigation_recommendation_refs: vec![
+                "cybersec:recommendation:runtime-media-path:observe".to_string(),
+            ],
             safe_facts: json!({
                 "eventCount": 1,
                 "alertCount": 1,
@@ -14284,7 +14707,7 @@ mod tests {
         bad_processor_report.report_id = "processor-report:blocked".to_string();
         bad_processor_report.state = "blocked".to_string();
         assert!(validate_event_fabric_processor_report(&bad_processor_report).is_err());
-        let mut leaky_processor_report = processor_report;
+        let mut leaky_processor_report = processor_report.clone();
         leaky_processor_report.safe_facts = json!({ "ciphertext": "not-safe" });
         assert!(validate_event_fabric_processor_report(&leaky_processor_report).is_err());
 
@@ -14333,6 +14756,88 @@ mod tests {
         let mut missing_boundary = cybersec_seed;
         missing_boundary.semantic_boundaries = json!({ "logging": "mayConsumeMaterializations" });
         assert!(validate_cybersec_processor_seed(&missing_boundary).is_err());
+
+        let finding = CybersecFindingRecord {
+            kind: Some(RECORD_CYBERSEC_FINDING.to_string()),
+            finding_id: "cybersec:finding:runtime-media-path:1".to_string(),
+            processor_report_ref: processor_report.report_id.clone(),
+            processor_ref: processor_report.processor_ref.clone(),
+            processor_role_ref: processor_report.processor_role_ref.clone(),
+            subject_ref: "runtime:media-path:1".to_string(),
+            finding_kind: "mediaPathAnomaly".to_string(),
+            severity: "medium".to_string(),
+            state: "open".to_string(),
+            confidence_score: 0.86,
+            input_access_class_refs: vec![event_class.class_id.clone()],
+            observed_event_refs: processor_report.observed_event_refs.clone(),
+            access_group_refs: vec![group.group_id.clone()],
+            evidence_refs: vec![processor_report.report_id.clone()],
+            evidence_hold_refs: processor_report.evidence_hold_refs.clone(),
+            retention_demand_refs: processor_report.retention_demand_refs.clone(),
+            mitigation_recommendation_refs: processor_report.mitigation_recommendation_refs.clone(),
+            safe_facts: json!({
+                "kind": "mediaPathAnomaly",
+                "severity": "medium",
+                "confidence": 0.86
+            }),
+            blocked_reasons: Vec::new(),
+            observed_at: 1_700_000_076,
+            expires_at: Some(1_700_000_436),
+        };
+        validate_cybersec_finding(&finding).expect("valid cybersec finding");
+        let mut leaky_finding = finding.clone();
+        leaky_finding.safe_facts = json!({ "rawPayload": "not-safe" });
+        assert!(validate_cybersec_finding(&leaky_finding).is_err());
+
+        let evidence_hold = CybersecEvidenceHoldRecord {
+            kind: Some(RECORD_CYBERSEC_EVIDENCE_HOLD.to_string()),
+            hold_id: "cybersec:evidence-hold:runtime-media-path:1".to_string(),
+            finding_ref: finding.finding_id.clone(),
+            processor_report_ref: processor_report.report_id.clone(),
+            subject_ref: finding.subject_ref.clone(),
+            state: "holding".to_string(),
+            event_refs: processor_report.observed_event_refs.clone(),
+            detail_refs: vec!["encrypted-detail:logging.default".to_string()],
+            storage_refs: processor_report.storage_refs.clone(),
+            retention_demand_refs: processor_report.retention_demand_refs.clone(),
+            access_group_refs: vec![group.group_id.clone()],
+            evidence_refs: vec![finding.finding_id.clone()],
+            safe_facts: json!({ "heldEventCount": 1 }),
+            blocked_reasons: Vec::new(),
+            issued_at: 1_700_000_077,
+            expires_at: Some(1_707_776_077),
+        };
+        validate_cybersec_evidence_hold(&evidence_hold).expect("valid cybersec evidence hold");
+        let mut empty_hold = evidence_hold.clone();
+        empty_hold.event_refs.clear();
+        empty_hold.detail_refs.clear();
+        empty_hold.storage_refs.clear();
+        assert!(validate_cybersec_evidence_hold(&empty_hold).is_err());
+
+        let recommendation = CybersecMitigationRecommendationRecord {
+            kind: Some(RECORD_CYBERSEC_MITIGATION_RECOMMENDATION.to_string()),
+            recommendation_id: "cybersec:recommendation:runtime-media-path:observe".to_string(),
+            finding_ref: finding.finding_id.clone(),
+            processor_report_ref: processor_report.report_id.clone(),
+            recommender_ref: processor_report.processor_ref.clone(),
+            action_kind: "requestEvidence".to_string(),
+            target_ref: finding.subject_ref.clone(),
+            state: "recommended".to_string(),
+            authority_refs: vec!["authority:security-ops".to_string()],
+            consumer_refs: vec!["gateway:ops".to_string(), "moderation:queue".to_string()],
+            evidence_refs: vec![finding.finding_id.clone()],
+            safe_facts: json!({ "recommendationOnly": true }),
+            blocked_reasons: Vec::new(),
+            issued_at: 1_700_000_078,
+            expires_at: Some(1_700_000_438),
+        };
+        validate_cybersec_mitigation_recommendation(&recommendation)
+            .expect("valid cybersec mitigation recommendation");
+        let mut unauthoritative_recommendation = recommendation;
+        unauthoritative_recommendation.authority_refs.clear();
+        assert!(
+            validate_cybersec_mitigation_recommendation(&unauthoritative_recommendation).is_err()
+        );
 
         let revocation = AuthorityGrantRevocationPostureRecord {
             kind: Some(RECORD_AUTHORITY_GRANT_REVOCATION_POSTURE.to_string()),

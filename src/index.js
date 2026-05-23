@@ -1541,6 +1541,9 @@ export const SWARM = Object.freeze({
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
     EVENT_FABRIC_PROCESSOR_REPORT: "event.fabric.processor.report",
     CYBERSEC_PROCESSOR_SEED: "cybersec.processor.seed",
+    CYBERSEC_FINDING: "cybersec.finding",
+    CYBERSEC_EVIDENCE_HOLD: "cybersec.evidence.hold",
+    CYBERSEC_MITIGATION_RECOMMENDATION: "cybersec.mitigation.recommendation",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -5208,6 +5211,11 @@ export function assertEventFabricProcessorReport(record) {
   assertOptionalReferenceList(record.observedEventRefs, "event fabric processor report observedEventRefs");
   assertOptionalReferenceList(record.heldEventRefs, "event fabric processor report heldEventRefs");
   assertOptionalReferenceList(record.storageRefs, "event fabric processor report storageRefs");
+  assertOptionalReferenceList(record.findingRefs, "event fabric processor report findingRefs");
+  assertOptionalReferenceList(record.alertRefs, "event fabric processor report alertRefs");
+  assertOptionalReferenceList(record.evidenceHoldRefs, "event fabric processor report evidenceHoldRefs");
+  assertOptionalReferenceList(record.retentionDemandRefs, "event fabric processor report retentionDemandRefs");
+  assertOptionalReferenceList(record.mitigationRecommendationRefs, "event fabric processor report mitigationRecommendationRefs");
   assertOptionalReferenceList(record.evidenceRefs, "event fabric processor report evidenceRefs");
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "event fabric processor report blockedReasons");
   if (state === "blocked" && blockedReasons.length === 0) {
@@ -5270,6 +5278,128 @@ export function assertCybersecProcessorSeed(record) {
   if (!Number(record.issuedAt || 0)) throw new Error("cybersec processor seed missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
     throw new Error("cybersec processor seed expires before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+function assertCybersecFindingSeverity(severity) {
+  const value = requireString(severity, "cybersec finding severity");
+  if (!["info", "low", "medium", "high", "critical"].includes(value)) throw new Error("invalid cybersec finding severity");
+  return value;
+}
+
+function assertCybersecMitigationAction(actionKind) {
+  const value = requireString(actionKind, "cybersec mitigation recommendation actionKind");
+  if (!["observe", "requestEvidence", "retainEvidence", "quarantine", "block", "rateLimit", "degrade", "notify"].includes(value)) {
+    throw new Error("invalid cybersec mitigation recommendation actionKind");
+  }
+  return value;
+}
+
+export function assertCybersecFinding(record) {
+  if (!isObject(record)) throw new Error("cybersec finding must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CYBERSEC_FINDING, "cybersec finding");
+  requireString(record.findingId, "cybersec finding findingId");
+  requireString(record.processorReportRef, "cybersec finding processorReportRef");
+  requireString(record.processorRef, "cybersec finding processorRef");
+  requireString(record.processorRoleRef, "cybersec finding processorRoleRef");
+  requireString(record.subjectRef, "cybersec finding subjectRef");
+  requireString(record.findingKind, "cybersec finding findingKind");
+  assertCybersecFindingSeverity(record.severity);
+  const state = requireString(record.state, "cybersec finding state");
+  if (!["open", "triaged", "suppressed", "resolved", "blocked", "expired"].includes(state)) throw new Error("invalid cybersec finding state");
+  const confidenceScore = Number(record.confidenceScore);
+  if (!Number.isFinite(confidenceScore) || confidenceScore < 0 || confidenceScore > 1) {
+    throw new Error("cybersec finding confidenceScore must be between 0 and 1");
+  }
+  assertOptionalReferenceList(record.inputAccessClassRefs, "cybersec finding inputAccessClassRefs");
+  assertOptionalReferenceList(record.observedEventRefs, "cybersec finding observedEventRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "cybersec finding accessGroupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "cybersec finding evidenceRefs");
+  assertOptionalReferenceList(record.evidenceHoldRefs, "cybersec finding evidenceHoldRefs");
+  assertOptionalReferenceList(record.retentionDemandRefs, "cybersec finding retentionDemandRefs");
+  assertOptionalReferenceList(record.mitigationRecommendationRefs, "cybersec finding mitigationRecommendationRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "cybersec finding blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("cybersec finding blocked state requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "cybersec finding safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "cybersec finding safeFacts");
+  }
+  rejectRouteControlByteFields(record, "cybersec finding");
+  if (!Number(record.observedAt || 0)) throw new Error("cybersec finding missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("cybersec finding expires before observedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertCybersecEvidenceHold(record) {
+  if (!isObject(record)) throw new Error("cybersec evidence hold must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CYBERSEC_EVIDENCE_HOLD, "cybersec evidence hold");
+  requireString(record.holdId, "cybersec evidence hold holdId");
+  requireString(record.findingRef, "cybersec evidence hold findingRef");
+  requireString(record.processorReportRef, "cybersec evidence hold processorReportRef");
+  requireString(record.subjectRef, "cybersec evidence hold subjectRef");
+  const state = requireString(record.state, "cybersec evidence hold state");
+  if (!["requested", "holding", "released", "blocked", "expired"].includes(state)) throw new Error("invalid cybersec evidence hold state");
+  const eventRefs = assertOptionalReferenceList(record.eventRefs, "cybersec evidence hold eventRefs");
+  const detailRefs = assertOptionalReferenceList(record.detailRefs, "cybersec evidence hold detailRefs");
+  const storageRefs = assertOptionalReferenceList(record.storageRefs, "cybersec evidence hold storageRefs");
+  assertOptionalReferenceList(record.retentionDemandRefs, "cybersec evidence hold retentionDemandRefs");
+  assertOptionalReferenceList(record.accessGroupRefs, "cybersec evidence hold accessGroupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "cybersec evidence hold evidenceRefs");
+  if (state === "holding" && eventRefs.length === 0 && detailRefs.length === 0 && storageRefs.length === 0) {
+    throw new Error("cybersec evidence hold holding state requires eventRefs, detailRefs, or storageRefs");
+  }
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "cybersec evidence hold blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("cybersec evidence hold blocked state requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "cybersec evidence hold safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "cybersec evidence hold safeFacts");
+  }
+  rejectRouteControlByteFields(record, "cybersec evidence hold");
+  if (!Number(record.issuedAt || 0)) throw new Error("cybersec evidence hold missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("cybersec evidence hold expires before issuedAt");
+  }
+  return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertCybersecMitigationRecommendation(record) {
+  if (!isObject(record)) throw new Error("cybersec mitigation recommendation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CYBERSEC_MITIGATION_RECOMMENDATION, "cybersec mitigation recommendation");
+  requireString(record.recommendationId, "cybersec mitigation recommendation recommendationId");
+  requireString(record.findingRef, "cybersec mitigation recommendation findingRef");
+  requireString(record.processorReportRef, "cybersec mitigation recommendation processorReportRef");
+  requireString(record.recommenderRef, "cybersec mitigation recommendation recommenderRef");
+  assertCybersecMitigationAction(record.actionKind);
+  requireString(record.targetRef, "cybersec mitigation recommendation targetRef");
+  const state = requireString(record.state, "cybersec mitigation recommendation state");
+  if (!["recommended", "accepted", "rejected", "applied", "blocked", "expired"].includes(state)) {
+    throw new Error("invalid cybersec mitigation recommendation state");
+  }
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "cybersec mitigation recommendation authorityRefs");
+  assertOptionalReferenceList(record.consumerRefs, "cybersec mitigation recommendation consumerRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "cybersec mitigation recommendation evidenceRefs");
+  if (["recommended", "accepted", "applied"].includes(state) && authorityRefs.length === 0) {
+    throw new Error("cybersec mitigation recommendation actionable state requires authorityRefs");
+  }
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "cybersec mitigation recommendation blockedReasons");
+  if (state === "blocked" && blockedReasons.length === 0) {
+    throw new Error("cybersec mitigation recommendation blocked state requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "cybersec mitigation recommendation safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "cybersec mitigation recommendation safeFacts");
+  }
+  rejectRouteControlByteFields(record, "cybersec mitigation recommendation");
+  if (!Number(record.issuedAt || 0)) throw new Error("cybersec mitigation recommendation missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("cybersec mitigation recommendation expires before issuedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }

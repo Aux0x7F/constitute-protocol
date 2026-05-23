@@ -145,6 +145,9 @@ import {
   assertEventFabricProcessorContract,
   assertEventFabricProcessorReport,
   assertCybersecProcessorSeed,
+  assertCybersecFinding,
+  assertCybersecEvidenceHold,
+  assertCybersecMitigationRecommendation,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -3871,6 +3874,11 @@ test("agreement grammar separates action authority, access epochs, private reada
     observedEventRefs: ["event:runtime:media-path:1"],
     heldEventRefs: ["event:runtime:media-path:1"],
     storageRefs: ["storage:logging.archive"],
+    findingRefs: ["cybersec:finding:runtime-media-path:1"],
+    alertRefs: ["cybersec:alert:runtime-media-path:1"],
+    evidenceHoldRefs: ["cybersec:evidence-hold:runtime-media-path:1"],
+    retentionDemandRefs: ["retention:cybersec:runtime-media-path:1"],
+    mitigationRecommendationRefs: ["cybersec:recommendation:runtime-media-path:observe"],
     safeFacts: {
       eventCount: 1,
       alertCount: 1,
@@ -3943,6 +3951,93 @@ test("agreement grammar separates action authority, access epochs, private reada
     ...cybersecSeed,
     semanticBoundaries: { logging: "mayConsumeMaterializations" },
   }), /semanticBoundaries storage/);
+
+  const finding = assertCybersecFinding({
+    kind: SWARM.RECORD_KIND.CYBERSEC_FINDING,
+    findingId: "cybersec:finding:runtime-media-path:1",
+    processorReportRef: processorReport.reportId,
+    processorRef: processorReport.processorRef,
+    processorRoleRef: processorReport.processorRoleRef,
+    subjectRef: "runtime:media-path:1",
+    findingKind: "mediaPathAnomaly",
+    severity: "medium",
+    state: "open",
+    confidenceScore: 0.86,
+    inputAccessClassRefs: ["event-class:cybersec-runtime"],
+    observedEventRefs: processorReport.observedEventRefs,
+    accessGroupRefs: [group.groupId],
+    evidenceRefs: [processorReport.reportId],
+    evidenceHoldRefs: processorReport.evidenceHoldRefs,
+    retentionDemandRefs: processorReport.retentionDemandRefs,
+    mitigationRecommendationRefs: processorReport.mitigationRecommendationRefs,
+    safeFacts: {
+      findingKind: "mediaPathAnomaly",
+      severity: "medium",
+      confidenceScore: 0.86,
+    },
+    observedAt: 1700000076,
+    expiresAt: 1700000436,
+  });
+  assert.equal(finding.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertCybersecFinding({
+    ...finding,
+    findingId: "cybersec:finding:leaky",
+    safeFacts: { rawPayload: "not-safe" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+  assert.throws(() => assertCybersecFinding({
+    ...finding,
+    findingId: "cybersec:finding:confidence",
+    confidenceScore: 1.5,
+  }), /confidenceScore/);
+
+  const evidenceHold = assertCybersecEvidenceHold({
+    kind: SWARM.RECORD_KIND.CYBERSEC_EVIDENCE_HOLD,
+    holdId: "cybersec:evidence-hold:runtime-media-path:1",
+    findingRef: finding.findingId,
+    processorReportRef: processorReport.reportId,
+    subjectRef: finding.subjectRef,
+    state: "holding",
+    eventRefs: processorReport.observedEventRefs,
+    detailRefs: ["encrypted-detail:logging.default"],
+    storageRefs: processorReport.storageRefs,
+    retentionDemandRefs: processorReport.retentionDemandRefs,
+    accessGroupRefs: [group.groupId],
+    evidenceRefs: [finding.findingId],
+    safeFacts: { heldEventCount: 1 },
+    issuedAt: 1700000077,
+    expiresAt: 1707776077,
+  });
+  assert.equal(evidenceHold.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertCybersecEvidenceHold({
+    ...evidenceHold,
+    holdId: "cybersec:evidence-hold:empty",
+    eventRefs: [],
+    detailRefs: [],
+    storageRefs: [],
+  }), /holding state requires eventRefs/);
+
+  const recommendation = assertCybersecMitigationRecommendation({
+    kind: SWARM.RECORD_KIND.CYBERSEC_MITIGATION_RECOMMENDATION,
+    recommendationId: "cybersec:recommendation:runtime-media-path:observe",
+    findingRef: finding.findingId,
+    processorReportRef: processorReport.reportId,
+    recommenderRef: processorReport.processorRef,
+    actionKind: "requestEvidence",
+    targetRef: finding.subjectRef,
+    state: "recommended",
+    authorityRefs: ["authority:security-ops"],
+    consumerRefs: ["gateway:ops", "moderation:queue"],
+    evidenceRefs: [finding.findingId],
+    safeFacts: { recommendationOnly: true },
+    issuedAt: 1700000078,
+    expiresAt: 1700000438,
+  });
+  assert.equal(recommendation.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertCybersecMitigationRecommendation({
+    ...recommendation,
+    recommendationId: "cybersec:recommendation:unauthorized",
+    authorityRefs: [],
+  }), /actionable state requires authorityRefs/);
 
   assert.equal(assertAuthorityGrantRevocationPosture({
     kind: "authority.grant.revocationPosture",
