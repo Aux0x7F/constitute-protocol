@@ -31,6 +31,7 @@ import {
   assertHostFabricTopologyProjection,
   assertHostFabricControlDecision,
   assertHostFabricLegacyControlBridge,
+  assertHostFabricAdapterExecutionEvidence,
   assertHostFabricMemberContribution,
   assertLifecycleDependencyEdge,
   assertLifecyclePlanPosture,
@@ -2062,11 +2063,42 @@ test("host fabric records separate association, composition, lifecycle, source t
     expiresAt: observedAt + 600,
   });
   assert.equal(legacyBridge.sourceDecisionRef, controlDecision.decisionId);
+  const adapterExecution = assertHostFabricAdapterExecutionEvidence({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE,
+    evidenceId: "host-adapter-execution:lab-gateway:health-check:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    adapterRef: "adapter:host-service:systemd",
+    subjectRef: "service:nvr",
+    operationRef: controlDecision.operationRef,
+    state: FABRIC.ADAPTER_EXECUTION_STATE.SUCCEEDED,
+    sourceDecisionRef: controlDecision.decisionId,
+    sourcePlanRef: plan.planId,
+    sourceBridgeRef: legacyBridge.bridgeId,
+    delegatedRoleRef: controlDecision.delegatedRoleRef,
+    actionAuthorityRefs: plan.actionAuthorityRefs,
+    evidenceRequirementRefs: plan.evidenceRequirementRefs,
+    inputRefs: [controlDecision.operationRef, plan.planId],
+    outputRefs: ["evidence:host-adapter:health-check:ok"],
+    fallbackRefs: controlDecision.fallbackRefs,
+    quarantineRefs: controlDecision.quarantineRefs,
+    rollbackRefs: plan.rollbackRefs,
+    evidenceRefs: ["evidence:host-adapter:health-check:ok"],
+    safeFacts: { operation: "healthCheck", dryRun: true },
+    observedAt: observedAt + 1,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(adapterExecution.sourcePlanRef, plan.planId);
   assert.throws(() => assertHostFabricLegacyControlBridge({
     ...legacyBridge,
     bridgeId: "legacy-control-bridge:bad:no-fallback",
     fallbackRefs: [],
   }), /requires fallbackRefs/);
+  assert.throws(() => assertHostFabricAdapterExecutionEvidence({
+    ...adapterExecution,
+    evidenceId: "host-adapter-execution:bad:no-output",
+    outputRefs: [],
+  }), /requires outputRefs/);
   assert.throws(() => assertHostFabricControlDecision({
     ...controlDecision,
     decisionId: "fabric-control:bad:waiting-no-reason",

@@ -360,6 +360,13 @@ export const FABRIC = Object.freeze({
     BLOCKED: "blocked",
     RELEASED: "released",
   }),
+  ADAPTER_EXECUTION_STATE: Object.freeze({
+    SUCCEEDED: "succeeded",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    FAILED: "failed",
+    SKIPPED: "skipped",
+  }),
   LIFECYCLE_PLAN_STATE: Object.freeze({
     READY: "ready",
     RUNNING: "running",
@@ -1627,6 +1634,7 @@ export const SWARM = Object.freeze({
     HOST_FABRIC_TOPOLOGY_PROJECTION: "hostFabric.topology.projection",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
+    HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE: "hostFabric.adapterExecution.evidence",
     LIFECYCLE_DEPENDENCY_EDGE: "lifecycle.dependency.edge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
@@ -1737,6 +1745,7 @@ export const SWARM = Object.freeze({
     HOST_FABRIC_TOPOLOGY_PROJECTION: "hostFabric.topology.projection",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
+    HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE: "hostFabric.adapterExecution.evidence",
     LIFECYCLE_DEPENDENCY_EDGE: "lifecycle.dependency.edge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
@@ -4514,6 +4523,47 @@ export function assertHostFabricLegacyControlBridge(record) {
   return { ...record, state, fallbackRefs, quarantineRefs, blockedReasons, evidenceRefs };
 }
 
+export function assertHostFabricAdapterExecutionEvidence(record) {
+  if (!isObject(record)) throw new Error("host-fabric adapter execution evidence must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE, "host-fabric adapter execution evidence");
+  requireString(record.evidenceId, "host-fabric adapter execution evidence evidenceId");
+  requireString(record.fabricRef, "host-fabric adapter execution evidence fabricRef");
+  requireString(record.hostRef, "host-fabric adapter execution evidence hostRef");
+  requireString(record.adapterRef, "host-fabric adapter execution evidence adapterRef");
+  requireString(record.subjectRef, "host-fabric adapter execution evidence subjectRef");
+  requireString(record.operationRef, "host-fabric adapter execution evidence operationRef");
+  const state = assertEnumValue(record.state, FABRIC.ADAPTER_EXECUTION_STATE, "host-fabric adapter execution evidence state");
+  if (record.sourceDecisionRef !== undefined) requireString(record.sourceDecisionRef, "host-fabric adapter execution evidence sourceDecisionRef");
+  if (record.sourcePlanRef !== undefined) requireString(record.sourcePlanRef, "host-fabric adapter execution evidence sourcePlanRef");
+  if (record.sourceBridgeRef !== undefined) requireString(record.sourceBridgeRef, "host-fabric adapter execution evidence sourceBridgeRef");
+  if (record.delegatedRoleRef !== undefined) requireString(record.delegatedRoleRef, "host-fabric adapter execution evidence delegatedRoleRef");
+  assertOptionalReferenceList(record.actionAuthorityRefs, "host-fabric adapter execution evidence actionAuthorityRefs");
+  assertOptionalReferenceList(record.evidenceRequirementRefs, "host-fabric adapter execution evidence evidenceRequirementRefs");
+  assertOptionalReferenceList(record.inputRefs, "host-fabric adapter execution evidence inputRefs");
+  const outputRefs = assertOptionalReferenceList(record.outputRefs, "host-fabric adapter execution evidence outputRefs");
+  assertOptionalReferenceList(record.fallbackRefs, "host-fabric adapter execution evidence fallbackRefs");
+  assertOptionalReferenceList(record.quarantineRefs, "host-fabric adapter execution evidence quarantineRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "host-fabric adapter execution evidence rollbackRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric adapter execution evidence blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.ADAPTER_EXECUTION_STATE.BLOCKED, FABRIC.ADAPTER_EXECUTION_STATE.FAILED],
+    blockedReasons,
+    "host-fabric adapter execution evidence",
+  );
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "host-fabric adapter execution evidence evidenceRefs");
+  if (state === FABRIC.ADAPTER_EXECUTION_STATE.SUCCEEDED) {
+    requireString(record.sourceDecisionRef, "succeeded host-fabric adapter execution evidence sourceDecisionRef");
+    requireString(record.sourcePlanRef, "succeeded host-fabric adapter execution evidence sourcePlanRef");
+    if (outputRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires outputRefs");
+    if (evidenceRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires evidenceRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric adapter execution evidence safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric adapter execution evidence");
+  assertFabricObservedWindow(record, "host-fabric adapter execution evidence");
+  return { ...record, state, outputRefs, blockedReasons, evidenceRefs };
+}
+
 export function assertLifecyclePlanPosture(record) {
   if (!isObject(record)) throw new Error("lifecycle plan posture must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE, "lifecycle plan posture");
@@ -5903,6 +5953,7 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.HOST_FABRIC_TOPOLOGY_PROJECTION,
     SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
     SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
+    SWARM.RECORD_KIND.HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE,
     SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
     "stream.session.offer",
     "stream.session.answer",

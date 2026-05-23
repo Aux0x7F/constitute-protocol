@@ -3133,6 +3133,7 @@ export type FabricFulfillmentPlanState = "ready" | "degraded" | "blocked" | "exp
 export type FabricTopologyRoleState = "ready" | "degraded" | "blocked" | "missing";
 export type FabricControlDecisionState = "notRequested" | "waitingPlan" | "ready" | "degraded" | "blocked" | "expired";
 export type FabricLegacyControlState = "legacyDirect" | "fallbackAvailable" | "quarantined" | "blocked" | "released";
+export type FabricAdapterExecutionState = "succeeded" | "degraded" | "blocked" | "failed" | "skipped";
 export type FabricLifecyclePlanState = "ready" | "running" | "degraded" | "blocked" | "released" | "expired";
 export type FabricLifecycleDependencyState = "ready" | "degraded" | "blocked" | "missing";
 export type FabricLifecyclePhase = "source" | "build" | "release" | "load" | "run" | "observe" | "rollback" | "expiry" | "cleanup";
@@ -3296,6 +3297,33 @@ export type HostFabricLegacyControlBridge = {
   delegatedRoleRef?: string;
   fallbackRefs?: string[];
   quarantineRefs?: string[];
+  blockedReasons?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type HostFabricAdapterExecutionEvidence = {
+  kind?: "hostFabric.adapterExecution.evidence";
+  evidenceId: string;
+  fabricRef: string;
+  hostRef: string;
+  adapterRef: string;
+  subjectRef: string;
+  operationRef: string;
+  state: FabricAdapterExecutionState;
+  sourceDecisionRef?: string;
+  sourcePlanRef?: string;
+  sourceBridgeRef?: string;
+  delegatedRoleRef?: string;
+  actionAuthorityRefs?: string[];
+  evidenceRequirementRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  fallbackRefs?: string[];
+  quarantineRefs?: string[];
+  rollbackRefs?: string[];
   blockedReasons?: string[];
   evidenceRefs?: string[];
   safeFacts?: Record<string, unknown>;
@@ -3717,6 +3745,7 @@ export function assertHostFabricTopologyRolePosture(record: unknown): HostFabric
 export function assertHostFabricTopologyProjection(record: unknown): HostFabricTopologyProjection;
 export function assertHostFabricControlDecision(record: unknown): HostFabricControlDecision;
 export function assertHostFabricLegacyControlBridge(record: unknown): HostFabricLegacyControlBridge;
+export function assertHostFabricAdapterExecutionEvidence(record: unknown): HostFabricAdapterExecutionEvidence;
 export function assertLifecycleDependencyEdge(record: unknown): LifecycleDependencyEdge;
 export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;
 export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;

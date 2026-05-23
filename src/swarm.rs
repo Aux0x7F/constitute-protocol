@@ -153,6 +153,8 @@ pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.pl
 pub const RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION: &str = "hostFabric.topology.projection";
 pub const RECORD_HOST_FABRIC_CONTROL_DECISION: &str = "hostFabric.control.decision";
 pub const RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE: &str = "hostFabric.legacyControl.bridge";
+pub const RECORD_HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE: &str =
+    "hostFabric.adapterExecution.evidence";
 pub const RECORD_LIFECYCLE_DEPENDENCY_EDGE: &str = "lifecycle.dependency.edge";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
 pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
@@ -317,6 +319,11 @@ pub const FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE: &str = "fallbackAvailable";
 pub const FABRIC_LEGACY_CONTROL_QUARANTINED: &str = "quarantined";
 pub const FABRIC_LEGACY_CONTROL_BLOCKED: &str = "blocked";
 pub const FABRIC_LEGACY_CONTROL_RELEASED: &str = "released";
+pub const FABRIC_ADAPTER_EXECUTION_SUCCEEDED: &str = "succeeded";
+pub const FABRIC_ADAPTER_EXECUTION_DEGRADED: &str = "degraded";
+pub const FABRIC_ADAPTER_EXECUTION_BLOCKED: &str = "blocked";
+pub const FABRIC_ADAPTER_EXECUTION_FAILED: &str = "failed";
+pub const FABRIC_ADAPTER_EXECUTION_SKIPPED: &str = "skipped";
 pub const FABRIC_LIFECYCLE_PLAN_READY: &str = "ready";
 pub const FABRIC_LIFECYCLE_PLAN_RUNNING: &str = "running";
 pub const FABRIC_LIFECYCLE_PLAN_DEGRADED: &str = "degraded";
@@ -3707,6 +3714,51 @@ pub struct HostFabricLegacyControlBridge {
     pub fallback_refs: Vec<String>,
     #[serde(default)]
     pub quarantine_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricAdapterExecutionEvidence {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub evidence_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub adapter_ref: String,
+    pub subject_ref: String,
+    pub operation_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_decision_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_bridge_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delegated_role_ref: Option<String>,
+    #[serde(default)]
+    pub action_authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -10326,6 +10378,132 @@ pub fn validate_host_fabric_legacy_control_bridge(
     )
 }
 
+pub fn validate_host_fabric_adapter_execution_evidence(
+    record: &HostFabricAdapterExecutionEvidence,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE,
+        "host-fabric adapter execution evidence",
+    )?;
+    require_non_empty(
+        &record.evidence_id,
+        "host-fabric adapter execution evidence missing evidenceId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric adapter execution evidence missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric adapter execution evidence missing hostRef",
+    )?;
+    require_non_empty(
+        &record.adapter_ref,
+        "host-fabric adapter execution evidence missing adapterRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric adapter execution evidence missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "host-fabric adapter execution evidence missing operationRef",
+    )?;
+    validate_fabric_adapter_execution_state(&record.state)?;
+    validate_optional_ref(
+        record.source_decision_ref.as_deref(),
+        "host-fabric adapter execution evidence missing sourceDecisionRef",
+    )?;
+    validate_optional_ref(
+        record.source_plan_ref.as_deref(),
+        "host-fabric adapter execution evidence missing sourcePlanRef",
+    )?;
+    validate_optional_ref(
+        record.source_bridge_ref.as_deref(),
+        "host-fabric adapter execution evidence missing sourceBridgeRef",
+    )?;
+    validate_optional_ref(
+        record.delegated_role_ref.as_deref(),
+        "host-fabric adapter execution evidence missing delegatedRoleRef",
+    )?;
+    validate_reference_list(
+        &record.action_authority_refs,
+        "host-fabric adapter execution evidence missing actionAuthorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_requirement_refs,
+        "host-fabric adapter execution evidence missing evidenceRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "host-fabric adapter execution evidence missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "host-fabric adapter execution evidence missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric adapter execution evidence missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric adapter execution evidence missing quarantineRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "host-fabric adapter execution evidence missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric adapter execution evidence missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_ADAPTER_EXECUTION_BLOCKED | FABRIC_ADAPTER_EXECUTION_FAILED
+        ),
+        &record.blocked_reasons,
+        "host-fabric adapter execution evidence",
+    )?;
+    if record.state == FABRIC_ADAPTER_EXECUTION_SUCCEEDED {
+        require_non_empty(
+            record.source_decision_ref.as_deref().unwrap_or_default(),
+            "succeeded host-fabric adapter execution evidence missing sourceDecisionRef",
+        )?;
+        require_non_empty(
+            record.source_plan_ref.as_deref().unwrap_or_default(),
+            "succeeded host-fabric adapter execution evidence missing sourcePlanRef",
+        )?;
+        require_non_empty_vec(
+            &record.output_refs,
+            "succeeded host-fabric adapter execution evidence requires outputRefs",
+        )?;
+        require_non_empty_vec(
+            &record.evidence_refs,
+            "succeeded host-fabric adapter execution evidence requires evidenceRefs",
+        )?;
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric adapter execution evidence safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric adapter execution evidence",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric adapter execution evidence",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric adapter execution evidence",
+    )
+}
+
 fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &str) -> Result<()> {
     validate_fabric_lifecycle_phase(&record.phase)?;
     validate_fabric_lifecycle_phase_state(&record.state)?;
@@ -11779,6 +11957,23 @@ fn validate_fabric_legacy_control_state(state: &str) -> Result<()> {
     } else {
         Err(anyhow!(
             "unsupported host-fabric legacy control bridge state"
+        ))
+    }
+}
+
+fn validate_fabric_adapter_execution_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ADAPTER_EXECUTION_SUCCEEDED
+            | FABRIC_ADAPTER_EXECUTION_DEGRADED
+            | FABRIC_ADAPTER_EXECUTION_BLOCKED
+            | FABRIC_ADAPTER_EXECUTION_FAILED
+            | FABRIC_ADAPTER_EXECUTION_SKIPPED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported host-fabric adapter execution evidence state"
         ))
     }
 }
@@ -14808,10 +15003,44 @@ mod tests {
         validate_host_fabric_legacy_control_bridge(&legacy_bridge)
             .expect("valid fabric legacy control bridge");
 
+        let adapter_execution = HostFabricAdapterExecutionEvidence {
+            kind: Some(RECORD_HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE.to_string()),
+            evidence_id: "host-adapter-execution:lab-gateway:health-check:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            adapter_ref: "adapter:host-service:systemd".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            operation_ref: control_decision.operation_ref.clone(),
+            state: FABRIC_ADAPTER_EXECUTION_SUCCEEDED.to_string(),
+            source_decision_ref: Some(control_decision.decision_id.clone()),
+            source_plan_ref: Some(plan.plan_id.clone()),
+            source_bridge_ref: Some(legacy_bridge.bridge_id.clone()),
+            delegated_role_ref: control_decision.delegated_role_ref.clone(),
+            action_authority_refs: plan.action_authority_refs.clone(),
+            evidence_requirement_refs: plan.evidence_requirement_refs.clone(),
+            input_refs: vec![control_decision.operation_ref.clone(), plan.plan_id.clone()],
+            output_refs: vec!["evidence:host-adapter:health-check:ok".to_string()],
+            fallback_refs: control_decision.fallback_refs.clone(),
+            quarantine_refs: control_decision.quarantine_refs.clone(),
+            rollback_refs: plan.rollback_refs.clone(),
+            blocked_reasons: vec![],
+            evidence_refs: vec!["evidence:host-adapter:health-check:ok".to_string()],
+            safe_facts: json!({ "operation": "healthCheck", "dryRun": true }),
+            observed_at: observed_at + 1,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_adapter_execution_evidence(&adapter_execution)
+            .expect("valid fabric adapter execution evidence");
+
         let mut bad_bridge = legacy_bridge.clone();
         bad_bridge.bridge_id = "legacy-control-bridge:bad:no-fallback".to_string();
         bad_bridge.fallback_refs.clear();
         assert!(validate_host_fabric_legacy_control_bridge(&bad_bridge).is_err());
+
+        let mut bad_execution = adapter_execution.clone();
+        bad_execution.evidence_id = "host-adapter-execution:bad:no-output".to_string();
+        bad_execution.output_refs.clear();
+        assert!(validate_host_fabric_adapter_execution_evidence(&bad_execution).is_err());
 
         let mut missing_plan_decision = control_decision.clone();
         missing_plan_decision.decision_id = "fabric-control:bad:waiting-no-reason".to_string();
