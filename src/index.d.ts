@@ -3204,6 +3204,12 @@ export type HostFabricFulfillmentPlan = {
   missingRoleRefs?: string[];
   lifecyclePlanRefs?: string[];
   materializationBudgetRefs?: string[];
+  actionAuthorityRefs?: string[];
+  delegatedRoleRefs?: string[];
+  fallbackRefs?: string[];
+  quarantineRefs?: string[];
+  rollbackRefs?: string[];
+  evidenceRequirementRefs?: string[];
   associationHandoffRef?: string;
   evidenceRefs?: string[];
   blockedReasons?: string[];

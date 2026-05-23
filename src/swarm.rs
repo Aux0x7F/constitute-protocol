@@ -3552,6 +3552,18 @@ pub struct HostFabricFulfillmentPlan {
     pub lifecycle_plan_refs: Vec<String>,
     #[serde(default)]
     pub materialization_budget_refs: Vec<String>,
+    #[serde(default)]
+    pub action_authority_refs: Vec<String>,
+    #[serde(default)]
+    pub delegated_role_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_requirement_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub association_handoff_ref: Option<String>,
     #[serde(default)]
@@ -9875,6 +9887,30 @@ pub fn validate_host_fabric_fulfillment_plan(record: &HostFabricFulfillmentPlan)
         "host-fabric fulfillment plan missing materializationBudgetRefs",
     )?;
     validate_reference_list(
+        &record.action_authority_refs,
+        "host-fabric fulfillment plan missing actionAuthorityRefs",
+    )?;
+    validate_reference_list(
+        &record.delegated_role_refs,
+        "host-fabric fulfillment plan missing delegatedRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric fulfillment plan missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric fulfillment plan missing quarantineRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "host-fabric fulfillment plan missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_requirement_refs,
+        "host-fabric fulfillment plan missing evidenceRequirementRefs",
+    )?;
+    validate_reference_list(
         &record.evidence_refs,
         "host-fabric fulfillment plan missing evidenceRefs",
     )?;
@@ -14660,6 +14696,19 @@ mod tests {
             lifecycle_plan_refs: vec![lifecycle.lifecycle_plan_id.clone()],
             materialization_budget_refs: vec![
                 "materialization-budget:gateway-association".to_string(),
+            ],
+            action_authority_refs: vec![
+                "authority:ops-admin".to_string(),
+                "grant:gateway-association:fulfill".to_string(),
+            ],
+            delegated_role_refs: vec!["role:gatewayAssociation".to_string()],
+            fallback_refs: vec!["fallback:manual-service-manager".to_string()],
+            quarantine_refs: vec![
+                "quarantine:service-manager:legacy-control:role:gatewayAssociation".to_string(),
+            ],
+            rollback_refs: vec!["rollback:gateway-association@0.1.0".to_string()],
+            evidence_requirement_refs: vec![
+                "proof-requirement:gateway-association:health".to_string(),
             ],
             association_handoff_ref: Some(handoff.handoff_id.clone()),
             evidence_refs: vec!["evidence:fabric:plan-ready".to_string()],

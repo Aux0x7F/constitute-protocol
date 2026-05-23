@@ -4342,6 +4342,12 @@ export function assertHostFabricFulfillmentPlan(record) {
   assertOptionalReferenceList(record.missingRoleRefs, "host-fabric fulfillment plan missingRoleRefs");
   assertOptionalReferenceList(record.lifecyclePlanRefs, "host-fabric fulfillment plan lifecyclePlanRefs");
   assertOptionalReferenceList(record.materializationBudgetRefs, "host-fabric fulfillment plan materializationBudgetRefs");
+  assertOptionalReferenceList(record.actionAuthorityRefs, "host-fabric fulfillment plan actionAuthorityRefs");
+  assertOptionalReferenceList(record.delegatedRoleRefs, "host-fabric fulfillment plan delegatedRoleRefs");
+  assertOptionalReferenceList(record.fallbackRefs, "host-fabric fulfillment plan fallbackRefs");
+  assertOptionalReferenceList(record.quarantineRefs, "host-fabric fulfillment plan quarantineRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "host-fabric fulfillment plan rollbackRefs");
+  assertOptionalReferenceList(record.evidenceRequirementRefs, "host-fabric fulfillment plan evidenceRequirementRefs");
   assertOptionalReferenceList(record.evidenceRefs, "host-fabric fulfillment plan evidenceRefs");
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric fulfillment plan blockedReasons");
   assertBlockedReasonsForState(
