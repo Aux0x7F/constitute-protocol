@@ -3168,10 +3168,14 @@ export type HostFabricMemberContribution = {
   fabricRef: string;
   hostRef: string;
   memberRef: string;
+  participantRef: string;
   role: FabricMemberRole;
+  roleRef: string;
   state: FabricMemberContributionState;
   contractRef: string;
   subjectRef: string;
+  moduleRefs?: string[];
+  sourceRefs?: string[];
   capabilityRefs?: string[];
   grantRefs?: string[];
   inputRefs?: string[];

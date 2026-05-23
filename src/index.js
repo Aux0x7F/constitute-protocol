@@ -4252,10 +4252,14 @@ export function assertHostFabricMemberContribution(record) {
   requireString(record.fabricRef, "host-fabric member contribution fabricRef");
   requireString(record.hostRef, "host-fabric member contribution hostRef");
   assertResolvedMemberRef(record.memberRef, "host-fabric member contribution memberRef");
+  requireString(record.participantRef, "host-fabric member contribution participantRef");
   const role = assertEnumValue(record.role, FABRIC.MEMBER_ROLE, "host-fabric member contribution role");
+  requireString(record.roleRef, "host-fabric member contribution roleRef");
   const state = assertEnumValue(record.state, FABRIC.MEMBER_CONTRIBUTION_STATE, "host-fabric member contribution state");
   requireString(record.contractRef, "host-fabric member contribution contractRef");
   requireString(record.subjectRef, "host-fabric member contribution subjectRef");
+  assertOptionalReferenceList(record.moduleRefs, "host-fabric member contribution moduleRefs");
+  assertOptionalReferenceList(record.sourceRefs, "host-fabric member contribution sourceRefs");
   assertOptionalReferenceList(record.capabilityRefs, "host-fabric member contribution capabilityRefs");
   assertOptionalReferenceList(record.grantRefs, "host-fabric member contribution grantRefs");
   assertOptionalReferenceList(record.inputRefs, "host-fabric member contribution inputRefs");

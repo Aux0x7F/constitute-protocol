@@ -3487,10 +3487,16 @@ pub struct HostFabricMemberContribution {
     pub fabric_ref: String,
     pub host_ref: String,
     pub member_ref: String,
+    pub participant_ref: String,
     pub role: String,
+    pub role_ref: String,
     pub state: String,
     pub contract_ref: String,
     pub subject_ref: String,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
     #[serde(default)]
     pub capability_refs: Vec<String>,
     #[serde(default)]
@@ -9634,7 +9640,15 @@ pub fn validate_host_fabric_member_contribution(
         &record.member_ref,
         "host-fabric member contribution missing memberRef",
     )?;
+    require_non_empty(
+        &record.participant_ref,
+        "host-fabric member contribution missing participantRef",
+    )?;
     validate_fabric_member_role(&record.role)?;
+    require_non_empty(
+        &record.role_ref,
+        "host-fabric member contribution missing roleRef",
+    )?;
     validate_fabric_member_contribution_state(&record.state)?;
     require_non_empty(
         &record.contract_ref,
@@ -9643,6 +9657,14 @@ pub fn validate_host_fabric_member_contribution(
     require_non_empty(
         &record.subject_ref,
         "host-fabric member contribution missing subjectRef",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "host-fabric member contribution missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "host-fabric member contribution missing sourceRefs",
     )?;
     validate_reference_list(
         &record.capability_refs,
@@ -14189,10 +14211,14 @@ mod tests {
             fabric_ref: "fabric:lab-gateway".to_string(),
             host_ref: "host:lab-gateway".to_string(),
             member_ref: member_ref.clone(),
+            participant_ref: "participant:gateway-association:lab-gateway".to_string(),
             role: FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION.to_string(),
+            role_ref: "role:gateway-association:lab-gateway".to_string(),
             state: FABRIC_MEMBER_CONTRIBUTION_RUNNING.to_string(),
             contract_ref: "contract:gateway-association@0.1.0".to_string(),
             subject_ref: "association:gateway:lab-gateway:ongoing".to_string(),
+            module_refs: vec!["module:gateway-association".to_string()],
+            source_refs: vec!["content-index:source:constitute-gateway".to_string()],
             capability_refs: vec!["gateway.association.fulfill".to_string()],
             grant_refs: vec!["grant:gateway-association:fulfill".to_string()],
             input_refs: vec![],

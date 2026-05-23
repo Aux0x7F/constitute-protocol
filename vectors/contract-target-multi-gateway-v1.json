@@ -194,10 +194,18 @@
       "fabricRef": "fabric:multi-gateway-dev",
       "hostRef": "host:local-workstation",
       "memberRef": "e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13",
+      "participantRef": "participant:gateway-association:local-dev",
       "role": "gatewayAssociation",
+      "roleRef": "role:gatewayAssociation",
       "state": "running",
       "contractRef": "contract:gateway-association@0.1.0",
       "subjectRef": "association:gateway:local-dev",
+      "moduleRefs": [
+        "module:gateway-association:windows"
+      ],
+      "sourceRefs": [
+        "content-index:source:constitute-gateway"
+      ],
       "capabilityRefs": [
         "gateway.association.fulfill"
       ],
@@ -223,10 +231,18 @@
       "fabricRef": "fabric:multi-gateway-dev",
       "hostRef": "host:lab-gateway",
       "memberRef": "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5",
+      "participantRef": "participant:gateway-association:lab-dev",
       "role": "gatewayAssociation",
+      "roleRef": "role:gatewayAssociation",
       "state": "running",
       "contractRef": "contract:gateway-association@0.1.0",
       "subjectRef": "association:gateway:lab-dev",
+      "moduleRefs": [
+        "module:gateway-association:linux"
+      ],
+      "sourceRefs": [
+        "content-index:source:constitute-gateway"
+      ],
       "capabilityRefs": [
         "gateway.association.fulfill"
       ],
@@ -252,10 +268,18 @@
       "fabricRef": "fabric:multi-gateway-dev",
       "hostRef": "host:nvr-service",
       "memberRef": "f9308a019258c31049344f85f89d5229b531c845836f99b08601f113bce036f9",
+      "participantRef": "participant:service-edge:nvr",
       "role": "serviceEdgeAdapter",
+      "roleRef": "role:serviceEdgeAdapter",
       "state": "running",
       "contractRef": "contract:nvr-service-edge@0.1.0",
       "subjectRef": "service:nvr",
+      "moduleRefs": [
+        "module:nvr-service-edge"
+      ],
+      "sourceRefs": [
+        "content-index:nvr-service-edge"
+      ],
       "capabilityRefs": [
         "service.edge.fulfill"
       ],
