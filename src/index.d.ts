@@ -3130,6 +3130,7 @@ export type FabricMemberRole =
   | "domainService";
 export type FabricMemberContributionState = "claimed" | "accepted" | "running" | "degraded" | "blocked" | "released" | "expired" | "superseded";
 export type FabricFulfillmentPlanState = "ready" | "degraded" | "blocked" | "expired";
+export type FabricControlDecisionState = "notRequested" | "waitingPlan" | "ready" | "degraded" | "blocked" | "expired";
 export type FabricLifecyclePlanState = "ready" | "running" | "degraded" | "blocked" | "released" | "expired";
 export type FabricLifecyclePhase = "source" | "build" | "release" | "load" | "run" | "observe" | "rollback" | "expiry" | "cleanup";
 export type FabricLifecyclePhaseState = "notRequired" | "pending" | "ready" | "running" | "succeeded" | "degraded" | "blocked" | "failed" | "released" | "expired";
@@ -3199,6 +3200,29 @@ export type HostFabricFulfillmentPlan = {
   associationHandoffRef?: string;
   evidenceRefs?: string[];
   blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type HostFabricControlDecision = {
+  kind?: "hostFabric.control.decision";
+  decisionId: string;
+  fabricRef: string;
+  hostRef: string;
+  operationRef: string;
+  subjectRef: string;
+  controlOwnerRef: string;
+  delegatedRoleRef?: string;
+  state: FabricControlDecisionState;
+  sourcePlanRef?: string;
+  planState?: FabricFulfillmentPlanState;
+  executionDelegationRef?: string;
+  fallbackRefs?: string[];
+  quarantineRefs?: string[];
+  rollbackRef?: string;
+  blockedReasons?: string[];
+  evidenceRefs?: string[];
   safeFacts?: Record<string, unknown>;
   observedAt: number;
   expiresAt?: number;
@@ -3599,6 +3623,7 @@ export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerF
 export function assertSubstrateAssociationHandoff(record: unknown): SubstrateAssociationHandoff;
 export function assertHostFabricMemberContribution(record: unknown): HostFabricMemberContribution;
 export function assertHostFabricFulfillmentPlan(record: unknown): HostFabricFulfillmentPlan;
+export function assertHostFabricControlDecision(record: unknown): HostFabricControlDecision;
 export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;
 export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;
 export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;

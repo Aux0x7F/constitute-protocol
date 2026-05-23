@@ -339,6 +339,14 @@ export const FABRIC = Object.freeze({
     BLOCKED: "blocked",
     EXPIRED: "expired",
   }),
+  CONTROL_DECISION_STATE: Object.freeze({
+    NOT_REQUESTED: "notRequested",
+    WAITING_PLAN: "waitingPlan",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
   LIFECYCLE_PLAN_STATE: Object.freeze({
     READY: "ready",
     RUNNING: "running",
@@ -1597,6 +1605,7 @@ export const SWARM = Object.freeze({
     ASSOCIATION_BOUNDARY_PROOF: "association.boundary.proof",
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
+    HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
@@ -4289,6 +4298,47 @@ export function assertHostFabricFulfillmentPlan(record) {
   return { ...record, state, requiredRoleRefs, memberContributionRefs, blockedReasons };
 }
 
+export function assertHostFabricControlDecision(record) {
+  if (!isObject(record)) throw new Error("host-fabric control decision must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION, "host-fabric control decision");
+  requireString(record.decisionId, "host-fabric control decision decisionId");
+  requireString(record.fabricRef, "host-fabric control decision fabricRef");
+  requireString(record.hostRef, "host-fabric control decision hostRef");
+  requireString(record.operationRef, "host-fabric control decision operationRef");
+  requireString(record.subjectRef, "host-fabric control decision subjectRef");
+  requireString(record.controlOwnerRef, "host-fabric control decision controlOwnerRef");
+  const state = assertEnumValue(record.state, FABRIC.CONTROL_DECISION_STATE, "host-fabric control decision state");
+  if (record.delegatedRoleRef !== undefined) requireString(record.delegatedRoleRef, "host-fabric control decision delegatedRoleRef");
+  if (record.sourcePlanRef !== undefined) requireString(record.sourcePlanRef, "host-fabric control decision sourcePlanRef");
+  if (record.planState !== undefined) assertEnumValue(record.planState, FABRIC.FULFILLMENT_PLAN_STATE, "host-fabric control decision planState");
+  if (record.executionDelegationRef !== undefined) requireString(record.executionDelegationRef, "host-fabric control decision executionDelegationRef");
+  assertOptionalReferenceList(record.fallbackRefs, "host-fabric control decision fallbackRefs");
+  assertOptionalReferenceList(record.quarantineRefs, "host-fabric control decision quarantineRefs");
+  if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "host-fabric control decision rollbackRef");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric control decision blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [
+      FABRIC.CONTROL_DECISION_STATE.WAITING_PLAN,
+      FABRIC.CONTROL_DECISION_STATE.DEGRADED,
+      FABRIC.CONTROL_DECISION_STATE.BLOCKED,
+      FABRIC.CONTROL_DECISION_STATE.EXPIRED,
+    ],
+    blockedReasons,
+    "host-fabric control decision",
+  );
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "host-fabric control decision evidenceRefs");
+  if (state === FABRIC.CONTROL_DECISION_STATE.READY) {
+    requireString(record.delegatedRoleRef, "ready host-fabric control decision delegatedRoleRef");
+    requireString(record.sourcePlanRef, "ready host-fabric control decision sourcePlanRef");
+    if (evidenceRefs.length === 0) throw new Error("ready host-fabric control decision requires evidenceRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric control decision safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric control decision");
+  assertFabricObservedWindow(record, "host-fabric control decision");
+  return { ...record, state, blockedReasons, evidenceRefs };
+}
+
 export function assertLifecyclePlanPosture(record) {
   if (!isObject(record)) throw new Error("lifecycle plan posture must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE, "lifecycle plan posture");
@@ -5673,6 +5723,7 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.SUBSTRATE_ASSOCIATION_HANDOFF,
     SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION,
     SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
+    SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
     SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
     "stream.session.offer",
     "stream.session.answer",

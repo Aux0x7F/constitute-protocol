@@ -28,6 +28,7 @@ import {
   assertContractIntentionPosture,
   assertAssociationBoundaryProof,
   assertHostFabricFulfillmentPlan,
+  assertHostFabricControlDecision,
   assertHostFabricMemberContribution,
   assertLifecyclePlanPosture,
   assertRunnerHostFulfillmentPosture,
@@ -1957,6 +1958,36 @@ test("host fabric records separate association, composition, lifecycle, source t
     expiresAt: observedAt + 600,
   });
   assert.equal(plan.memberContributionRefs[0], memberContribution.contributionId);
+
+  const controlDecision = assertHostFabricControlDecision({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
+    decisionId: "fabric-control:lab-gateway:health-check:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    operationRef: "service-operation:nvr:health-check:1",
+    subjectRef: "service:nvr",
+    controlOwnerRef: "fabric:lab-gateway",
+    delegatedRoleRef: "role:gatewayAssociation",
+    state: FABRIC.CONTROL_DECISION_STATE.READY,
+    sourcePlanRef: plan.planId,
+    planState: plan.state,
+    executionDelegationRef: "delegation:service-manager:health-check",
+    fallbackRefs: ["fallback:manual-service-manager"],
+    quarantineRefs: [],
+    rollbackRef: "rollback:service-manager:nvr",
+    evidenceRefs: ["evidence:fabric-control:ready"],
+    safeFacts: { operation: "healthCheck" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(controlDecision.sourcePlanRef, plan.planId);
+  assert.throws(() => assertHostFabricControlDecision({
+    ...controlDecision,
+    decisionId: "fabric-control:bad:waiting-no-reason",
+    state: FABRIC.CONTROL_DECISION_STATE.WAITING_PLAN,
+    sourcePlanRef: undefined,
+    blockedReasons: [],
+  }), /requires blockedReasons/);
 
   const associationBoundary = assertAssociationBoundaryProof({
     kind: SWARM.RECORD_KIND.ASSOCIATION_BOUNDARY_PROOF,

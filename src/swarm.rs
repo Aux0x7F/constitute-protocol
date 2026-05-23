@@ -150,6 +150,7 @@ pub const RECORD_SUBSTRATE_ASSOCIATION_HANDOFF: &str = "substrate.association.ha
 pub const RECORD_ASSOCIATION_BOUNDARY_PROOF: &str = "association.boundary.proof";
 pub const RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION: &str = "hostFabric.member.contribution";
 pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.plan";
+pub const RECORD_HOST_FABRIC_CONTROL_DECISION: &str = "hostFabric.control.decision";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
 pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
 pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
@@ -298,6 +299,12 @@ pub const FABRIC_FULFILLMENT_PLAN_READY: &str = "ready";
 pub const FABRIC_FULFILLMENT_PLAN_DEGRADED: &str = "degraded";
 pub const FABRIC_FULFILLMENT_PLAN_BLOCKED: &str = "blocked";
 pub const FABRIC_FULFILLMENT_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_CONTROL_DECISION_NOT_REQUESTED: &str = "notRequested";
+pub const FABRIC_CONTROL_DECISION_WAITING_PLAN: &str = "waitingPlan";
+pub const FABRIC_CONTROL_DECISION_READY: &str = "ready";
+pub const FABRIC_CONTROL_DECISION_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTROL_DECISION_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTROL_DECISION_EXPIRED: &str = "expired";
 pub const FABRIC_LIFECYCLE_PLAN_READY: &str = "ready";
 pub const FABRIC_LIFECYCLE_PLAN_RUNNING: &str = "running";
 pub const FABRIC_LIFECYCLE_PLAN_DEGRADED: &str = "degraded";
@@ -3529,6 +3536,43 @@ pub struct HostFabricFulfillmentPlan {
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricControlDecision {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub decision_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub operation_ref: String,
+    pub subject_ref: String,
+    pub control_owner_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delegated_role_ref: Option<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_delegation_ref: Option<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub safe_facts: Value,
     pub observed_at: u64,
@@ -9701,6 +9745,109 @@ pub fn validate_host_fabric_fulfillment_plan(record: &HostFabricFulfillmentPlan)
     )
 }
 
+pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_CONTROL_DECISION,
+        "host-fabric control decision",
+    )?;
+    require_non_empty(
+        &record.decision_id,
+        "host-fabric control decision missing decisionId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric control decision missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric control decision missing hostRef",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "host-fabric control decision missing operationRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric control decision missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.control_owner_ref,
+        "host-fabric control decision missing controlOwnerRef",
+    )?;
+    validate_fabric_control_decision_state(&record.state)?;
+    validate_optional_ref(
+        record.delegated_role_ref.as_deref(),
+        "host-fabric control decision missing delegatedRoleRef",
+    )?;
+    validate_optional_ref(
+        record.source_plan_ref.as_deref(),
+        "host-fabric control decision missing sourcePlanRef",
+    )?;
+    if let Some(plan_state) = record.plan_state.as_deref() {
+        validate_fabric_fulfillment_plan_state(plan_state)?;
+    }
+    validate_optional_ref(
+        record.execution_delegation_ref.as_deref(),
+        "host-fabric control decision missing executionDelegationRef",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric control decision missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric control decision missing quarantineRefs",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "host-fabric control decision missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric control decision missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTROL_DECISION_WAITING_PLAN
+                | FABRIC_CONTROL_DECISION_DEGRADED
+                | FABRIC_CONTROL_DECISION_BLOCKED
+                | FABRIC_CONTROL_DECISION_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "host-fabric control decision",
+    )?;
+    if record.state == FABRIC_CONTROL_DECISION_READY {
+        require_non_empty(
+            record.delegated_role_ref.as_deref().unwrap_or_default(),
+            "ready host-fabric control decision missing delegatedRoleRef",
+        )?;
+        require_non_empty(
+            record.source_plan_ref.as_deref().unwrap_or_default(),
+            "ready host-fabric control decision missing sourcePlanRef",
+        )?;
+        require_non_empty_vec(
+            &record.evidence_refs,
+            "ready host-fabric control decision requires evidenceRefs",
+        )?;
+    }
+    validate_safe_facts(&record.safe_facts, "host-fabric control decision safeFacts")?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric control decision",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric control decision",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric control decision",
+    )
+}
+
 fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &str) -> Result<()> {
     validate_fabric_lifecycle_phase(&record.phase)?;
     validate_fabric_lifecycle_phase_state(&record.state)?;
@@ -11043,6 +11190,22 @@ fn validate_fabric_fulfillment_plan_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported host-fabric fulfillment plan state"))
+    }
+}
+
+fn validate_fabric_control_decision_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTROL_DECISION_NOT_REQUESTED
+            | FABRIC_CONTROL_DECISION_WAITING_PLAN
+            | FABRIC_CONTROL_DECISION_READY
+            | FABRIC_CONTROL_DECISION_DEGRADED
+            | FABRIC_CONTROL_DECISION_BLOCKED
+            | FABRIC_CONTROL_DECISION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric control decision state"))
     }
 }
 
@@ -13948,6 +14111,38 @@ mod tests {
             expires_at: Some(observed_at + 600),
         };
         validate_host_fabric_fulfillment_plan(&plan).expect("valid fabric plan");
+
+        let control_decision = HostFabricControlDecision {
+            kind: Some(RECORD_HOST_FABRIC_CONTROL_DECISION.to_string()),
+            decision_id: "fabric-control:lab-gateway:health-check:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            operation_ref: "service-operation:nvr:health-check:1".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            control_owner_ref: "fabric:lab-gateway".to_string(),
+            delegated_role_ref: Some("role:gatewayAssociation".to_string()),
+            state: FABRIC_CONTROL_DECISION_READY.to_string(),
+            source_plan_ref: Some(plan.plan_id.clone()),
+            plan_state: Some(plan.state.clone()),
+            execution_delegation_ref: Some("delegation:service-manager:health-check".to_string()),
+            fallback_refs: vec!["fallback:manual-service-manager".to_string()],
+            quarantine_refs: vec![],
+            rollback_ref: Some("rollback:service-manager:nvr".to_string()),
+            blocked_reasons: vec![],
+            evidence_refs: vec!["evidence:fabric-control:ready".to_string()],
+            safe_facts: json!({ "operation": "healthCheck" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_control_decision(&control_decision)
+            .expect("valid fabric control decision");
+
+        let mut missing_plan_decision = control_decision.clone();
+        missing_plan_decision.decision_id = "fabric-control:bad:waiting-no-reason".to_string();
+        missing_plan_decision.state = FABRIC_CONTROL_DECISION_WAITING_PLAN.to_string();
+        missing_plan_decision.source_plan_ref = None;
+        missing_plan_decision.blocked_reasons.clear();
+        assert!(validate_host_fabric_control_decision(&missing_plan_decision).is_err());
 
         let association_boundary = AssociationBoundaryProof {
             kind: Some(RECORD_ASSOCIATION_BOUNDARY_PROOF.to_string()),
