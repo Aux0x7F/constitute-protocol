@@ -2204,6 +2204,18 @@ test("host fabric records separate association, composition, lifecycle, source t
     bridgeId: "legacy-control-bridge:bad:no-fallback",
     fallbackRefs: [],
   }), /requires fallbackRefs/);
+  assert.throws(() => assertHostFabricLegacyControlBridge({
+    ...legacyBridge,
+    bridgeId: "legacy-control-bridge:bad:direct-sourced",
+    state: FABRIC.LEGACY_CONTROL_STATE.LEGACY_DIRECT,
+  }), /legacy-direct.*sourceDecisionRef/);
+  assert.throws(() => assertHostFabricLegacyControlBridge({
+    ...legacyBridge,
+    bridgeId: "legacy-control-bridge:bad:blocked-unsourced",
+    state: FABRIC.LEGACY_CONTROL_STATE.BLOCKED,
+    sourceDecisionRef: undefined,
+    blockedReasons: ["hostFabric:controlBlocked:role:gatewayAssociation"],
+  }), /sourceDecisionRef/);
   assert.throws(() => assertHostFabricAdapterExecutionEvidence({
     ...adapterExecution,
     evidenceId: "host-adapter-execution:bad:no-output",

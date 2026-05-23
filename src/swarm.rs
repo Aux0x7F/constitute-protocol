@@ -10536,9 +10536,23 @@ pub fn validate_host_fabric_legacy_control_bridge(
         &record.blocked_reasons,
         "host-fabric legacy control bridge",
     )?;
+    if record.state == FABRIC_LEGACY_CONTROL_LEGACY_DIRECT {
+        if record.source_decision_ref.is_some() {
+            anyhow::bail!(
+                "legacy-direct host-fabric legacy control bridge must not carry sourceDecisionRef"
+            );
+        }
+        if record.delegated_role_ref.is_some() {
+            anyhow::bail!(
+                "legacy-direct host-fabric legacy control bridge must not carry delegatedRoleRef"
+            );
+        }
+    }
     if matches!(
         record.state.as_str(),
-        FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE | FABRIC_LEGACY_CONTROL_QUARANTINED
+        FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE
+            | FABRIC_LEGACY_CONTROL_QUARANTINED
+            | FABRIC_LEGACY_CONTROL_BLOCKED
     ) {
         require_non_empty(
             record.source_decision_ref.as_deref().unwrap_or_default(),
@@ -15631,6 +15645,20 @@ mod tests {
         bad_bridge.bridge_id = "legacy-control-bridge:bad:no-fallback".to_string();
         bad_bridge.fallback_refs.clear();
         assert!(validate_host_fabric_legacy_control_bridge(&bad_bridge).is_err());
+
+        let mut sourced_direct_bridge = legacy_bridge.clone();
+        sourced_direct_bridge.bridge_id = "legacy-control-bridge:bad:direct-sourced".to_string();
+        sourced_direct_bridge.state = FABRIC_LEGACY_CONTROL_LEGACY_DIRECT.to_string();
+        assert!(validate_host_fabric_legacy_control_bridge(&sourced_direct_bridge).is_err());
+
+        let mut unsourced_blocked_bridge = legacy_bridge.clone();
+        unsourced_blocked_bridge.bridge_id =
+            "legacy-control-bridge:bad:blocked-unsourced".to_string();
+        unsourced_blocked_bridge.state = FABRIC_LEGACY_CONTROL_BLOCKED.to_string();
+        unsourced_blocked_bridge.source_decision_ref = None;
+        unsourced_blocked_bridge.blocked_reasons =
+            vec!["hostFabric:controlBlocked:role:gatewayAssociation".to_string()];
+        assert!(validate_host_fabric_legacy_control_bridge(&unsourced_blocked_bridge).is_err());
 
         let mut bad_execution = adapter_execution.clone();
         bad_execution.evidence_id = "host-adapter-execution:bad:no-output".to_string();

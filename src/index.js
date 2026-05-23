@@ -4698,7 +4698,15 @@ export function assertHostFabricLegacyControlBridge(record) {
     "host-fabric legacy control bridge",
   );
   const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "host-fabric legacy control bridge evidenceRefs");
-  if ([FABRIC.LEGACY_CONTROL_STATE.FALLBACK_AVAILABLE, FABRIC.LEGACY_CONTROL_STATE.QUARANTINED].includes(state)) {
+  if (state === FABRIC.LEGACY_CONTROL_STATE.LEGACY_DIRECT) {
+    if (record.sourceDecisionRef !== undefined) {
+      throw new Error("legacy-direct host-fabric legacy control bridge must not carry sourceDecisionRef");
+    }
+    if (record.delegatedRoleRef !== undefined) {
+      throw new Error("legacy-direct host-fabric legacy control bridge must not carry delegatedRoleRef");
+    }
+  }
+  if ([FABRIC.LEGACY_CONTROL_STATE.FALLBACK_AVAILABLE, FABRIC.LEGACY_CONTROL_STATE.QUARANTINED, FABRIC.LEGACY_CONTROL_STATE.BLOCKED].includes(state)) {
     requireString(record.sourceDecisionRef, "controlled host-fabric legacy control bridge sourceDecisionRef");
     requireString(record.delegatedRoleRef, "controlled host-fabric legacy control bridge delegatedRoleRef");
   }
