@@ -983,9 +983,12 @@ test("carrier edge records separate connectivity requirement selection and sessi
     ],
     candidateAdapterRefs: ["adapter:gateway:websocket", "adapter:gateway:quic"],
     policyRef: "policy:carrier:default",
+    networkSensitivity: SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK,
     state: SWARM.CARRIER_EDGE_REQUIREMENT_STATE.ACTIONABLE,
     safeFacts: { preferredKind: "webSocket" },
     evidenceRefs: ["association:gateway:lab"],
+    proofSubstrateRefs: ["proof-substrate:windows-firewall:lab"],
+    resourcePostureRefs: ["resource:network:lab"],
     issuedAt,
     expiresAt: issuedAt + 90_000,
   });
@@ -1002,10 +1005,14 @@ test("carrier edge records separate connectivity requirement selection and sessi
     candidateAdapterRefs: ["adapter:gateway:websocket", "adapter:gateway:quic"],
     fallbackRefs: ["adapter:gateway:quic"],
     selectorRef: "selector:carrier:default",
+    sessionBindingRef: "binding:gateway-edge:nvr",
+    networkSensitivity: SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK,
     state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
     backpressureState: SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.CLEAR,
     safeFacts: { selectedBecause: "lowestLatency" },
     evidenceRefs: [requirement.requirementId],
+    proofSubstrateRefs: ["proof-substrate:windows-firewall:lab"],
+    resourcePostureRefs: ["resource:network:lab"],
     observedAt: issuedAt + 1,
     expiresAt: issuedAt + 90_000,
   });
@@ -1020,16 +1027,23 @@ test("carrier edge records separate connectivity requirement selection and sessi
     adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
     participantRef: `gateway:${GATEWAY_PK}`,
     peerRef: `service:${SERVICE_PK}`,
+    sessionBindingRef: selection.sessionBindingRef,
+    networkSensitivity: SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK,
     state: SWARM.CARRIER_EDGE_SESSION_STATE.OPEN,
     connectionState: "connected",
     backpressureState: SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.CLEAR,
     retryPosture: { attempts: 0 },
+    reconnectPosture: { state: "idle", nextAttemptAt: 0 },
+    closePosture: { state: "held" },
     releasePosture: { state: "held" },
     safeFacts: { pendingFrames: 0 },
     evidenceRefs: [selection.selectionId],
+    proofSubstrateRefs: ["proof-substrate:windows-firewall:lab"],
+    resourcePostureRefs: ["resource:network:lab"],
     observedAt: issuedAt + 2,
     expiresAt: issuedAt + 90_000,
   });
+  assert.equal(selection.networkSensitivity, SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK);
 
   assert.throws(() => assertCarrierEdgeRequirement({
     kind: SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT,
@@ -1058,6 +1072,16 @@ test("carrier edge records separate connectivity requirement selection and sessi
     safeFacts: { token: "secret" },
     observedAt: issuedAt,
   }), /unsafe safe fact/);
+  assert.throws(() => assertCarrierEdgeSelection({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION,
+    selectionId: "carrier-select:bad-network",
+    requirementRef: requirement.requirementId,
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    selectedAdapterRef: "adapter:gateway:websocket",
+    state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    networkSensitivity: "internetish",
+    observedAt: issuedAt,
+  }), /unsupported carrier edge network sensitivity/);
 });
 
 test("surface app fulfillment identity posture separates contract, service, host, route, and runner identity", () => {

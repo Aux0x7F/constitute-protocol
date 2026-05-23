@@ -481,6 +481,13 @@ pub const CARRIER_EDGE_BACKPRESSURE_DEGRADED: &str = "degraded";
 pub const CARRIER_EDGE_BACKPRESSURE_SATURATED: &str = "saturated";
 pub const CARRIER_EDGE_BACKPRESSURE_BLOCKED: &str = "blocked";
 
+pub const CARRIER_EDGE_NETWORK_NONE: &str = "none";
+pub const CARRIER_EDGE_NETWORK_PROCESS_LOCAL: &str = "processLocal";
+pub const CARRIER_EDGE_NETWORK_HOST_LOCAL: &str = "hostLocal";
+pub const CARRIER_EDGE_NETWORK_LOOPBACK: &str = "loopback";
+pub const CARRIER_EDGE_NETWORK_LOCAL_NETWORK: &str = "localNetwork";
+pub const CARRIER_EDGE_NETWORK_EXTERNAL_NETWORK: &str = "externalNetwork";
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ZoneScope {
@@ -1024,11 +1031,17 @@ pub struct CarrierEdgeRequirement {
     pub candidate_adapter_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_sensitivity: Option<String>,
     pub state: String,
     #[serde(default)]
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_substrate_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_posture_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub issued_at: u64,
@@ -1056,6 +1069,10 @@ pub struct CarrierEdgeSelection {
     pub fallback_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub selector_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_binding_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_sensitivity: Option<String>,
     pub state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backpressure_state: Option<String>,
@@ -1063,6 +1080,10 @@ pub struct CarrierEdgeSelection {
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_substrate_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_posture_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub observed_at: u64,
@@ -1083,6 +1104,10 @@ pub struct CarrierEdgeSessionEvidence {
     pub participant_ref: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub peer_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_binding_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_sensitivity: Option<String>,
     pub state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub connection_state: Option<String>,
@@ -1091,11 +1116,19 @@ pub struct CarrierEdgeSessionEvidence {
     #[serde(default)]
     pub retry_posture: Value,
     #[serde(default)]
+    pub reconnect_posture: Value,
+    #[serde(default)]
+    pub close_posture: Value,
+    #[serde(default)]
     pub release_posture: Value,
     #[serde(default)]
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_substrate_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_posture_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     pub observed_at: u64,
@@ -13199,6 +13232,22 @@ fn validate_carrier_edge_backpressure_state(value: &str) -> Result<()> {
     }
 }
 
+fn validate_carrier_edge_network_sensitivity(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_NETWORK_NONE
+            | CARRIER_EDGE_NETWORK_PROCESS_LOCAL
+            | CARRIER_EDGE_NETWORK_HOST_LOCAL
+            | CARRIER_EDGE_NETWORK_LOOPBACK
+            | CARRIER_EDGE_NETWORK_LOCAL_NETWORK
+            | CARRIER_EDGE_NETWORK_EXTERNAL_NETWORK
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge network sensitivity"))
+    }
+}
+
 fn validate_posture_facet(facet: &PostureFacet, context: &str) -> Result<()> {
     validate_posture_facet_state(&facet.state)?;
     if matches!(facet.state.as_str(), "missing" | "blocked" | "degraded")
@@ -14204,10 +14253,14 @@ pub fn validate_carrier_edge_requirement(record: &CarrierEdgeRequirement) -> Res
         (&record.host_ref, "hostRef"),
         (&record.route_association_ref, "routeAssociationRef"),
         (&record.policy_ref, "policyRef"),
+        (&record.network_sensitivity, "networkSensitivity"),
     ] {
         if let Some(value) = value {
             require_non_empty(value, &format!("carrier edge requirement missing {field}"))?;
         }
+    }
+    if let Some(network_sensitivity) = &record.network_sensitivity {
+        validate_carrier_edge_network_sensitivity(network_sensitivity)?;
     }
     validate_capability_names(&record.required_capability_refs)?;
     for adapter_kind in &record.allowed_adapter_kinds {
@@ -14222,6 +14275,14 @@ pub fn validate_carrier_edge_requirement(record: &CarrierEdgeRequirement) -> Res
     validate_reference_list(
         &record.evidence_refs,
         "carrier edge requirement missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_substrate_refs,
+        "carrier edge requirement missing proofSubstrateRefs",
+    )?;
+    validate_reference_list(
+        &record.resource_posture_refs,
+        "carrier edge requirement missing resourcePostureRefs",
     )?;
     validate_reference_list(
         &record.blocked_reasons,
@@ -14275,10 +14336,15 @@ pub fn validate_carrier_edge_selection(record: &CarrierEdgeSelection) -> Result<
         (&record.host_ref, "hostRef"),
         (&record.selected_adapter_ref, "selectedAdapterRef"),
         (&record.selector_ref, "selectorRef"),
+        (&record.session_binding_ref, "sessionBindingRef"),
+        (&record.network_sensitivity, "networkSensitivity"),
     ] {
         if let Some(value) = value {
             require_non_empty(value, &format!("carrier edge selection missing {field}"))?;
         }
+    }
+    if let Some(network_sensitivity) = &record.network_sensitivity {
+        validate_carrier_edge_network_sensitivity(network_sensitivity)?;
     }
     validate_carrier_edge_adapter_kind(&record.adapter_kind)?;
     validate_reference_list(
@@ -14297,6 +14363,14 @@ pub fn validate_carrier_edge_selection(record: &CarrierEdgeSelection) -> Result<
     validate_reference_list(
         &record.evidence_refs,
         "carrier edge selection missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_substrate_refs,
+        "carrier edge selection missing proofSubstrateRefs",
+    )?;
+    validate_reference_list(
+        &record.resource_posture_refs,
+        "carrier edge selection missing resourcePostureRefs",
     )?;
     validate_reference_list(
         &record.blocked_reasons,
@@ -14382,6 +14456,20 @@ pub fn validate_carrier_edge_session_evidence(record: &CarrierEdgeSessionEvidenc
     if let Some(peer_ref) = &record.peer_ref {
         require_non_empty(peer_ref, "carrier edge session evidence missing peerRef")?;
     }
+    for (value, field) in [
+        (&record.session_binding_ref, "sessionBindingRef"),
+        (&record.network_sensitivity, "networkSensitivity"),
+    ] {
+        if let Some(value) = value {
+            require_non_empty(
+                value,
+                &format!("carrier edge session evidence missing {field}"),
+            )?;
+        }
+    }
+    if let Some(network_sensitivity) = &record.network_sensitivity {
+        validate_carrier_edge_network_sensitivity(network_sensitivity)?;
+    }
     validate_carrier_edge_session_state(&record.state)?;
     if let Some(connection_state) = &record.connection_state {
         require_non_empty(
@@ -14397,6 +14485,14 @@ pub fn validate_carrier_edge_session_evidence(record: &CarrierEdgeSessionEvidenc
         "carrier edge session evidence retryPosture",
     )?;
     validate_safe_facts(
+        &record.reconnect_posture,
+        "carrier edge session evidence reconnectPosture",
+    )?;
+    validate_safe_facts(
+        &record.close_posture,
+        "carrier edge session evidence closePosture",
+    )?;
+    validate_safe_facts(
         &record.release_posture,
         "carrier edge session evidence releasePosture",
     )?;
@@ -14407,6 +14503,14 @@ pub fn validate_carrier_edge_session_evidence(record: &CarrierEdgeSessionEvidenc
     validate_reference_list(
         &record.evidence_refs,
         "carrier edge session evidence missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_substrate_refs,
+        "carrier edge session evidence missing proofSubstrateRefs",
+    )?;
+    validate_reference_list(
+        &record.resource_posture_refs,
+        "carrier edge session evidence missing resourcePostureRefs",
     )?;
     validate_reference_list(
         &record.blocked_reasons,
@@ -18211,9 +18315,12 @@ mod tests {
             ],
             candidate_adapter_refs: vec!["adapter:gateway:websocket".to_string()],
             policy_ref: Some("policy:carrier:default".to_string()),
+            network_sensitivity: Some(CARRIER_EDGE_NETWORK_LOCAL_NETWORK.to_string()),
             state: CARRIER_EDGE_REQUIREMENT_ACTIONABLE.to_string(),
             safe_facts: json!({ "preferredKind": "webSocket" }),
             evidence_refs: vec!["association:gateway:lab".to_string()],
+            proof_substrate_refs: vec!["proof-substrate:windows-firewall:lab".to_string()],
+            resource_posture_refs: vec!["resource:network:lab".to_string()],
             blocked_reasons: vec![],
             issued_at: 1_700_000_000,
             expires_at: Some(1_700_000_090),
@@ -18231,10 +18338,14 @@ mod tests {
             candidate_adapter_refs: vec!["adapter:gateway:websocket".to_string()],
             fallback_refs: vec!["adapter:gateway:quic".to_string()],
             selector_ref: Some("selector:carrier:default".to_string()),
+            session_binding_ref: Some("binding:gateway-edge:nvr".to_string()),
+            network_sensitivity: Some(CARRIER_EDGE_NETWORK_LOCAL_NETWORK.to_string()),
             state: CARRIER_EDGE_SELECTION_ACTIONABLE.to_string(),
             backpressure_state: Some(CARRIER_EDGE_BACKPRESSURE_CLEAR.to_string()),
             safe_facts: json!({ "selectedBecause": "lowestLatency" }),
             evidence_refs: vec![requirement.requirement_id.clone()],
+            proof_substrate_refs: vec!["proof-substrate:windows-firewall:lab".to_string()],
+            resource_posture_refs: vec!["resource:network:lab".to_string()],
             blocked_reasons: vec![],
             observed_at: 1_700_000_001,
             expires_at: Some(1_700_000_090),
@@ -18250,13 +18361,19 @@ mod tests {
             adapter_kind: CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
             participant_ref: "gateway:lab".to_string(),
             peer_ref: Some("service:nvr".to_string()),
+            session_binding_ref: selection.session_binding_ref.clone(),
+            network_sensitivity: Some(CARRIER_EDGE_NETWORK_LOCAL_NETWORK.to_string()),
             state: CARRIER_EDGE_SESSION_OPEN.to_string(),
             connection_state: Some("connected".to_string()),
             backpressure_state: Some(CARRIER_EDGE_BACKPRESSURE_CLEAR.to_string()),
             retry_posture: json!({ "attempts": 0 }),
+            reconnect_posture: json!({ "state": "idle", "nextAttemptAt": 0 }),
+            close_posture: json!({ "state": "held" }),
             release_posture: json!({ "state": "held" }),
             safe_facts: json!({ "pendingFrames": 0 }),
             evidence_refs: vec![selection.selection_id.clone()],
+            proof_substrate_refs: vec!["proof-substrate:windows-firewall:lab".to_string()],
+            resource_posture_refs: vec!["resource:network:lab".to_string()],
             blocked_reasons: vec![],
             observed_at: 1_700_000_002,
             expires_at: Some(1_700_000_090),

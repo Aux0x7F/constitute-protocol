@@ -1960,6 +1960,13 @@ export type CarrierEdgeSessionState =
   | "released"
   | "expired";
 export type CarrierEdgeBackpressureState = "clear" | "degraded" | "saturated" | "blocked";
+export type CarrierEdgeNetworkSensitivity =
+  | "none"
+  | "processLocal"
+  | "hostLocal"
+  | "loopback"
+  | "localNetwork"
+  | "externalNetwork";
 
 export type CarrierEdgeRequirement = {
   kind?: "carrier.edge.requirement";
@@ -1974,9 +1981,12 @@ export type CarrierEdgeRequirement = {
   allowedAdapterKinds?: CarrierEdgeAdapterKind[];
   candidateAdapterRefs?: string[];
   policyRef?: string;
+  networkSensitivity?: CarrierEdgeNetworkSensitivity;
   state: CarrierEdgeRequirementState;
   safeFacts?: Record<string, unknown>;
   evidenceRefs?: string[];
+  proofSubstrateRefs?: string[];
+  resourcePostureRefs?: string[];
   blockedReasons?: string[];
   issuedAt: number;
   expiresAt?: number;
@@ -1993,10 +2003,14 @@ export type CarrierEdgeSelection = {
   candidateAdapterRefs?: string[];
   fallbackRefs?: string[];
   selectorRef?: string;
+  sessionBindingRef?: string;
+  networkSensitivity?: CarrierEdgeNetworkSensitivity;
   state: CarrierEdgeSelectionState;
   backpressureState?: CarrierEdgeBackpressureState;
   safeFacts?: Record<string, unknown>;
   evidenceRefs?: string[];
+  proofSubstrateRefs?: string[];
+  resourcePostureRefs?: string[];
   blockedReasons?: string[];
   observedAt: number;
   expiresAt?: number;
@@ -2011,13 +2025,19 @@ export type CarrierEdgeSessionEvidence = {
   adapterKind: CarrierEdgeAdapterKind;
   participantRef: string;
   peerRef?: string;
+  sessionBindingRef?: string;
+  networkSensitivity?: CarrierEdgeNetworkSensitivity;
   state: CarrierEdgeSessionState;
   connectionState?: string;
   backpressureState?: CarrierEdgeBackpressureState;
   retryPosture?: Record<string, unknown>;
+  reconnectPosture?: Record<string, unknown>;
+  closePosture?: Record<string, unknown>;
   releasePosture?: Record<string, unknown>;
   safeFacts?: Record<string, unknown>;
   evidenceRefs?: string[];
+  proofSubstrateRefs?: string[];
+  resourcePostureRefs?: string[];
   blockedReasons?: string[];
   observedAt: number;
   expiresAt?: number;

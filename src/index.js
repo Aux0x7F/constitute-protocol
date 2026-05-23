@@ -2142,6 +2142,14 @@ export const SWARM = Object.freeze({
     SATURATED: "saturated",
     BLOCKED: "blocked",
   }),
+  CARRIER_EDGE_NETWORK_SENSITIVITY: Object.freeze({
+    NONE: "none",
+    PROCESS_LOCAL: "processLocal",
+    HOST_LOCAL: "hostLocal",
+    LOOPBACK: "loopback",
+    LOCAL_NETWORK: "localNetwork",
+    EXTERNAL_NETWORK: "externalNetwork",
+  }),
   RECOVERY_REF_KIND: Object.freeze({
     ROOT: "recovery.root",
     ROUTE: "recovery.route",
@@ -3554,6 +3562,12 @@ function assertCarrierEdgeBackpressureState(value, name = "carrier edge backpres
   return state;
 }
 
+function assertCarrierEdgeNetworkSensitivity(value, name = "carrier edge network sensitivity") {
+  const sensitivity = requireString(value, name);
+  if (!Object.values(SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY).includes(sensitivity)) throw new Error(`unsupported ${name}`);
+  return sensitivity;
+}
+
 export function assertRoutingScopePosture(posture, name = "routing scope") {
   if (!isObject(posture)) throw new Error(`${name} must be an object`);
   const kind = assertRoutingScopeKind(posture.kind, `${name} kind`);
@@ -4210,6 +4224,7 @@ export function assertCarrierEdgeRequirement(record) {
   for (const field of ["sourceRef", "consumerRef", "fabricRef", "hostRef", "routeAssociationRef", "policyRef"]) {
     if (record[field] !== undefined) requireString(record[field], `carrier edge requirement ${field}`);
   }
+  if (record.networkSensitivity !== undefined) assertCarrierEdgeNetworkSensitivity(record.networkSensitivity);
   assertOptionalCapabilityList(record.requiredCapabilityRefs, "carrier edge requirement requiredCapabilityRefs");
   const allowedAdapterKinds = assertOptionalReferenceList(record.allowedAdapterKinds, "carrier edge requirement allowedAdapterKinds")
     .map((kind) => assertCarrierEdgeAdapterKind(kind));
@@ -4224,6 +4239,8 @@ export function assertCarrierEdgeRequirement(record) {
   }
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "carrier edge requirement safeFacts");
   assertOptionalReferenceList(record.evidenceRefs, "carrier edge requirement evidenceRefs");
+  assertOptionalReferenceList(record.proofSubstrateRefs, "carrier edge requirement proofSubstrateRefs");
+  assertOptionalReferenceList(record.resourcePostureRefs, "carrier edge requirement resourcePostureRefs");
   if (!Number(record.issuedAt || 0)) throw new Error("carrier edge requirement missing issuedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
     throw new Error("carrier edge requirement expiresAt must be after issuedAt");
@@ -4237,9 +4254,10 @@ export function assertCarrierEdgeSelection(record) {
   assertRecordKind(record, SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION, "carrier edge selection");
   requireString(record.selectionId, "carrier edge selection selectionId");
   requireString(record.requirementRef, "carrier edge selection requirementRef");
-  for (const field of ["fabricRef", "hostRef", "selectedAdapterRef", "selectorRef"]) {
+  for (const field of ["fabricRef", "hostRef", "selectedAdapterRef", "selectorRef", "sessionBindingRef"]) {
     if (record[field] !== undefined) requireString(record[field], `carrier edge selection ${field}`);
   }
+  if (record.networkSensitivity !== undefined) assertCarrierEdgeNetworkSensitivity(record.networkSensitivity);
   assertCarrierEdgeAdapterKind(record.adapterKind);
   assertOptionalReferenceList(record.candidateAdapterRefs, "carrier edge selection candidateAdapterRefs");
   assertOptionalReferenceList(record.fallbackRefs, "carrier edge selection fallbackRefs");
@@ -4261,6 +4279,8 @@ export function assertCarrierEdgeSelection(record) {
   }
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "carrier edge selection safeFacts");
   assertOptionalReferenceList(record.evidenceRefs, "carrier edge selection evidenceRefs");
+  assertOptionalReferenceList(record.proofSubstrateRefs, "carrier edge selection proofSubstrateRefs");
+  assertOptionalReferenceList(record.resourcePostureRefs, "carrier edge selection resourcePostureRefs");
   if (!Number(record.observedAt || 0)) throw new Error("carrier edge selection missing observedAt");
   if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.observedAt)) {
     throw new Error("carrier edge selection expiresAt must be after observedAt");
@@ -4279,13 +4299,19 @@ export function assertCarrierEdgeSessionEvidence(record) {
   assertCarrierEdgeAdapterKind(record.adapterKind);
   requireString(record.participantRef, "carrier edge session evidence participantRef");
   if (record.peerRef !== undefined) requireString(record.peerRef, "carrier edge session evidence peerRef");
+  if (record.sessionBindingRef !== undefined) requireString(record.sessionBindingRef, "carrier edge session evidence sessionBindingRef");
+  if (record.networkSensitivity !== undefined) assertCarrierEdgeNetworkSensitivity(record.networkSensitivity);
   const state = assertCarrierEdgeSessionState(record.state);
   if (record.connectionState !== undefined) requireString(record.connectionState, "carrier edge session evidence connectionState");
   if (record.backpressureState !== undefined) assertCarrierEdgeBackpressureState(record.backpressureState);
   if (record.retryPosture !== undefined) assertSafeObject(record.retryPosture, "carrier edge session evidence retryPosture");
+  if (record.reconnectPosture !== undefined) assertSafeObject(record.reconnectPosture, "carrier edge session evidence reconnectPosture");
+  if (record.closePosture !== undefined) assertSafeObject(record.closePosture, "carrier edge session evidence closePosture");
   if (record.releasePosture !== undefined) assertSafeObject(record.releasePosture, "carrier edge session evidence releasePosture");
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "carrier edge session evidence safeFacts");
   assertOptionalReferenceList(record.evidenceRefs, "carrier edge session evidence evidenceRefs");
+  assertOptionalReferenceList(record.proofSubstrateRefs, "carrier edge session evidence proofSubstrateRefs");
+  assertOptionalReferenceList(record.resourcePostureRefs, "carrier edge session evidence resourcePostureRefs");
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "carrier edge session evidence blockedReasons");
   if ([SWARM.CARRIER_EDGE_SESSION_STATE.BLOCKED, SWARM.CARRIER_EDGE_SESSION_STATE.EXPIRED].includes(state) && blockedReasons.length === 0) {
     throw new Error("blocked carrier edge session evidence requires blockedReasons");
