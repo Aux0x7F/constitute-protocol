@@ -1411,6 +1411,11 @@ export type EventFabricProcessorReportRecord = {
   observedEventRefs?: string[];
   heldEventRefs?: string[];
   storageRefs?: string[];
+  findingRefs?: string[];
+  alertRefs?: string[];
+  evidenceHoldRefs?: string[];
+  retentionDemandRefs?: string[];
+  mitigationRecommendationRefs?: string[];
   safeFacts?: Record<string, unknown>;
   evidenceRefs?: string[];
   blockedReasons?: string[];
@@ -1449,6 +1454,86 @@ export type CybersecProcessorSeedRecord = {
   evidenceRefs?: string[];
   blockedReasons?: string[];
   issuedAt: number;
+  expiresAt?: number;
+};
+
+export type CybersecFindingRecord = {
+  kind?: "cybersec.finding";
+  findingId: string;
+  processorReportRef: string;
+  processorRef: string;
+  processorRoleRef: string;
+  subjectRef: string;
+  findingKind: string;
+  severity: "info" | "low" | "medium" | "high" | "critical";
+  state: "open" | "triaged" | "suppressed" | "resolved" | "blocked" | "expired";
+  confidenceScore: number;
+  inputAccessClassRefs?: string[];
+  observedEventRefs?: string[];
+  accessGroupRefs?: string[];
+  evidenceRefs?: string[];
+  evidenceHoldRefs?: string[];
+  retentionDemandRefs?: string[];
+  mitigationRecommendationRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type CybersecEvidenceHoldRecord = {
+  kind?: "cybersec.evidence.hold";
+  holdId: string;
+  findingRef: string;
+  processorReportRef: string;
+  subjectRef: string;
+  state: "requested" | "holding" | "released" | "blocked" | "expired";
+  eventRefs?: string[];
+  detailRefs?: string[];
+  storageRefs?: string[];
+  retentionDemandRefs?: string[];
+  accessGroupRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type CybersecMitigationRecommendationRecord = {
+  kind?: "cybersec.mitigation.recommendation";
+  recommendationId: string;
+  findingRef: string;
+  processorReportRef: string;
+  recommenderRef: string;
+  actionKind: "observe" | "requestEvidence" | "retainEvidence" | "quarantine" | "block" | "rateLimit" | "degrade" | "notify";
+  targetRef: string;
+  state: "recommended" | "accepted" | "rejected" | "applied" | "blocked" | "expired";
+  authorityRefs?: string[];
+  consumerRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type CybersecMitigationConsumerPostureRecord = {
+  kind?: "cybersec.mitigation.consumer.posture";
+  postureId: string;
+  recommendationRef: string;
+  findingRef: string;
+  processorReportRef: string;
+  consumerRef: string;
+  actionKind: "observe" | "requestEvidence" | "retainEvidence" | "quarantine" | "block" | "rateLimit" | "degrade" | "notify";
+  targetRef: string;
+  state: "unsupported" | "waitingAuthority" | "actionable" | "accepted" | "rejected" | "applied" | "blocked" | "expired";
+  authorityRefs?: string[];
+  supportedActionKinds?: Array<"observe" | "requestEvidence" | "retainEvidence" | "quarantine" | "block" | "rateLimit" | "degrade" | "notify">;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
   expiresAt?: number;
 };
 
@@ -3324,6 +3409,10 @@ export function assertEventFabricAccessClass(record: unknown): EventFabricAccess
 export function assertEventFabricProcessorContract(record: unknown): EventFabricProcessorContractRecord;
 export function assertEventFabricProcessorReport(record: unknown): EventFabricProcessorReportRecord;
 export function assertCybersecProcessorSeed(record: unknown): CybersecProcessorSeedRecord;
+export function assertCybersecFinding(record: unknown): CybersecFindingRecord;
+export function assertCybersecEvidenceHold(record: unknown): CybersecEvidenceHoldRecord;
+export function assertCybersecMitigationRecommendation(record: unknown): CybersecMitigationRecommendationRecord;
+export function assertCybersecMitigationConsumerPosture(record: unknown): CybersecMitigationConsumerPostureRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {
