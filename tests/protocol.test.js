@@ -32,6 +32,7 @@ import {
   assertHostFabricControlDecision,
   assertHostFabricLegacyControlBridge,
   assertHostFabricMemberContribution,
+  assertLifecycleDependencyEdge,
   assertLifecyclePlanPosture,
   assertRunnerHostFulfillmentPosture,
   assertRunnerOperation,
@@ -1937,15 +1938,28 @@ test("host fabric records separate association, composition, lifecycle, source t
     lifecycleContractRefs: ["contract:lifecycle.gateway-association@0.1.0"],
     phasePostures: [
       { phase: FABRIC.LIFECYCLE_PHASE.SOURCE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:source:indexed"] },
-      { phase: FABRIC.LIFECYCLE_PHASE.RUN, state: FABRIC.LIFECYCLE_PHASE_STATE.RUNNING, evidenceRefs: ["evidence:association:running"] },
+      { phase: FABRIC.LIFECYCLE_PHASE.RUN, state: FABRIC.LIFECYCLE_PHASE_STATE.RUNNING, dependencyRefs: ["lifecycle-dependency:gateway-association:storage"], evidenceRefs: ["evidence:association:running"] },
       { phase: FABRIC.LIFECYCLE_PHASE.OBSERVE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:association:observed"] },
     ],
+    dependencyEdges: [{
+      kind: SWARM.RECORD_KIND.LIFECYCLE_DEPENDENCY_EDGE,
+      dependencyRef: "lifecycle-dependency:gateway-association:storage",
+      sourceRef: "role:gatewayAssociation",
+      targetRef: "role:storageJournalCache",
+      state: FABRIC.LIFECYCLE_DEPENDENCY_STATE.READY,
+      required: true,
+      order: 10,
+      evidenceRefs: ["evidence:dependency:storage-ready"],
+      safeFacts: { dependency: "storage-before-gateway" },
+    }],
     memberContributionRefs: [memberContribution.contributionId],
     evidenceRefs: ["evidence:lifecycle:reduced"],
     observedAt,
     expiresAt: observedAt + 600,
   });
   assert.equal(lifecycle.phasePostures.length, 3);
+  assert.equal(lifecycle.dependencyEdges[0].targetRef, "role:storageJournalCache");
+  assertLifecycleDependencyEdge(lifecycle.dependencyEdges[0]);
 
   const plan = assertHostFabricFulfillmentPlan({
     kind: SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
@@ -2168,6 +2182,16 @@ test("host fabric records separate association, composition, lifecycle, source t
     state: FABRIC.LIFECYCLE_PLAN_STATE.BLOCKED,
     blockedReasons: [],
   }), /requires blockedReasons/);
+  assert.throws(() => assertLifecyclePlanPosture({
+    ...lifecycle,
+    lifecyclePlanId: "lifecycle-plan:bad:missing-dependency-reason",
+    dependencyEdges: [{
+      ...lifecycle.dependencyEdges[0],
+      dependencyRef: "lifecycle-dependency:bad:missing",
+      state: FABRIC.LIFECYCLE_DEPENDENCY_STATE.MISSING,
+      blockedReasons: [],
+    }],
+  }), /lifecycle dependency edge requires blockedReasons/);
   assert.throws(() => assertContentIndexRefPosture({
     ...contentIndex,
     postureId: "content-index-posture:bad:storage-only",

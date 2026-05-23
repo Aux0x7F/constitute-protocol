@@ -3134,6 +3134,7 @@ export type FabricTopologyRoleState = "ready" | "degraded" | "blocked" | "missin
 export type FabricControlDecisionState = "notRequested" | "waitingPlan" | "ready" | "degraded" | "blocked" | "expired";
 export type FabricLegacyControlState = "legacyDirect" | "fallbackAvailable" | "quarantined" | "blocked" | "released";
 export type FabricLifecyclePlanState = "ready" | "running" | "degraded" | "blocked" | "released" | "expired";
+export type FabricLifecycleDependencyState = "ready" | "degraded" | "blocked" | "missing";
 export type FabricLifecyclePhase = "source" | "build" | "release" | "load" | "run" | "observe" | "rollback" | "expiry" | "cleanup";
 export type FabricLifecyclePhaseState = "notRequired" | "pending" | "ready" | "running" | "succeeded" | "degraded" | "blocked" | "failed" | "released" | "expired";
 export type FabricContentIndexState = "ready" | "degraded" | "blocked" | "superseded" | "expired";
@@ -3299,8 +3300,22 @@ export type HostFabricLegacyControlBridge = {
 export type LifecyclePhasePosture = {
   phase: FabricLifecyclePhase;
   state: FabricLifecyclePhaseState;
+  dependencyRefs?: string[];
   evidenceRefs?: string[];
   outputRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type LifecycleDependencyEdge = {
+  kind?: "lifecycle.dependency.edge";
+  dependencyRef: string;
+  sourceRef: string;
+  targetRef: string;
+  state: FabricLifecycleDependencyState;
+  required: boolean;
+  order?: number;
+  evidenceRefs?: string[];
   blockedReasons?: string[];
   safeFacts?: Record<string, unknown>;
 };
@@ -3313,6 +3328,7 @@ export type LifecyclePlanPosture = {
   state: FabricLifecyclePlanState;
   lifecycleContractRefs: string[];
   phasePostures: LifecyclePhasePosture[];
+  dependencyEdges?: LifecycleDependencyEdge[];
   memberContributionRefs?: string[];
   evidenceRefs?: string[];
   releaseRefs?: string[];
@@ -3695,6 +3711,7 @@ export function assertHostFabricTopologyRolePosture(record: unknown): HostFabric
 export function assertHostFabricTopologyProjection(record: unknown): HostFabricTopologyProjection;
 export function assertHostFabricControlDecision(record: unknown): HostFabricControlDecision;
 export function assertHostFabricLegacyControlBridge(record: unknown): HostFabricLegacyControlBridge;
+export function assertLifecycleDependencyEdge(record: unknown): LifecycleDependencyEdge;
 export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;
 export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;
 export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;

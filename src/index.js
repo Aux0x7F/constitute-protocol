@@ -368,6 +368,12 @@ export const FABRIC = Object.freeze({
     RELEASED: "released",
     EXPIRED: "expired",
   }),
+  LIFECYCLE_DEPENDENCY_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    MISSING: "missing",
+  }),
   LIFECYCLE_PHASE: Object.freeze({
     SOURCE: "source",
     BUILD: "build",
@@ -1621,6 +1627,7 @@ export const SWARM = Object.freeze({
     HOST_FABRIC_TOPOLOGY_PROJECTION: "hostFabric.topology.projection",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
+    LIFECYCLE_DEPENDENCY_EDGE: "lifecycle.dependency.edge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
@@ -1730,6 +1737,7 @@ export const SWARM = Object.freeze({
     HOST_FABRIC_TOPOLOGY_PROJECTION: "hostFabric.topology.projection",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
+    LIFECYCLE_DEPENDENCY_EDGE: "lifecycle.dependency.edge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
@@ -4157,6 +4165,7 @@ function assertLifecyclePhasePosture(value, context) {
   if (!isObject(value)) throw new Error(`${context} must be an object`);
   const phase = assertEnumValue(value.phase, FABRIC.LIFECYCLE_PHASE, `${context} phase`);
   const state = assertEnumValue(value.state, FABRIC.LIFECYCLE_PHASE_STATE, `${context} state`);
+  assertOptionalReferenceList(value.dependencyRefs, `${context} dependencyRefs`);
   const blockedReasons = assertOptionalReferenceList(value.blockedReasons, `${context} blockedReasons`);
   assertBlockedReasonsForState(
     state,
@@ -4168,6 +4177,37 @@ function assertLifecyclePhasePosture(value, context) {
   assertOptionalReferenceList(value.outputRefs, `${context} outputRefs`);
   if (value.safeFacts !== undefined) assertSafeObject(value.safeFacts, `${context} safeFacts`);
   return { ...value, phase, state, blockedReasons };
+}
+
+export function assertLifecycleDependencyEdge(record) {
+  if (!isObject(record)) throw new Error("lifecycle dependency edge must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.LIFECYCLE_DEPENDENCY_EDGE, "lifecycle dependency edge");
+  requireString(record.dependencyRef, "lifecycle dependency edge dependencyRef");
+  requireString(record.sourceRef, "lifecycle dependency edge sourceRef");
+  requireString(record.targetRef, "lifecycle dependency edge targetRef");
+  const state = assertEnumValue(record.state, FABRIC.LIFECYCLE_DEPENDENCY_STATE, "lifecycle dependency edge state");
+  if (typeof record.required !== "boolean") throw new Error("lifecycle dependency edge required must be boolean");
+  if (record.order !== undefined && (!Number.isInteger(Number(record.order)) || Number(record.order) < 0)) {
+    throw new Error("lifecycle dependency edge order must be a non-negative integer");
+  }
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "lifecycle dependency edge evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "lifecycle dependency edge blockedReasons");
+  if (state === FABRIC.LIFECYCLE_DEPENDENCY_STATE.READY && evidenceRefs.length === 0) {
+    throw new Error("ready lifecycle dependency edge requires evidenceRefs");
+  }
+  assertBlockedReasonsForState(
+    state,
+    [
+      FABRIC.LIFECYCLE_DEPENDENCY_STATE.DEGRADED,
+      FABRIC.LIFECYCLE_DEPENDENCY_STATE.BLOCKED,
+      FABRIC.LIFECYCLE_DEPENDENCY_STATE.MISSING,
+    ],
+    blockedReasons,
+    "lifecycle dependency edge",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "lifecycle dependency edge safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "lifecycle dependency edge");
+  return { ...record, state, evidenceRefs, blockedReasons };
 }
 
 export function assertSubstrateAssociationHandoff(record) {
@@ -4478,6 +4518,8 @@ export function assertLifecyclePlanPosture(record) {
   assertReferenceList(record.lifecycleContractRefs, "lifecycle plan posture lifecycleContractRefs");
   const phasePostures = requireNonEmptyArray(record.phasePostures, "lifecycle plan posture phasePostures")
     .map((entry, index) => assertLifecyclePhasePosture(entry, `lifecycle plan posture phasePostures ${index}`));
+  const dependencyEdges = (record.dependencyEdges === undefined ? [] : requireArray(record.dependencyEdges, "lifecycle plan posture dependencyEdges"))
+    .map((entry, index) => assertLifecycleDependencyEdge({ kind: SWARM.RECORD_KIND.LIFECYCLE_DEPENDENCY_EDGE, ...entry }, `lifecycle plan posture dependencyEdges ${index}`));
   assertOptionalReferenceList(record.memberContributionRefs, "lifecycle plan posture memberContributionRefs");
   assertOptionalReferenceList(record.evidenceRefs, "lifecycle plan posture evidenceRefs");
   assertOptionalReferenceList(record.releaseRefs, "lifecycle plan posture releaseRefs");
@@ -4491,7 +4533,7 @@ export function assertLifecyclePlanPosture(record) {
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "lifecycle plan posture safeFacts");
   assertSurfaceManagerSensitiveBoundary(record, "lifecycle plan posture");
   assertFabricObservedWindow(record, "lifecycle plan posture");
-  return { ...record, state, phasePostures, blockedReasons };
+  return { ...record, state, phasePostures, dependencyEdges, blockedReasons };
 }
 
 export function assertContentIndexRefPosture(record) {

@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -153,6 +153,7 @@ pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.pl
 pub const RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION: &str = "hostFabric.topology.projection";
 pub const RECORD_HOST_FABRIC_CONTROL_DECISION: &str = "hostFabric.control.decision";
 pub const RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE: &str = "hostFabric.legacyControl.bridge";
+pub const RECORD_LIFECYCLE_DEPENDENCY_EDGE: &str = "lifecycle.dependency.edge";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
 pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
 pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
@@ -322,6 +323,10 @@ pub const FABRIC_LIFECYCLE_PLAN_DEGRADED: &str = "degraded";
 pub const FABRIC_LIFECYCLE_PLAN_BLOCKED: &str = "blocked";
 pub const FABRIC_LIFECYCLE_PLAN_RELEASED: &str = "released";
 pub const FABRIC_LIFECYCLE_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_READY: &str = "ready";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_DEGRADED: &str = "degraded";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_BLOCKED: &str = "blocked";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_MISSING: &str = "missing";
 pub const FABRIC_LIFECYCLE_PHASE_SOURCE: &str = "source";
 pub const FABRIC_LIFECYCLE_PHASE_BUILD: &str = "build";
 pub const FABRIC_LIFECYCLE_PHASE_RELEASE: &str = "release";
@@ -3707,9 +3712,31 @@ pub struct LifecyclePhasePosture {
     pub phase: String,
     pub state: String,
     #[serde(default)]
+    pub dependency_refs: Vec<String>,
+    #[serde(default)]
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecycleDependencyEdge {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub dependency_ref: String,
+    pub source_ref: String,
+    pub target_ref: String,
+    pub state: String,
+    pub required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<u64>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -3729,6 +3756,8 @@ pub struct LifecyclePlanPosture {
     pub lifecycle_contract_refs: Vec<String>,
     #[serde(default)]
     pub phase_postures: Vec<LifecyclePhasePosture>,
+    #[serde(default)]
+    pub dependency_edges: Vec<LifecycleDependencyEdge>,
     #[serde(default)]
     pub member_contribution_refs: Vec<String>,
     #[serde(default)]
@@ -10265,6 +10294,10 @@ fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &st
     validate_fabric_lifecycle_phase(&record.phase)?;
     validate_fabric_lifecycle_phase_state(&record.state)?;
     validate_reference_list(
+        &record.dependency_refs,
+        &format!("{context} missing dependencyRefs"),
+    )?;
+    validate_reference_list(
         &record.evidence_refs,
         &format!("{context} missing evidenceRefs"),
     )?;
@@ -10281,6 +10314,63 @@ fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &st
         context,
     )?;
     validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))
+}
+
+fn validate_lifecycle_dependency_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LIFECYCLE_DEPENDENCY_READY
+            | FABRIC_LIFECYCLE_DEPENDENCY_DEGRADED
+            | FABRIC_LIFECYCLE_DEPENDENCY_BLOCKED
+            | FABRIC_LIFECYCLE_DEPENDENCY_MISSING
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle dependency state"))
+    }
+}
+
+pub fn validate_lifecycle_dependency_edge(record: &LifecycleDependencyEdge) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_LIFECYCLE_DEPENDENCY_EDGE,
+        "lifecycle dependency edge",
+    )?;
+    require_non_empty(
+        &record.dependency_ref,
+        "lifecycle dependency edge missing dependencyRef",
+    )?;
+    require_non_empty(
+        &record.source_ref,
+        "lifecycle dependency edge missing sourceRef",
+    )?;
+    require_non_empty(
+        &record.target_ref,
+        "lifecycle dependency edge missing targetRef",
+    )?;
+    validate_lifecycle_dependency_state(&record.state)?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "lifecycle dependency edge missing evidenceRefs",
+    )?;
+    if record.state == FABRIC_LIFECYCLE_DEPENDENCY_READY && record.evidence_refs.is_empty() {
+        return Err(anyhow!(
+            "ready lifecycle dependency edge requires evidenceRefs"
+        ));
+    }
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_LIFECYCLE_DEPENDENCY_DEGRADED
+                | FABRIC_LIFECYCLE_DEPENDENCY_BLOCKED
+                | FABRIC_LIFECYCLE_DEPENDENCY_MISSING
+        ),
+        &record.blocked_reasons,
+        "lifecycle dependency edge",
+    )?;
+    validate_safe_facts(&record.safe_facts, "lifecycle dependency edge safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "lifecycle dependency edge")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "lifecycle dependency edge")
 }
 
 pub fn validate_lifecycle_plan_posture(record: &LifecyclePlanPosture) -> Result<()> {
@@ -10314,6 +10404,10 @@ pub fn validate_lifecycle_plan_posture(record: &LifecyclePlanPosture) -> Result<
             phase,
             &format!("lifecycle plan posture phasePostures {index}"),
         )?;
+    }
+    for (index, edge) in record.dependency_edges.iter().enumerate() {
+        validate_lifecycle_dependency_edge(edge)
+            .with_context(|| format!("lifecycle plan posture dependencyEdges {index}"))?;
     }
     validate_reference_list(
         &record.member_contribution_refs,
@@ -14513,6 +14607,7 @@ mod tests {
                 LifecyclePhasePosture {
                     phase: FABRIC_LIFECYCLE_PHASE_SOURCE.to_string(),
                     state: FABRIC_LIFECYCLE_PHASE_READY.to_string(),
+                    dependency_refs: vec![],
                     evidence_refs: vec!["evidence:source:indexed".to_string()],
                     output_refs: vec![],
                     blocked_reasons: vec![],
@@ -14521,12 +14616,27 @@ mod tests {
                 LifecyclePhasePosture {
                     phase: FABRIC_LIFECYCLE_PHASE_RUN.to_string(),
                     state: FABRIC_LIFECYCLE_PHASE_RUNNING.to_string(),
+                    dependency_refs: vec![
+                        "lifecycle-dependency:gateway-association:storage".to_string(),
+                    ],
                     evidence_refs: vec!["evidence:association:running".to_string()],
                     output_refs: vec![],
                     blocked_reasons: vec![],
                     safe_facts: Value::Null,
                 },
             ],
+            dependency_edges: vec![LifecycleDependencyEdge {
+                kind: Some(RECORD_LIFECYCLE_DEPENDENCY_EDGE.to_string()),
+                dependency_ref: "lifecycle-dependency:gateway-association:storage".to_string(),
+                source_ref: "role:gatewayAssociation".to_string(),
+                target_ref: "role:storageJournalCache".to_string(),
+                state: FABRIC_LIFECYCLE_DEPENDENCY_READY.to_string(),
+                required: true,
+                order: Some(10),
+                evidence_refs: vec!["evidence:dependency:storage-ready".to_string()],
+                blocked_reasons: vec![],
+                safe_facts: json!({ "dependency": "storage-before-gateway" }),
+            }],
             member_contribution_refs: vec![contribution.contribution_id.clone()],
             evidence_refs: vec!["evidence:lifecycle:reduced".to_string()],
             release_refs: vec![],
