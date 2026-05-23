@@ -572,6 +572,10 @@ export const LOGGING = Object.freeze({
     SERVICE_EVENT: "serviceEvent",
     STORAGE_ACCESS: "storageAccess",
     MEDIA_PATH: "mediaPath",
+    HOST_SECURITY: "hostSecurity",
+    SERVICE_HARDENING: "serviceHardening",
+    NETWORK_EXPOSURE: "networkExposure",
+    EVIDENCE_REQUEST: "evidenceRequest",
   }),
   EVIDENCE_DETAIL_CUSTODY: Object.freeze({
     SAFE_FACTS_ONLY: "safeFactsOnly",
