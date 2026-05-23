@@ -3823,11 +3823,15 @@ pub struct HostFabricControlDecision {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub execution_delegation_ref: Option<String>,
     #[serde(default)]
+    pub authorization_refs: Vec<String>,
+    #[serde(default)]
     pub fallback_refs: Vec<String>,
     #[serde(default)]
     pub quarantine_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -3891,6 +3895,8 @@ pub struct HostFabricAdapterExecutionEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub delegated_role_ref: Option<String>,
     #[serde(default)]
+    pub authorization_refs: Vec<String>,
+    #[serde(default)]
     pub action_authority_refs: Vec<String>,
     #[serde(default)]
     pub evidence_requirement_refs: Vec<String>,
@@ -3904,6 +3910,10 @@ pub struct HostFabricAdapterExecutionEvidence {
     pub quarantine_refs: Vec<String>,
     #[serde(default)]
     pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub cleanup_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -10368,6 +10378,10 @@ pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision)
         "host-fabric control decision missing executionDelegationRef",
     )?;
     validate_reference_list(
+        &record.authorization_refs,
+        "host-fabric control decision missing authorizationRefs",
+    )?;
+    validate_reference_list(
         &record.fallback_refs,
         "host-fabric control decision missing fallbackRefs",
     )?;
@@ -10378,6 +10392,10 @@ pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision)
     validate_optional_ref(
         record.rollback_ref.as_deref(),
         "host-fabric control decision missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "host-fabric control decision missing releaseRefs",
     )?;
     validate_reference_list(
         &record.evidence_refs,
@@ -10402,6 +10420,10 @@ pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision)
         require_non_empty(
             record.source_plan_ref.as_deref().unwrap_or_default(),
             "ready host-fabric control decision missing sourcePlanRef",
+        )?;
+        require_non_empty_vec(
+            &record.authorization_refs,
+            "ready host-fabric control decision requires authorizationRefs",
         )?;
         require_non_empty_vec(
             &record.evidence_refs,
@@ -10576,6 +10598,10 @@ pub fn validate_host_fabric_adapter_execution_evidence(
         "host-fabric adapter execution evidence missing delegatedRoleRef",
     )?;
     validate_reference_list(
+        &record.authorization_refs,
+        "host-fabric adapter execution evidence missing authorizationRefs",
+    )?;
+    validate_reference_list(
         &record.action_authority_refs,
         "host-fabric adapter execution evidence missing actionAuthorityRefs",
     )?;
@@ -10604,6 +10630,14 @@ pub fn validate_host_fabric_adapter_execution_evidence(
         "host-fabric adapter execution evidence missing rollbackRefs",
     )?;
     validate_reference_list(
+        &record.release_refs,
+        "host-fabric adapter execution evidence missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.cleanup_refs,
+        "host-fabric adapter execution evidence missing cleanupRefs",
+    )?;
+    validate_reference_list(
         &record.evidence_refs,
         "host-fabric adapter execution evidence missing evidenceRefs",
     )?;
@@ -10623,6 +10657,10 @@ pub fn validate_host_fabric_adapter_execution_evidence(
         require_non_empty(
             record.source_plan_ref.as_deref().unwrap_or_default(),
             "succeeded host-fabric adapter execution evidence missing sourcePlanRef",
+        )?;
+        require_non_empty_vec(
+            &record.authorization_refs,
+            "succeeded host-fabric adapter execution evidence requires authorizationRefs",
         )?;
         require_non_empty_vec(
             &record.output_refs,
@@ -15461,9 +15499,11 @@ mod tests {
             source_plan_ref: Some(plan.plan_id.clone()),
             plan_state: Some(plan.state.clone()),
             execution_delegation_ref: Some("delegation:service-manager:health-check".to_string()),
+            authorization_refs: vec!["authorization:fabric-control:health-check".to_string()],
             fallback_refs: vec!["fallback:manual-service-manager".to_string()],
             quarantine_refs: vec![],
             rollback_ref: Some("rollback:service-manager:nvr".to_string()),
+            release_refs: vec!["release:fabric-control:health-check".to_string()],
             blocked_reasons: vec![],
             evidence_refs: vec!["evidence:fabric-control:ready".to_string()],
             safe_facts: json!({ "operation": "healthCheck" }),
@@ -15508,6 +15548,7 @@ mod tests {
             source_plan_ref: Some(plan.plan_id.clone()),
             source_bridge_ref: Some(legacy_bridge.bridge_id.clone()),
             delegated_role_ref: control_decision.delegated_role_ref.clone(),
+            authorization_refs: control_decision.authorization_refs.clone(),
             action_authority_refs: plan.action_authority_refs.clone(),
             evidence_requirement_refs: plan.evidence_requirement_refs.clone(),
             input_refs: vec![control_decision.operation_ref.clone(), plan.plan_id.clone()],
@@ -15515,6 +15556,8 @@ mod tests {
             fallback_refs: control_decision.fallback_refs.clone(),
             quarantine_refs: control_decision.quarantine_refs.clone(),
             rollback_refs: plan.rollback_refs.clone(),
+            release_refs: control_decision.release_refs.clone(),
+            cleanup_refs: vec!["cleanup:host-adapter:health-check".to_string()],
             blocked_reasons: vec![],
             evidence_refs: vec!["evidence:host-adapter:health-check:ok".to_string()],
             safe_facts: json!({ "operation": "healthCheck", "dryRun": true }),
@@ -15533,6 +15576,21 @@ mod tests {
         bad_execution.evidence_id = "host-adapter-execution:bad:no-output".to_string();
         bad_execution.output_refs.clear();
         assert!(validate_host_fabric_adapter_execution_evidence(&bad_execution).is_err());
+
+        let mut missing_execution_authorization = adapter_execution.clone();
+        missing_execution_authorization.evidence_id =
+            "host-adapter-execution:bad:no-authorization".to_string();
+        missing_execution_authorization.authorization_refs.clear();
+        assert!(
+            validate_host_fabric_adapter_execution_evidence(&missing_execution_authorization)
+                .is_err()
+        );
+
+        let mut missing_decision_authorization = control_decision.clone();
+        missing_decision_authorization.decision_id =
+            "fabric-control:bad:no-authorization".to_string();
+        missing_decision_authorization.authorization_refs.clear();
+        assert!(validate_host_fabric_control_decision(&missing_decision_authorization).is_err());
 
         let mut missing_plan_decision = control_decision.clone();
         missing_plan_decision.decision_id = "fabric-control:bad:waiting-no-reason".to_string();

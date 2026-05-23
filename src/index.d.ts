@@ -3352,9 +3352,11 @@ export type HostFabricControlDecision = {
   sourcePlanRef?: string;
   planState?: FabricFulfillmentPlanState;
   executionDelegationRef?: string;
+  authorizationRefs?: string[];
   fallbackRefs?: string[];
   quarantineRefs?: string[];
   rollbackRef?: string;
+  releaseRefs?: string[];
   blockedReasons?: string[];
   evidenceRefs?: string[];
   safeFacts?: Record<string, unknown>;
@@ -3395,6 +3397,7 @@ export type HostFabricAdapterExecutionEvidence = {
   sourcePlanRef?: string;
   sourceBridgeRef?: string;
   delegatedRoleRef?: string;
+  authorizationRefs?: string[];
   actionAuthorityRefs?: string[];
   evidenceRequirementRefs?: string[];
   inputRefs?: string[];
@@ -3402,6 +3405,8 @@ export type HostFabricAdapterExecutionEvidence = {
   fallbackRefs?: string[];
   quarantineRefs?: string[];
   rollbackRefs?: string[];
+  releaseRefs?: string[];
+  cleanupRefs?: string[];
   blockedReasons?: string[];
   evidenceRefs?: string[];
   safeFacts?: Record<string, unknown>;

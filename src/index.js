@@ -4636,9 +4636,11 @@ export function assertHostFabricControlDecision(record) {
   if (record.sourcePlanRef !== undefined) requireString(record.sourcePlanRef, "host-fabric control decision sourcePlanRef");
   if (record.planState !== undefined) assertEnumValue(record.planState, FABRIC.FULFILLMENT_PLAN_STATE, "host-fabric control decision planState");
   if (record.executionDelegationRef !== undefined) requireString(record.executionDelegationRef, "host-fabric control decision executionDelegationRef");
+  const authorizationRefs = assertOptionalReferenceList(record.authorizationRefs, "host-fabric control decision authorizationRefs");
   assertOptionalReferenceList(record.fallbackRefs, "host-fabric control decision fallbackRefs");
   assertOptionalReferenceList(record.quarantineRefs, "host-fabric control decision quarantineRefs");
   if (record.rollbackRef !== undefined) requireString(record.rollbackRef, "host-fabric control decision rollbackRef");
+  assertOptionalReferenceList(record.releaseRefs, "host-fabric control decision releaseRefs");
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric control decision blockedReasons");
   assertBlockedReasonsForState(
     state,
@@ -4655,12 +4657,13 @@ export function assertHostFabricControlDecision(record) {
   if (state === FABRIC.CONTROL_DECISION_STATE.READY) {
     requireString(record.delegatedRoleRef, "ready host-fabric control decision delegatedRoleRef");
     requireString(record.sourcePlanRef, "ready host-fabric control decision sourcePlanRef");
+    if (authorizationRefs.length === 0) throw new Error("ready host-fabric control decision requires authorizationRefs");
     if (evidenceRefs.length === 0) throw new Error("ready host-fabric control decision requires evidenceRefs");
   }
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric control decision safeFacts");
   assertSurfaceManagerSensitiveBoundary(record, "host-fabric control decision");
   assertFabricObservedWindow(record, "host-fabric control decision");
-  return { ...record, state, blockedReasons, evidenceRefs };
+  return { ...record, state, authorizationRefs, blockedReasons, evidenceRefs };
 }
 
 export function assertHostFabricLegacyControlBridge(record) {
@@ -4715,6 +4718,7 @@ export function assertHostFabricAdapterExecutionEvidence(record) {
   if (record.sourcePlanRef !== undefined) requireString(record.sourcePlanRef, "host-fabric adapter execution evidence sourcePlanRef");
   if (record.sourceBridgeRef !== undefined) requireString(record.sourceBridgeRef, "host-fabric adapter execution evidence sourceBridgeRef");
   if (record.delegatedRoleRef !== undefined) requireString(record.delegatedRoleRef, "host-fabric adapter execution evidence delegatedRoleRef");
+  const authorizationRefs = assertOptionalReferenceList(record.authorizationRefs, "host-fabric adapter execution evidence authorizationRefs");
   assertOptionalReferenceList(record.actionAuthorityRefs, "host-fabric adapter execution evidence actionAuthorityRefs");
   assertOptionalReferenceList(record.evidenceRequirementRefs, "host-fabric adapter execution evidence evidenceRequirementRefs");
   assertOptionalReferenceList(record.inputRefs, "host-fabric adapter execution evidence inputRefs");
@@ -4722,6 +4726,8 @@ export function assertHostFabricAdapterExecutionEvidence(record) {
   assertOptionalReferenceList(record.fallbackRefs, "host-fabric adapter execution evidence fallbackRefs");
   assertOptionalReferenceList(record.quarantineRefs, "host-fabric adapter execution evidence quarantineRefs");
   assertOptionalReferenceList(record.rollbackRefs, "host-fabric adapter execution evidence rollbackRefs");
+  assertOptionalReferenceList(record.releaseRefs, "host-fabric adapter execution evidence releaseRefs");
+  assertOptionalReferenceList(record.cleanupRefs, "host-fabric adapter execution evidence cleanupRefs");
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric adapter execution evidence blockedReasons");
   assertBlockedReasonsForState(
     state,
@@ -4733,13 +4739,14 @@ export function assertHostFabricAdapterExecutionEvidence(record) {
   if (state === FABRIC.ADAPTER_EXECUTION_STATE.SUCCEEDED) {
     requireString(record.sourceDecisionRef, "succeeded host-fabric adapter execution evidence sourceDecisionRef");
     requireString(record.sourcePlanRef, "succeeded host-fabric adapter execution evidence sourcePlanRef");
+    if (authorizationRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires authorizationRefs");
     if (outputRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires outputRefs");
     if (evidenceRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires evidenceRefs");
   }
   if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric adapter execution evidence safeFacts");
   assertSurfaceManagerSensitiveBoundary(record, "host-fabric adapter execution evidence");
   assertFabricObservedWindow(record, "host-fabric adapter execution evidence");
-  return { ...record, state, outputRefs, blockedReasons, evidenceRefs };
+  return { ...record, state, authorizationRefs, outputRefs, blockedReasons, evidenceRefs };
 }
 
 export function assertLifecyclePlanPosture(record) {

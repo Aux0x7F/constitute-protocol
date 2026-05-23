@@ -2136,9 +2136,11 @@ test("host fabric records separate association, composition, lifecycle, source t
     sourcePlanRef: plan.planId,
     planState: plan.state,
     executionDelegationRef: "delegation:service-manager:health-check",
+    authorizationRefs: ["authorization:fabric-control:health-check"],
     fallbackRefs: ["fallback:manual-service-manager"],
     quarantineRefs: [],
     rollbackRef: "rollback:service-manager:nvr",
+    releaseRefs: ["release:fabric-control:health-check"],
     evidenceRefs: ["evidence:fabric-control:ready"],
     safeFacts: { operation: "healthCheck" },
     observedAt,
@@ -2177,6 +2179,7 @@ test("host fabric records separate association, composition, lifecycle, source t
     sourcePlanRef: plan.planId,
     sourceBridgeRef: legacyBridge.bridgeId,
     delegatedRoleRef: controlDecision.delegatedRoleRef,
+    authorizationRefs: controlDecision.authorizationRefs,
     actionAuthorityRefs: plan.actionAuthorityRefs,
     evidenceRequirementRefs: plan.evidenceRequirementRefs,
     inputRefs: [controlDecision.operationRef, plan.planId],
@@ -2184,6 +2187,8 @@ test("host fabric records separate association, composition, lifecycle, source t
     fallbackRefs: controlDecision.fallbackRefs,
     quarantineRefs: controlDecision.quarantineRefs,
     rollbackRefs: plan.rollbackRefs,
+    releaseRefs: controlDecision.releaseRefs,
+    cleanupRefs: ["cleanup:host-adapter:health-check"],
     evidenceRefs: ["evidence:host-adapter:health-check:ok"],
     safeFacts: { operation: "healthCheck", dryRun: true },
     observedAt: observedAt + 1,
@@ -2200,6 +2205,16 @@ test("host fabric records separate association, composition, lifecycle, source t
     evidenceId: "host-adapter-execution:bad:no-output",
     outputRefs: [],
   }), /requires outputRefs/);
+  assert.throws(() => assertHostFabricAdapterExecutionEvidence({
+    ...adapterExecution,
+    evidenceId: "host-adapter-execution:bad:no-authorization",
+    authorizationRefs: [],
+  }), /requires authorizationRefs/);
+  assert.throws(() => assertHostFabricControlDecision({
+    ...controlDecision,
+    decisionId: "fabric-control:bad:no-authorization",
+    authorizationRefs: [],
+  }), /requires authorizationRefs/);
   assert.throws(() => assertHostFabricControlDecision({
     ...controlDecision,
     decisionId: "fabric-control:bad:waiting-no-reason",
