@@ -4634,6 +4634,12 @@ export function assertHostFabricControlDecision(record) {
   const state = assertEnumValue(record.state, FABRIC.CONTROL_DECISION_STATE, "host-fabric control decision state");
   if (record.delegatedRoleRef !== undefined) requireString(record.delegatedRoleRef, "host-fabric control decision delegatedRoleRef");
   if (record.sourcePlanRef !== undefined) requireString(record.sourcePlanRef, "host-fabric control decision sourcePlanRef");
+  if (record.sourcePlanRef !== undefined) {
+    if (!Number(record.sourcePlanObservedAt || 0)) throw new Error("host-fabric control decision sourcePlanRef requires sourcePlanObservedAt");
+    if (record.sourcePlanExpiresAt !== undefined && Number(record.sourcePlanExpiresAt || 0) <= Number(record.sourcePlanObservedAt || 0)) {
+      throw new Error("host-fabric control decision sourcePlanExpiresAt must be after sourcePlanObservedAt");
+    }
+  }
   if (record.planState !== undefined) assertEnumValue(record.planState, FABRIC.FULFILLMENT_PLAN_STATE, "host-fabric control decision planState");
   if (record.executionDelegationRef !== undefined) requireString(record.executionDelegationRef, "host-fabric control decision executionDelegationRef");
   const authorizationRefs = assertOptionalReferenceList(record.authorizationRefs, "host-fabric control decision authorizationRefs");
@@ -4657,6 +4663,10 @@ export function assertHostFabricControlDecision(record) {
   if (state === FABRIC.CONTROL_DECISION_STATE.READY) {
     requireString(record.delegatedRoleRef, "ready host-fabric control decision delegatedRoleRef");
     requireString(record.sourcePlanRef, "ready host-fabric control decision sourcePlanRef");
+    if (!Number(record.sourcePlanObservedAt || 0)) throw new Error("ready host-fabric control decision missing sourcePlanObservedAt");
+    if (Number(record.sourcePlanExpiresAt || 0) <= Number(record.observedAt || 0)) {
+      throw new Error("ready host-fabric control decision requires fresh sourcePlanExpiresAt");
+    }
     if (authorizationRefs.length === 0) throw new Error("ready host-fabric control decision requires authorizationRefs");
     if (evidenceRefs.length === 0) throw new Error("ready host-fabric control decision requires evidenceRefs");
   }
@@ -4716,6 +4726,12 @@ export function assertHostFabricAdapterExecutionEvidence(record) {
   const state = assertEnumValue(record.state, FABRIC.ADAPTER_EXECUTION_STATE, "host-fabric adapter execution evidence state");
   if (record.sourceDecisionRef !== undefined) requireString(record.sourceDecisionRef, "host-fabric adapter execution evidence sourceDecisionRef");
   if (record.sourcePlanRef !== undefined) requireString(record.sourcePlanRef, "host-fabric adapter execution evidence sourcePlanRef");
+  if (record.sourcePlanRef !== undefined) {
+    if (!Number(record.sourcePlanObservedAt || 0)) throw new Error("host-fabric adapter execution evidence sourcePlanRef requires sourcePlanObservedAt");
+    if (record.sourcePlanExpiresAt !== undefined && Number(record.sourcePlanExpiresAt || 0) <= Number(record.sourcePlanObservedAt || 0)) {
+      throw new Error("host-fabric adapter execution evidence sourcePlanExpiresAt must be after sourcePlanObservedAt");
+    }
+  }
   if (record.sourceBridgeRef !== undefined) requireString(record.sourceBridgeRef, "host-fabric adapter execution evidence sourceBridgeRef");
   if (record.delegatedRoleRef !== undefined) requireString(record.delegatedRoleRef, "host-fabric adapter execution evidence delegatedRoleRef");
   const authorizationRefs = assertOptionalReferenceList(record.authorizationRefs, "host-fabric adapter execution evidence authorizationRefs");
@@ -4739,6 +4755,10 @@ export function assertHostFabricAdapterExecutionEvidence(record) {
   if (state === FABRIC.ADAPTER_EXECUTION_STATE.SUCCEEDED) {
     requireString(record.sourceDecisionRef, "succeeded host-fabric adapter execution evidence sourceDecisionRef");
     requireString(record.sourcePlanRef, "succeeded host-fabric adapter execution evidence sourcePlanRef");
+    if (!Number(record.sourcePlanObservedAt || 0)) throw new Error("succeeded host-fabric adapter execution evidence missing sourcePlanObservedAt");
+    if (Number(record.sourcePlanExpiresAt || 0) <= Number(record.observedAt || 0)) {
+      throw new Error("succeeded host-fabric adapter execution evidence requires fresh sourcePlanExpiresAt");
+    }
     if (authorizationRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires authorizationRefs");
     if (outputRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires outputRefs");
     if (evidenceRefs.length === 0) throw new Error("succeeded host-fabric adapter execution evidence requires evidenceRefs");

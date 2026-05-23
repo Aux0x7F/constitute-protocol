@@ -3350,6 +3350,8 @@ export type HostFabricControlDecision = {
   delegatedRoleRef?: string;
   state: FabricControlDecisionState;
   sourcePlanRef?: string;
+  sourcePlanObservedAt?: number;
+  sourcePlanExpiresAt?: number;
   planState?: FabricFulfillmentPlanState;
   executionDelegationRef?: string;
   authorizationRefs?: string[];
@@ -3395,6 +3397,8 @@ export type HostFabricAdapterExecutionEvidence = {
   state: FabricAdapterExecutionState;
   sourceDecisionRef?: string;
   sourcePlanRef?: string;
+  sourcePlanObservedAt?: number;
+  sourcePlanExpiresAt?: number;
   sourceBridgeRef?: string;
   delegatedRoleRef?: string;
   authorizationRefs?: string[];

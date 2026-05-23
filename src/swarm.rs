@@ -3819,6 +3819,10 @@ pub struct HostFabricControlDecision {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_plan_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_expires_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub plan_state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub execution_delegation_ref: Option<String>,
@@ -3890,6 +3894,10 @@ pub struct HostFabricAdapterExecutionEvidence {
     pub source_decision_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_plan_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_expires_at: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_bridge_ref: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -10370,6 +10378,20 @@ pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision)
         record.source_plan_ref.as_deref(),
         "host-fabric control decision missing sourcePlanRef",
     )?;
+    if record.source_plan_ref.is_some() {
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "host-fabric control decision sourcePlanRef requires sourcePlanObservedAt"
+            ));
+        }
+        if let Some(source_plan_expires_at) = record.source_plan_expires_at {
+            if source_plan_expires_at <= record.source_plan_observed_at.unwrap_or_default() {
+                return Err(anyhow!(
+                    "host-fabric control decision sourcePlanExpiresAt must be after sourcePlanObservedAt"
+                ));
+            }
+        }
+    }
     if let Some(plan_state) = record.plan_state.as_deref() {
         validate_fabric_fulfillment_plan_state(plan_state)?;
     }
@@ -10421,6 +10443,16 @@ pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision)
             record.source_plan_ref.as_deref().unwrap_or_default(),
             "ready host-fabric control decision missing sourcePlanRef",
         )?;
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "ready host-fabric control decision missing sourcePlanObservedAt"
+            ));
+        }
+        if record.source_plan_expires_at.unwrap_or_default() <= record.observed_at {
+            return Err(anyhow!(
+                "ready host-fabric control decision requires fresh sourcePlanExpiresAt"
+            ));
+        }
         require_non_empty_vec(
             &record.authorization_refs,
             "ready host-fabric control decision requires authorizationRefs",
@@ -10589,6 +10621,20 @@ pub fn validate_host_fabric_adapter_execution_evidence(
         record.source_plan_ref.as_deref(),
         "host-fabric adapter execution evidence missing sourcePlanRef",
     )?;
+    if record.source_plan_ref.is_some() {
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "host-fabric adapter execution evidence sourcePlanRef requires sourcePlanObservedAt"
+            ));
+        }
+        if let Some(source_plan_expires_at) = record.source_plan_expires_at {
+            if source_plan_expires_at <= record.source_plan_observed_at.unwrap_or_default() {
+                return Err(anyhow!(
+                    "host-fabric adapter execution evidence sourcePlanExpiresAt must be after sourcePlanObservedAt"
+                ));
+            }
+        }
+    }
     validate_optional_ref(
         record.source_bridge_ref.as_deref(),
         "host-fabric adapter execution evidence missing sourceBridgeRef",
@@ -10658,6 +10704,16 @@ pub fn validate_host_fabric_adapter_execution_evidence(
             record.source_plan_ref.as_deref().unwrap_or_default(),
             "succeeded host-fabric adapter execution evidence missing sourcePlanRef",
         )?;
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "succeeded host-fabric adapter execution evidence missing sourcePlanObservedAt"
+            ));
+        }
+        if record.source_plan_expires_at.unwrap_or_default() <= record.observed_at {
+            return Err(anyhow!(
+                "succeeded host-fabric adapter execution evidence requires fresh sourcePlanExpiresAt"
+            ));
+        }
         require_non_empty_vec(
             &record.authorization_refs,
             "succeeded host-fabric adapter execution evidence requires authorizationRefs",
@@ -15497,6 +15553,8 @@ mod tests {
             delegated_role_ref: Some("role:gatewayAssociation".to_string()),
             state: FABRIC_CONTROL_DECISION_READY.to_string(),
             source_plan_ref: Some(plan.plan_id.clone()),
+            source_plan_observed_at: Some(plan.observed_at),
+            source_plan_expires_at: plan.expires_at,
             plan_state: Some(plan.state.clone()),
             execution_delegation_ref: Some("delegation:service-manager:health-check".to_string()),
             authorization_refs: vec!["authorization:fabric-control:health-check".to_string()],
@@ -15546,6 +15604,8 @@ mod tests {
             state: FABRIC_ADAPTER_EXECUTION_SUCCEEDED.to_string(),
             source_decision_ref: Some(control_decision.decision_id.clone()),
             source_plan_ref: Some(plan.plan_id.clone()),
+            source_plan_observed_at: Some(plan.observed_at),
+            source_plan_expires_at: plan.expires_at,
             source_bridge_ref: Some(legacy_bridge.bridge_id.clone()),
             delegated_role_ref: control_decision.delegated_role_ref.clone(),
             authorization_refs: control_decision.authorization_refs.clone(),
@@ -15591,6 +15651,16 @@ mod tests {
             "fabric-control:bad:no-authorization".to_string();
         missing_decision_authorization.authorization_refs.clear();
         assert!(validate_host_fabric_control_decision(&missing_decision_authorization).is_err());
+
+        let mut stale_ready_decision = control_decision.clone();
+        stale_ready_decision.decision_id = "fabric-control:bad:stale-plan".to_string();
+        stale_ready_decision.source_plan_expires_at = Some(observed_at);
+        assert!(validate_host_fabric_control_decision(&stale_ready_decision).is_err());
+
+        let mut stale_adapter_execution = adapter_execution.clone();
+        stale_adapter_execution.evidence_id = "host-adapter-execution:bad:stale-plan".to_string();
+        stale_adapter_execution.source_plan_expires_at = Some(observed_at);
+        assert!(validate_host_fabric_adapter_execution_evidence(&stale_adapter_execution).is_err());
 
         let mut missing_plan_decision = control_decision.clone();
         missing_plan_decision.decision_id = "fabric-control:bad:waiting-no-reason".to_string();

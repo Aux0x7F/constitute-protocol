@@ -2134,6 +2134,8 @@ test("host fabric records separate association, composition, lifecycle, source t
     delegatedRoleRef: "role:gatewayAssociation",
     state: FABRIC.CONTROL_DECISION_STATE.READY,
     sourcePlanRef: plan.planId,
+    sourcePlanObservedAt: plan.observedAt,
+    sourcePlanExpiresAt: plan.expiresAt,
     planState: plan.state,
     executionDelegationRef: "delegation:service-manager:health-check",
     authorizationRefs: ["authorization:fabric-control:health-check"],
@@ -2177,6 +2179,8 @@ test("host fabric records separate association, composition, lifecycle, source t
     state: FABRIC.ADAPTER_EXECUTION_STATE.SUCCEEDED,
     sourceDecisionRef: controlDecision.decisionId,
     sourcePlanRef: plan.planId,
+    sourcePlanObservedAt: plan.observedAt,
+    sourcePlanExpiresAt: plan.expiresAt,
     sourceBridgeRef: legacyBridge.bridgeId,
     delegatedRoleRef: controlDecision.delegatedRoleRef,
     authorizationRefs: controlDecision.authorizationRefs,
@@ -2215,6 +2219,18 @@ test("host fabric records separate association, composition, lifecycle, source t
     decisionId: "fabric-control:bad:no-authorization",
     authorizationRefs: [],
   }), /requires authorizationRefs/);
+  assert.throws(() => assertHostFabricControlDecision({
+    ...controlDecision,
+    decisionId: "fabric-control:bad:stale-source-plan",
+    sourcePlanObservedAt: observedAt - 10,
+    sourcePlanExpiresAt: observedAt - 1,
+  }), /requires fresh sourcePlanExpiresAt/);
+  assert.throws(() => assertHostFabricAdapterExecutionEvidence({
+    ...adapterExecution,
+    evidenceId: "host-adapter-execution:bad:stale-source-plan",
+    sourcePlanObservedAt: observedAt - 10,
+    sourcePlanExpiresAt: observedAt,
+  }), /requires fresh sourcePlanExpiresAt/);
   assert.throws(() => assertHostFabricControlDecision({
     ...controlDecision,
     decisionId: "fabric-control:bad:waiting-no-reason",
