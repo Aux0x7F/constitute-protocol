@@ -572,6 +572,10 @@ export const LOGGING = Object.freeze({
     SERVICE_EVENT: "serviceEvent",
     STORAGE_ACCESS: "storageAccess",
     MEDIA_PATH: "mediaPath",
+    HOST_SECURITY: "hostSecurity",
+    SERVICE_HARDENING: "serviceHardening",
+    NETWORK_EXPOSURE: "networkExposure",
+    EVIDENCE_REQUEST: "evidenceRequest",
   }),
   EVIDENCE_DETAIL_CUSTODY: Object.freeze({
     SAFE_FACTS_ONLY: "safeFactsOnly",
@@ -1545,6 +1549,10 @@ export const SWARM = Object.freeze({
     CYBERSEC_EVIDENCE_HOLD: "cybersec.evidence.hold",
     CYBERSEC_MITIGATION_RECOMMENDATION: "cybersec.mitigation.recommendation",
     CYBERSEC_MITIGATION_CONSUMER_POSTURE: "cybersec.mitigation.consumer.posture",
+    HARDENING_SIGNAL_OBSERVATION: "hardening.signal.observation",
+    SERVICE_HARDENING_POSTURE: "service.hardening.posture",
+    NETWORK_EXPOSURE_POSTURE: "network.exposure.posture",
+    EVIDENCE_REQUEST_POSTURE: "evidence.request.posture",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1643,6 +1651,14 @@ export const SWARM = Object.freeze({
     EVENT_FABRIC_PROCESSOR_CONTRACT: "event.fabric.processor.contract",
     EVENT_FABRIC_PROCESSOR_REPORT: "event.fabric.processor.report",
     CYBERSEC_PROCESSOR_SEED: "cybersec.processor.seed",
+    CYBERSEC_FINDING: "cybersec.finding",
+    CYBERSEC_EVIDENCE_HOLD: "cybersec.evidence.hold",
+    CYBERSEC_MITIGATION_RECOMMENDATION: "cybersec.mitigation.recommendation",
+    CYBERSEC_MITIGATION_CONSUMER_POSTURE: "cybersec.mitigation.consumer.posture",
+    HARDENING_SIGNAL_OBSERVATION: "hardening.signal.observation",
+    SERVICE_HARDENING_POSTURE: "service.hardening.posture",
+    NETWORK_EXPOSURE_POSTURE: "network.exposure.posture",
+    EVIDENCE_REQUEST_POSTURE: "evidence.request.posture",
     PARTICIPANT_RUNLEVEL: "participant.runlevel",
     PARTICIPANT_SELF_CAPABILITY: "participant.selfCapability",
     INGRESS_LANE_POSTURE: "ingress.lane.posture",
@@ -1755,6 +1771,48 @@ export const SWARM = Object.freeze({
     ZONE_MISMATCH: "zoneMismatch",
     AUDIENCE_MISMATCH: "audienceMismatch",
     EDGE_NOT_ACCEPTED: "edgeNotAccepted",
+  }),
+  HARDENING_SIGNAL_KIND: Object.freeze({
+    FIREWALL: "firewall",
+    AUTH: "auth",
+    AUDIT: "audit",
+    PROCESS_POLICY: "processPolicy",
+    LAUNCH_POLICY: "launchPolicy",
+    RESTART_DRIFT: "restartDrift",
+    HOSTILE_INGRESS: "hostileIngress",
+    ANOMALY: "anomaly",
+    NETWORK_EXPOSURE: "networkExposure",
+    SERVICE_HARDENING: "serviceHardening",
+    PROOF_SUBSTRATE: "proofSubstrate",
+  }),
+  HARDENING_OBSERVATION_STATE: Object.freeze({
+    OBSERVED: "observed",
+    MISSING: "missing",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  HARDENING_POSTURE_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    MISSING_EVIDENCE: "missingEvidence",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  NETWORK_EXPOSURE_STATE: Object.freeze({
+    OBSERVED: "observed",
+    GUARDED: "guarded",
+    EXPOSED: "exposed",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  EVIDENCE_REQUEST_STATE: Object.freeze({
+    REQUESTED: "requested",
+    PARTIALLY_FULFILLED: "partiallyFulfilled",
+    FULFILLED: "fulfilled",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
   }),
   PARTICIPANT_RUNLEVEL: Object.freeze({
     LOCAL_CACHE: "localCache",
@@ -5441,6 +5499,164 @@ export function assertCybersecMitigationConsumerPosture(record) {
     throw new Error("cybersec mitigation consumer posture expires before observedAt");
   }
   return { ...record, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+function assertHardeningSignalKind(signalKind) {
+  return assertEnumValue(signalKind, SWARM.HARDENING_SIGNAL_KIND, "hardening signal kind");
+}
+
+function assertHardeningObservationState(state) {
+  return assertEnumValue(state, SWARM.HARDENING_OBSERVATION_STATE, "hardening observation state");
+}
+
+function assertHardeningPostureState(state) {
+  return assertEnumValue(state, SWARM.HARDENING_POSTURE_STATE, "service hardening posture state");
+}
+
+function assertNetworkExposureState(state) {
+  return assertEnumValue(state, SWARM.NETWORK_EXPOSURE_STATE, "network exposure posture state");
+}
+
+function assertEvidenceRequestState(state) {
+  return assertEnumValue(state, SWARM.EVIDENCE_REQUEST_STATE, "evidence request posture state");
+}
+
+export function assertHardeningSignalObservation(record) {
+  if (!isObject(record)) throw new Error("hardening signal observation must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HARDENING_SIGNAL_OBSERVATION, "hardening signal observation");
+  requireString(record.observationId, "hardening signal observation observationId");
+  requireString(record.observerRef, "hardening signal observation observerRef");
+  requireString(record.subjectRef, "hardening signal observation subjectRef");
+  assertHardeningSignalKind(record.signalKind);
+  const state = assertHardeningObservationState(record.state);
+  assertCybersecFindingSeverity(record.severity || "info");
+  assertOptionalReferenceList(record.authorityRefs, "hardening signal observation authorityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "hardening signal observation evidenceRefs");
+  assertOptionalReferenceList(record.eventRefs, "hardening signal observation eventRefs");
+  assertOptionalReferenceList(record.detailRefs, "hardening signal observation detailRefs");
+  assertOptionalReferenceList(record.storageRefs, "hardening signal observation storageRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "hardening signal observation blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.HARDENING_OBSERVATION_STATE.BLOCKED, SWARM.HARDENING_OBSERVATION_STATE.MISSING],
+    blockedReasons,
+    "hardening signal observation",
+  );
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "hardening signal observation safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "hardening signal observation safeFacts");
+  }
+  rejectRouteControlByteFields(record, "hardening signal observation");
+  if (!Number(record.observedAt || 0)) throw new Error("hardening signal observation missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("hardening signal observation expires before observedAt");
+  }
+  return { ...record, state, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertServiceHardeningPosture(record) {
+  if (!isObject(record)) throw new Error("service hardening posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_HARDENING_POSTURE, "service hardening posture");
+  requireString(record.postureId, "service hardening posture postureId");
+  requireString(record.serviceRef, "service hardening posture serviceRef");
+  requireString(record.observerRef, "service hardening posture observerRef");
+  const state = assertHardeningPostureState(record.state);
+  assertOptionalReferenceList(record.processPolicyRefs, "service hardening posture processPolicyRefs");
+  assertOptionalReferenceList(record.launchPolicyRefs, "service hardening posture launchPolicyRefs");
+  assertOptionalReferenceList(record.restartPolicyRefs, "service hardening posture restartPolicyRefs");
+  assertOptionalReferenceList(record.adapterPostureRefs, "service hardening posture adapterPostureRefs");
+  assertOptionalReferenceList(record.firewallPostureRefs, "service hardening posture firewallPostureRefs");
+  assertOptionalReferenceList(record.signalObservationRefs, "service hardening posture signalObservationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service hardening posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "service hardening posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.HARDENING_POSTURE_STATE.BLOCKED, SWARM.HARDENING_POSTURE_STATE.MISSING_EVIDENCE],
+    blockedReasons,
+    "service hardening posture",
+  );
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "service hardening posture safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "service hardening posture safeFacts");
+  }
+  rejectRouteControlByteFields(record, "service hardening posture");
+  if (!Number(record.observedAt || 0)) throw new Error("service hardening posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("service hardening posture expires before observedAt");
+  }
+  return { ...record, state, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertNetworkExposurePosture(record) {
+  if (!isObject(record)) throw new Error("network exposure posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.NETWORK_EXPOSURE_POSTURE, "network exposure posture");
+  requireString(record.postureId, "network exposure posture postureId");
+  requireString(record.observerRef, "network exposure posture observerRef");
+  requireString(record.subjectRef, "network exposure posture subjectRef");
+  const state = assertNetworkExposureState(record.state);
+  assertOptionalReferenceList(record.routeRefs, "network exposure posture routeRefs");
+  assertOptionalReferenceList(record.exposedPortRefs, "network exposure posture exposedPortRefs");
+  assertOptionalReferenceList(record.firewallPostureRefs, "network exposure posture firewallPostureRefs");
+  assertOptionalReferenceList(record.ingressRefs, "network exposure posture ingressRefs");
+  assertOptionalReferenceList(record.signalObservationRefs, "network exposure posture signalObservationRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "network exposure posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "network exposure posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.NETWORK_EXPOSURE_STATE.BLOCKED],
+    blockedReasons,
+    "network exposure posture",
+  );
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "network exposure posture safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "network exposure posture safeFacts");
+  }
+  rejectRouteControlByteFields(record, "network exposure posture");
+  if (!Number(record.observedAt || 0)) throw new Error("network exposure posture missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("network exposure posture expires before observedAt");
+  }
+  return { ...record, state, plane: AGREEMENT.PLANE.MATERIALIZATION };
+}
+
+export function assertEvidenceRequestPosture(record) {
+  if (!isObject(record)) throw new Error("evidence request posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.EVIDENCE_REQUEST_POSTURE, "evidence request posture");
+  requireString(record.requestId, "evidence request posture requestId");
+  requireString(record.requesterRef, "evidence request posture requesterRef");
+  requireString(record.targetRef, "evidence request posture targetRef");
+  const state = assertEvidenceRequestState(record.state);
+  assertOptionalReferenceList(record.findingRefs, "evidence request posture findingRefs");
+  assertOptionalReferenceList(record.recommendationRefs, "evidence request posture recommendationRefs");
+  assertOptionalReferenceList(record.requiredEvidenceClassRefs, "evidence request posture requiredEvidenceClassRefs");
+  assertOptionalReferenceList(record.eventRefs, "evidence request posture eventRefs");
+  assertOptionalReferenceList(record.detailRefs, "evidence request posture detailRefs");
+  assertOptionalReferenceList(record.storageRefs, "evidence request posture storageRefs");
+  assertOptionalReferenceList(record.authorityRefs, "evidence request posture authorityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "evidence request posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "evidence request posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.EVIDENCE_REQUEST_STATE.BLOCKED],
+    blockedReasons,
+    "evidence request posture",
+  );
+  if (state === SWARM.EVIDENCE_REQUEST_STATE.FULFILLED
+    && assertOptionalReferenceList(record.eventRefs, "evidence request posture eventRefs").length === 0
+    && assertOptionalReferenceList(record.detailRefs, "evidence request posture detailRefs").length === 0
+    && assertOptionalReferenceList(record.storageRefs, "evidence request posture storageRefs").length === 0) {
+    throw new Error("fulfilled evidence request posture requires eventRefs, detailRefs, or storageRefs");
+  }
+  if (record.safeFacts !== undefined) {
+    assertSafeObject(record.safeFacts, "evidence request posture safeFacts");
+    assertNoPrivateContentFields(record.safeFacts, "evidence request posture safeFacts");
+  }
+  rejectRouteControlByteFields(record, "evidence request posture");
+  if (!Number(record.issuedAt || 0)) throw new Error("evidence request posture missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.issuedAt || 0)) {
+    throw new Error("evidence request posture expires before issuedAt");
+  }
+  return { ...record, state, plane: AGREEMENT.PLANE.MATERIALIZATION };
 }
 
 export function assertSwarmIdentityGraph(records) {

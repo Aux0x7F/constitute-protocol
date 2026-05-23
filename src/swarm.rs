@@ -108,6 +108,10 @@ pub const RECORD_CYBERSEC_EVIDENCE_HOLD: &str = "cybersec.evidence.hold";
 pub const RECORD_CYBERSEC_MITIGATION_RECOMMENDATION: &str = "cybersec.mitigation.recommendation";
 pub const RECORD_CYBERSEC_MITIGATION_CONSUMER_POSTURE: &str =
     "cybersec.mitigation.consumer.posture";
+pub const RECORD_HARDENING_SIGNAL_OBSERVATION: &str = "hardening.signal.observation";
+pub const RECORD_SERVICE_HARDENING_POSTURE: &str = "service.hardening.posture";
+pub const RECORD_NETWORK_EXPOSURE_POSTURE: &str = "network.exposure.posture";
+pub const RECORD_EVIDENCE_REQUEST_POSTURE: &str = "evidence.request.posture";
 pub const RECORD_PARTICIPANT_RUNLEVEL: &str = "participant.runlevel";
 pub const RECORD_PARTICIPANT_SELF_CAPABILITY: &str = "participant.selfCapability";
 pub const RECORD_EVENT_ADMISSION: &str = "event.admission";
@@ -2235,6 +2239,133 @@ pub struct CybersecMitigationConsumerPostureRecord {
     #[serde(default)]
     pub safe_facts: Value,
     pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HardeningSignalObservationRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub observation_id: String,
+    pub observer_ref: String,
+    pub subject_ref: String,
+    pub signal_kind: String,
+    pub state: String,
+    #[serde(default = "default_info_severity")]
+    pub severity: String,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub event_refs: Vec<String>,
+    #[serde(default)]
+    pub detail_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceHardeningPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub service_ref: String,
+    pub observer_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub process_policy_refs: Vec<String>,
+    #[serde(default)]
+    pub launch_policy_refs: Vec<String>,
+    #[serde(default)]
+    pub restart_policy_refs: Vec<String>,
+    #[serde(default)]
+    pub adapter_posture_refs: Vec<String>,
+    #[serde(default)]
+    pub firewall_posture_refs: Vec<String>,
+    #[serde(default)]
+    pub signal_observation_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkExposurePostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub posture_id: String,
+    pub observer_ref: String,
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub route_refs: Vec<String>,
+    #[serde(default)]
+    pub exposed_port_refs: Vec<String>,
+    #[serde(default)]
+    pub firewall_posture_refs: Vec<String>,
+    #[serde(default)]
+    pub ingress_refs: Vec<String>,
+    #[serde(default)]
+    pub signal_observation_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct EvidenceRequestPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub request_id: String,
+    pub requester_ref: String,
+    pub target_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub finding_refs: Vec<String>,
+    #[serde(default)]
+    pub recommendation_refs: Vec<String>,
+    #[serde(default)]
+    pub required_evidence_class_refs: Vec<String>,
+    #[serde(default)]
+    pub event_refs: Vec<String>,
+    #[serde(default)]
+    pub detail_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
 }
@@ -5786,6 +5917,10 @@ fn validate_cybersec_severity(severity: &str) -> Result<()> {
     }
 }
 
+fn default_info_severity() -> String {
+    "info".to_string()
+}
+
 fn validate_cybersec_mitigation_action(action_kind: &str) -> Result<()> {
     if matches!(
         action_kind,
@@ -6164,6 +6299,373 @@ pub fn validate_cybersec_mitigation_consumer_posture(
     {
         return Err(anyhow!(
             "cybersec mitigation consumer posture expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_hardening_signal_kind(signal_kind: &str) -> Result<()> {
+    if matches!(
+        signal_kind,
+        "firewall"
+            | "auth"
+            | "audit"
+            | "processPolicy"
+            | "launchPolicy"
+            | "restartDrift"
+            | "hostileIngress"
+            | "anomaly"
+            | "networkExposure"
+            | "serviceHardening"
+            | "proofSubstrate"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid hardening signal kind"))
+    }
+}
+
+fn validate_hardening_observation_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        "observed" | "missing" | "degraded" | "blocked" | "expired"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid hardening observation state"))
+    }
+}
+
+fn validate_hardening_posture_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        "ready" | "degraded" | "missingEvidence" | "blocked" | "expired"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid service hardening posture state"))
+    }
+}
+
+fn validate_network_exposure_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        "observed" | "guarded" | "exposed" | "degraded" | "blocked" | "expired"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid network exposure posture state"))
+    }
+}
+
+fn validate_evidence_request_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        "requested" | "partiallyFulfilled" | "fulfilled" | "blocked" | "expired"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("invalid evidence request posture state"))
+    }
+}
+
+pub fn validate_hardening_signal_observation(
+    record: &HardeningSignalObservationRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HARDENING_SIGNAL_OBSERVATION,
+        "hardening signal observation",
+    )?;
+    require_non_empty(
+        &record.observation_id,
+        "hardening signal observation missing observationId",
+    )?;
+    require_non_empty(
+        &record.observer_ref,
+        "hardening signal observation missing observerRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "hardening signal observation missing subjectRef",
+    )?;
+    validate_hardening_signal_kind(&record.signal_kind)?;
+    validate_hardening_observation_state(&record.state)?;
+    validate_cybersec_severity(&record.severity)?;
+    validate_reference_list(
+        &record.authority_refs,
+        "hardening signal observation missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.event_refs,
+        "hardening signal observation missing eventRefs",
+    )?;
+    validate_reference_list(
+        &record.detail_refs,
+        "hardening signal observation missing detailRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "hardening signal observation missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "hardening signal observation missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "hardening signal observation missing blockedReasons",
+    )?;
+    if matches!(record.state.as_str(), "blocked" | "missing") && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "hardening signal observation blocked or missing state requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "hardening signal observation safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "hardening signal observation safeFacts")?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "hardening signal observation",
+    )?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("hardening signal observation missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "hardening signal observation expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_service_hardening_posture(record: &ServiceHardeningPostureRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_HARDENING_POSTURE,
+        "service hardening posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "service hardening posture missing postureId",
+    )?;
+    require_non_empty(
+        &record.service_ref,
+        "service hardening posture missing serviceRef",
+    )?;
+    require_non_empty(
+        &record.observer_ref,
+        "service hardening posture missing observerRef",
+    )?;
+    validate_hardening_posture_state(&record.state)?;
+    validate_reference_list(
+        &record.process_policy_refs,
+        "service hardening posture missing processPolicyRefs",
+    )?;
+    validate_reference_list(
+        &record.launch_policy_refs,
+        "service hardening posture missing launchPolicyRefs",
+    )?;
+    validate_reference_list(
+        &record.restart_policy_refs,
+        "service hardening posture missing restartPolicyRefs",
+    )?;
+    validate_reference_list(
+        &record.adapter_posture_refs,
+        "service hardening posture missing adapterPostureRefs",
+    )?;
+    validate_reference_list(
+        &record.firewall_posture_refs,
+        "service hardening posture missing firewallPostureRefs",
+    )?;
+    validate_reference_list(
+        &record.signal_observation_refs,
+        "service hardening posture missing signalObservationRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service hardening posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service hardening posture missing blockedReasons",
+    )?;
+    if matches!(record.state.as_str(), "blocked" | "missingEvidence")
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "service hardening posture blocked or missingEvidence state requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "service hardening posture safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "service hardening posture safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "service hardening posture")?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("service hardening posture missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "service hardening posture expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_network_exposure_posture(record: &NetworkExposurePostureRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_NETWORK_EXPOSURE_POSTURE,
+        "network exposure posture",
+    )?;
+    require_non_empty(
+        &record.posture_id,
+        "network exposure posture missing postureId",
+    )?;
+    require_non_empty(
+        &record.observer_ref,
+        "network exposure posture missing observerRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "network exposure posture missing subjectRef",
+    )?;
+    validate_network_exposure_state(&record.state)?;
+    validate_reference_list(
+        &record.route_refs,
+        "network exposure posture missing routeRefs",
+    )?;
+    validate_reference_list(
+        &record.exposed_port_refs,
+        "network exposure posture missing exposedPortRefs",
+    )?;
+    validate_reference_list(
+        &record.firewall_posture_refs,
+        "network exposure posture missing firewallPostureRefs",
+    )?;
+    validate_reference_list(
+        &record.ingress_refs,
+        "network exposure posture missing ingressRefs",
+    )?;
+    validate_reference_list(
+        &record.signal_observation_refs,
+        "network exposure posture missing signalObservationRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "network exposure posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "network exposure posture missing blockedReasons",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "network exposure posture blocked state requires blockedReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "network exposure posture safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "network exposure posture safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "network exposure posture")?;
+    if record.observed_at == 0 {
+        return Err(anyhow!("network exposure posture missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "network exposure posture expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_evidence_request_posture(record: &EvidenceRequestPostureRecord) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_EVIDENCE_REQUEST_POSTURE,
+        "evidence request posture",
+    )?;
+    require_non_empty(
+        &record.request_id,
+        "evidence request posture missing requestId",
+    )?;
+    require_non_empty(
+        &record.requester_ref,
+        "evidence request posture missing requesterRef",
+    )?;
+    require_non_empty(
+        &record.target_ref,
+        "evidence request posture missing targetRef",
+    )?;
+    validate_evidence_request_state(&record.state)?;
+    validate_reference_list(
+        &record.finding_refs,
+        "evidence request posture missing findingRefs",
+    )?;
+    validate_reference_list(
+        &record.recommendation_refs,
+        "evidence request posture missing recommendationRefs",
+    )?;
+    validate_reference_list(
+        &record.required_evidence_class_refs,
+        "evidence request posture missing requiredEvidenceClassRefs",
+    )?;
+    validate_reference_list(
+        &record.event_refs,
+        "evidence request posture missing eventRefs",
+    )?;
+    validate_reference_list(
+        &record.detail_refs,
+        "evidence request posture missing detailRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "evidence request posture missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.authority_refs,
+        "evidence request posture missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "evidence request posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "evidence request posture missing blockedReasons",
+    )?;
+    if record.state == "blocked" && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "evidence request posture blocked state requires blockedReasons"
+        ));
+    }
+    if record.state == "fulfilled"
+        && record.event_refs.is_empty()
+        && record.detail_refs.is_empty()
+        && record.storage_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "fulfilled evidence request posture requires eventRefs, detailRefs, or storageRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "evidence request posture safeFacts")?;
+    reject_private_content_fields(&record.safe_facts, "evidence request posture safeFacts")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "evidence request posture")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("evidence request posture missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "evidence request posture expiresAt must be after issuedAt"
         ));
     }
     Ok(())
@@ -15941,6 +16443,115 @@ mod tests {
             "observationId": "media-observation-1"
         })];
         assert!(validate_swarm_identity_graph(&live_graph).is_err());
+    }
+
+    #[test]
+    fn validates_hardening_signal_records() {
+        let signal = HardeningSignalObservationRecord {
+            kind: Some(RECORD_HARDENING_SIGNAL_OBSERVATION.to_string()),
+            observation_id: "hardening:signal:gateway-firewall:1".to_string(),
+            observer_ref: "gateway:lab".to_string(),
+            subject_ref: "host:lab-gateway".to_string(),
+            signal_kind: "firewall".to_string(),
+            state: "observed".to_string(),
+            severity: "info".to_string(),
+            authority_refs: vec!["authority:ops".to_string()],
+            event_refs: vec!["event:firewall:allow:gateway".to_string()],
+            detail_refs: vec![],
+            storage_refs: vec![],
+            evidence_refs: vec!["evidence:firewall:gateway".to_string()],
+            safe_facts: json!({ "ruleCount": 1, "temporary": true }),
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_100,
+            expires_at: Some(1_700_003_700),
+        };
+        validate_hardening_signal_observation(&signal).expect("valid hardening signal");
+
+        let mut missing_signal = signal.clone();
+        missing_signal.state = "missing".to_string();
+        assert!(validate_hardening_signal_observation(&missing_signal).is_err());
+
+        let mut leaky_signal = signal.clone();
+        leaky_signal.safe_facts = json!({ "rawPayload": "secret" });
+        assert!(validate_hardening_signal_observation(&leaky_signal).is_err());
+
+        let service_posture = ServiceHardeningPostureRecord {
+            kind: Some(RECORD_SERVICE_HARDENING_POSTURE.to_string()),
+            posture_id: "service-hardening:gateway:1".to_string(),
+            service_ref: "service:gateway".to_string(),
+            observer_ref: "service-manager:lab".to_string(),
+            state: "ready".to_string(),
+            process_policy_refs: vec!["policy:process:gateway".to_string()],
+            launch_policy_refs: vec!["policy:launch:gateway".to_string()],
+            restart_policy_refs: vec!["policy:restart:gateway".to_string()],
+            adapter_posture_refs: vec!["adapter:gateway:quic".to_string()],
+            firewall_posture_refs: vec!["firewall:gateway:temporary".to_string()],
+            signal_observation_refs: vec![signal.observation_id.clone()],
+            evidence_refs: vec![signal.observation_id.clone()],
+            safe_facts: json!({ "restartBackoff": "bounded" }),
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_101,
+            expires_at: Some(1_700_003_701),
+        };
+        validate_service_hardening_posture(&service_posture)
+            .expect("valid service hardening posture");
+
+        let mut missing_posture = service_posture.clone();
+        missing_posture.state = "missingEvidence".to_string();
+        assert!(validate_service_hardening_posture(&missing_posture).is_err());
+
+        let exposure = NetworkExposurePostureRecord {
+            kind: Some(RECORD_NETWORK_EXPOSURE_POSTURE.to_string()),
+            posture_id: "network-exposure:gateway:1".to_string(),
+            observer_ref: "gateway:lab".to_string(),
+            subject_ref: "host:lab-gateway".to_string(),
+            state: "guarded".to_string(),
+            route_refs: vec!["route:gateway:quic".to_string()],
+            exposed_port_refs: vec!["udp:7447".to_string()],
+            firewall_posture_refs: vec!["firewall:gateway:temporary".to_string()],
+            ingress_refs: vec!["ingress:gateway:quic".to_string()],
+            signal_observation_refs: vec![signal.observation_id.clone()],
+            evidence_refs: vec!["evidence:netstat:gateway".to_string()],
+            safe_facts: json!({ "publicPortCount": 1 }),
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_102,
+            expires_at: Some(1_700_003_702),
+        };
+        validate_network_exposure_posture(&exposure).expect("valid network exposure posture");
+
+        let mut blocked_exposure = exposure.clone();
+        blocked_exposure.state = "blocked".to_string();
+        assert!(validate_network_exposure_posture(&blocked_exposure).is_err());
+
+        let evidence_request = EvidenceRequestPostureRecord {
+            kind: Some(RECORD_EVIDENCE_REQUEST_POSTURE.to_string()),
+            request_id: "evidence-request:cybersec:gateway-firewall".to_string(),
+            requester_ref: "cybersec:processor".to_string(),
+            target_ref: "gateway:lab".to_string(),
+            state: "fulfilled".to_string(),
+            finding_refs: vec!["cybersec:finding:gateway-firewall".to_string()],
+            recommendation_refs: vec![
+                "cybersec:recommendation:request-firewall-evidence".to_string(),
+            ],
+            required_evidence_class_refs: vec!["evidence-class:firewall".to_string()],
+            event_refs: vec!["event:firewall:allow:gateway".to_string()],
+            detail_refs: vec![],
+            storage_refs: vec![],
+            authority_refs: vec!["authority:ops".to_string()],
+            evidence_refs: vec![signal.observation_id],
+            safe_facts: json!({ "requestScope": "firewallPosture" }),
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_103,
+            expires_at: Some(1_700_003_703),
+        };
+        validate_evidence_request_posture(&evidence_request)
+            .expect("valid evidence request posture");
+
+        let mut empty_request = evidence_request;
+        empty_request.event_refs.clear();
+        empty_request.detail_refs.clear();
+        empty_request.storage_refs.clear();
+        assert!(validate_evidence_request_posture(&empty_request).is_err());
     }
 
     #[test]
