@@ -151,6 +151,7 @@ pub const RECORD_ASSOCIATION_BOUNDARY_PROOF: &str = "association.boundary.proof"
 pub const RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION: &str = "hostFabric.member.contribution";
 pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.plan";
 pub const RECORD_HOST_FABRIC_CONTROL_DECISION: &str = "hostFabric.control.decision";
+pub const RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE: &str = "hostFabric.legacyControl.bridge";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
 pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
 pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
@@ -305,6 +306,11 @@ pub const FABRIC_CONTROL_DECISION_READY: &str = "ready";
 pub const FABRIC_CONTROL_DECISION_DEGRADED: &str = "degraded";
 pub const FABRIC_CONTROL_DECISION_BLOCKED: &str = "blocked";
 pub const FABRIC_CONTROL_DECISION_EXPIRED: &str = "expired";
+pub const FABRIC_LEGACY_CONTROL_LEGACY_DIRECT: &str = "legacyDirect";
+pub const FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE: &str = "fallbackAvailable";
+pub const FABRIC_LEGACY_CONTROL_QUARANTINED: &str = "quarantined";
+pub const FABRIC_LEGACY_CONTROL_BLOCKED: &str = "blocked";
+pub const FABRIC_LEGACY_CONTROL_RELEASED: &str = "released";
 pub const FABRIC_LIFECYCLE_PLAN_READY: &str = "ready";
 pub const FABRIC_LIFECYCLE_PLAN_RUNNING: &str = "running";
 pub const FABRIC_LIFECYCLE_PLAN_DEGRADED: &str = "degraded";
@@ -3569,6 +3575,37 @@ pub struct HostFabricControlDecision {
     pub quarantine_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricLegacyControlBridge {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub bridge_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub legacy_owner_ref: String,
+    pub subject_ref: String,
+    pub operation_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_decision_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delegated_role_ref: Option<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -9848,6 +9885,108 @@ pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision)
     )
 }
 
+pub fn validate_host_fabric_legacy_control_bridge(
+    record: &HostFabricLegacyControlBridge,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
+        "host-fabric legacy control bridge",
+    )?;
+    require_non_empty(
+        &record.bridge_id,
+        "host-fabric legacy control bridge missing bridgeId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric legacy control bridge missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric legacy control bridge missing hostRef",
+    )?;
+    require_non_empty(
+        &record.legacy_owner_ref,
+        "host-fabric legacy control bridge missing legacyOwnerRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric legacy control bridge missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "host-fabric legacy control bridge missing operationRef",
+    )?;
+    validate_fabric_legacy_control_state(&record.state)?;
+    validate_optional_ref(
+        record.source_decision_ref.as_deref(),
+        "host-fabric legacy control bridge missing sourceDecisionRef",
+    )?;
+    validate_optional_ref(
+        record.delegated_role_ref.as_deref(),
+        "host-fabric legacy control bridge missing delegatedRoleRef",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric legacy control bridge missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric legacy control bridge missing quarantineRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric legacy control bridge missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        record.state == FABRIC_LEGACY_CONTROL_BLOCKED,
+        &record.blocked_reasons,
+        "host-fabric legacy control bridge",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE | FABRIC_LEGACY_CONTROL_QUARANTINED
+    ) {
+        require_non_empty(
+            record.source_decision_ref.as_deref().unwrap_or_default(),
+            "controlled host-fabric legacy control bridge missing sourceDecisionRef",
+        )?;
+        require_non_empty(
+            record.delegated_role_ref.as_deref().unwrap_or_default(),
+            "controlled host-fabric legacy control bridge missing delegatedRoleRef",
+        )?;
+    }
+    if record.state == FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE {
+        require_non_empty_vec(
+            &record.fallback_refs,
+            "fallback host-fabric legacy control bridge requires fallbackRefs",
+        )?;
+    }
+    if record.state == FABRIC_LEGACY_CONTROL_QUARANTINED {
+        require_non_empty_vec(
+            &record.quarantine_refs,
+            "quarantined host-fabric legacy control bridge requires quarantineRefs",
+        )?;
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric legacy control bridge safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric legacy control bridge",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric legacy control bridge",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric legacy control bridge",
+    )
+}
+
 fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &str) -> Result<()> {
     validate_fabric_lifecycle_phase(&record.phase)?;
     validate_fabric_lifecycle_phase_state(&record.state)?;
@@ -11206,6 +11345,23 @@ fn validate_fabric_control_decision_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported host-fabric control decision state"))
+    }
+}
+
+fn validate_fabric_legacy_control_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LEGACY_CONTROL_LEGACY_DIRECT
+            | FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE
+            | FABRIC_LEGACY_CONTROL_QUARANTINED
+            | FABRIC_LEGACY_CONTROL_BLOCKED
+            | FABRIC_LEGACY_CONTROL_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported host-fabric legacy control bridge state"
+        ))
     }
 }
 
@@ -14136,6 +14292,33 @@ mod tests {
         };
         validate_host_fabric_control_decision(&control_decision)
             .expect("valid fabric control decision");
+
+        let legacy_bridge = HostFabricLegacyControlBridge {
+            kind: Some(RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE.to_string()),
+            bridge_id: "legacy-control-bridge:lab-gateway:health-check:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            legacy_owner_ref: "service-manager:lab-gateway".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            operation_ref: control_decision.operation_ref.clone(),
+            state: FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE.to_string(),
+            source_decision_ref: Some(control_decision.decision_id.clone()),
+            delegated_role_ref: control_decision.delegated_role_ref.clone(),
+            fallback_refs: control_decision.fallback_refs.clone(),
+            quarantine_refs: control_decision.quarantine_refs.clone(),
+            blocked_reasons: vec![],
+            evidence_refs: vec!["evidence:legacy-control:fallback-available".to_string()],
+            safe_facts: json!({ "legacyBridge": "fallback-only" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_legacy_control_bridge(&legacy_bridge)
+            .expect("valid fabric legacy control bridge");
+
+        let mut bad_bridge = legacy_bridge.clone();
+        bad_bridge.bridge_id = "legacy-control-bridge:bad:no-fallback".to_string();
+        bad_bridge.fallback_refs.clear();
+        assert!(validate_host_fabric_legacy_control_bridge(&bad_bridge).is_err());
 
         let mut missing_plan_decision = control_decision.clone();
         missing_plan_decision.decision_id = "fabric-control:bad:waiting-no-reason".to_string();

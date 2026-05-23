@@ -29,6 +29,7 @@ import {
   assertAssociationBoundaryProof,
   assertHostFabricFulfillmentPlan,
   assertHostFabricControlDecision,
+  assertHostFabricLegacyControlBridge,
   assertHostFabricMemberContribution,
   assertLifecyclePlanPosture,
   assertRunnerHostFulfillmentPosture,
@@ -1981,6 +1982,30 @@ test("host fabric records separate association, composition, lifecycle, source t
     expiresAt: observedAt + 600,
   });
   assert.equal(controlDecision.sourcePlanRef, plan.planId);
+  const legacyBridge = assertHostFabricLegacyControlBridge({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
+    bridgeId: "legacy-control-bridge:lab-gateway:health-check:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    legacyOwnerRef: "service-manager:lab-gateway",
+    subjectRef: "service:nvr",
+    operationRef: controlDecision.operationRef,
+    state: FABRIC.LEGACY_CONTROL_STATE.FALLBACK_AVAILABLE,
+    sourceDecisionRef: controlDecision.decisionId,
+    delegatedRoleRef: controlDecision.delegatedRoleRef,
+    fallbackRefs: controlDecision.fallbackRefs,
+    quarantineRefs: controlDecision.quarantineRefs,
+    evidenceRefs: ["evidence:legacy-control:fallback-available"],
+    safeFacts: { legacyBridge: "fallback-only" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(legacyBridge.sourceDecisionRef, controlDecision.decisionId);
+  assert.throws(() => assertHostFabricLegacyControlBridge({
+    ...legacyBridge,
+    bridgeId: "legacy-control-bridge:bad:no-fallback",
+    fallbackRefs: [],
+  }), /requires fallbackRefs/);
   assert.throws(() => assertHostFabricControlDecision({
     ...controlDecision,
     decisionId: "fabric-control:bad:waiting-no-reason",

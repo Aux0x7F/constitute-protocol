@@ -347,6 +347,13 @@ export const FABRIC = Object.freeze({
     BLOCKED: "blocked",
     EXPIRED: "expired",
   }),
+  LEGACY_CONTROL_STATE: Object.freeze({
+    LEGACY_DIRECT: "legacyDirect",
+    FALLBACK_AVAILABLE: "fallbackAvailable",
+    QUARANTINED: "quarantined",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
   LIFECYCLE_PLAN_STATE: Object.freeze({
     READY: "ready",
     RUNNING: "running",
@@ -1606,6 +1613,7 @@ export const SWARM = Object.freeze({
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
+    HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
@@ -1712,6 +1720,8 @@ export const SWARM = Object.freeze({
     ASSOCIATION_BOUNDARY_PROOF: "association.boundary.proof",
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
+    HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
+    HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
@@ -4339,6 +4349,44 @@ export function assertHostFabricControlDecision(record) {
   return { ...record, state, blockedReasons, evidenceRefs };
 }
 
+export function assertHostFabricLegacyControlBridge(record) {
+  if (!isObject(record)) throw new Error("host-fabric legacy control bridge must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE, "host-fabric legacy control bridge");
+  requireString(record.bridgeId, "host-fabric legacy control bridge bridgeId");
+  requireString(record.fabricRef, "host-fabric legacy control bridge fabricRef");
+  requireString(record.hostRef, "host-fabric legacy control bridge hostRef");
+  requireString(record.legacyOwnerRef, "host-fabric legacy control bridge legacyOwnerRef");
+  requireString(record.subjectRef, "host-fabric legacy control bridge subjectRef");
+  requireString(record.operationRef, "host-fabric legacy control bridge operationRef");
+  const state = assertEnumValue(record.state, FABRIC.LEGACY_CONTROL_STATE, "host-fabric legacy control bridge state");
+  if (record.sourceDecisionRef !== undefined) requireString(record.sourceDecisionRef, "host-fabric legacy control bridge sourceDecisionRef");
+  if (record.delegatedRoleRef !== undefined) requireString(record.delegatedRoleRef, "host-fabric legacy control bridge delegatedRoleRef");
+  const fallbackRefs = assertOptionalReferenceList(record.fallbackRefs, "host-fabric legacy control bridge fallbackRefs");
+  const quarantineRefs = assertOptionalReferenceList(record.quarantineRefs, "host-fabric legacy control bridge quarantineRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric legacy control bridge blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.LEGACY_CONTROL_STATE.BLOCKED],
+    blockedReasons,
+    "host-fabric legacy control bridge",
+  );
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "host-fabric legacy control bridge evidenceRefs");
+  if ([FABRIC.LEGACY_CONTROL_STATE.FALLBACK_AVAILABLE, FABRIC.LEGACY_CONTROL_STATE.QUARANTINED].includes(state)) {
+    requireString(record.sourceDecisionRef, "controlled host-fabric legacy control bridge sourceDecisionRef");
+    requireString(record.delegatedRoleRef, "controlled host-fabric legacy control bridge delegatedRoleRef");
+  }
+  if (state === FABRIC.LEGACY_CONTROL_STATE.FALLBACK_AVAILABLE && fallbackRefs.length === 0) {
+    throw new Error("fallback host-fabric legacy control bridge requires fallbackRefs");
+  }
+  if (state === FABRIC.LEGACY_CONTROL_STATE.QUARANTINED && quarantineRefs.length === 0) {
+    throw new Error("quarantined host-fabric legacy control bridge requires quarantineRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric legacy control bridge safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric legacy control bridge");
+  assertFabricObservedWindow(record, "host-fabric legacy control bridge");
+  return { ...record, state, fallbackRefs, quarantineRefs, blockedReasons, evidenceRefs };
+}
+
 export function assertLifecyclePlanPosture(record) {
   if (!isObject(record)) throw new Error("lifecycle plan posture must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE, "lifecycle plan posture");
@@ -5724,6 +5772,7 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION,
     SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
     SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
+    SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
     SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
     "stream.session.offer",
     "stream.session.answer",

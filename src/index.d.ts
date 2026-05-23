@@ -3131,6 +3131,7 @@ export type FabricMemberRole =
 export type FabricMemberContributionState = "claimed" | "accepted" | "running" | "degraded" | "blocked" | "released" | "expired" | "superseded";
 export type FabricFulfillmentPlanState = "ready" | "degraded" | "blocked" | "expired";
 export type FabricControlDecisionState = "notRequested" | "waitingPlan" | "ready" | "degraded" | "blocked" | "expired";
+export type FabricLegacyControlState = "legacyDirect" | "fallbackAvailable" | "quarantined" | "blocked" | "released";
 export type FabricLifecyclePlanState = "ready" | "running" | "degraded" | "blocked" | "released" | "expired";
 export type FabricLifecyclePhase = "source" | "build" | "release" | "load" | "run" | "observe" | "rollback" | "expiry" | "cleanup";
 export type FabricLifecyclePhaseState = "notRequired" | "pending" | "ready" | "running" | "succeeded" | "degraded" | "blocked" | "failed" | "released" | "expired";
@@ -3221,6 +3222,26 @@ export type HostFabricControlDecision = {
   fallbackRefs?: string[];
   quarantineRefs?: string[];
   rollbackRef?: string;
+  blockedReasons?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type HostFabricLegacyControlBridge = {
+  kind?: "hostFabric.legacyControl.bridge";
+  bridgeId: string;
+  fabricRef: string;
+  hostRef: string;
+  legacyOwnerRef: string;
+  subjectRef: string;
+  operationRef: string;
+  state: FabricLegacyControlState;
+  sourceDecisionRef?: string;
+  delegatedRoleRef?: string;
+  fallbackRefs?: string[];
+  quarantineRefs?: string[];
   blockedReasons?: string[];
   evidenceRefs?: string[];
   safeFacts?: Record<string, unknown>;
@@ -3624,6 +3645,7 @@ export function assertSubstrateAssociationHandoff(record: unknown): SubstrateAss
 export function assertHostFabricMemberContribution(record: unknown): HostFabricMemberContribution;
 export function assertHostFabricFulfillmentPlan(record: unknown): HostFabricFulfillmentPlan;
 export function assertHostFabricControlDecision(record: unknown): HostFabricControlDecision;
+export function assertHostFabricLegacyControlBridge(record: unknown): HostFabricLegacyControlBridge;
 export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;
 export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;
 export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;
