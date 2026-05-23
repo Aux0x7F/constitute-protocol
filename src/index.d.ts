@@ -1537,6 +1537,100 @@ export type CybersecMitigationConsumerPostureRecord = {
   expiresAt?: number;
 };
 
+export type HardeningSignalKind =
+  | "firewall"
+  | "auth"
+  | "audit"
+  | "processPolicy"
+  | "launchPolicy"
+  | "restartDrift"
+  | "hostileIngress"
+  | "anomaly"
+  | "networkExposure"
+  | "serviceHardening"
+  | "proofSubstrate";
+
+export type HardeningObservationState = "observed" | "missing" | "degraded" | "blocked" | "expired";
+export type HardeningPostureState = "ready" | "degraded" | "missingEvidence" | "blocked" | "expired";
+export type NetworkExposureState = "observed" | "guarded" | "exposed" | "degraded" | "blocked" | "expired";
+export type EvidenceRequestState = "requested" | "partiallyFulfilled" | "fulfilled" | "blocked" | "expired";
+
+export type HardeningSignalObservationRecord = {
+  kind?: "hardening.signal.observation";
+  observationId: string;
+  observerRef: string;
+  subjectRef: string;
+  signalKind: HardeningSignalKind;
+  state: HardeningObservationState;
+  severity?: "info" | "low" | "medium" | "high" | "critical";
+  authorityRefs?: string[];
+  eventRefs?: string[];
+  detailRefs?: string[];
+  storageRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type ServiceHardeningPostureRecord = {
+  kind?: "service.hardening.posture";
+  postureId: string;
+  serviceRef: string;
+  observerRef: string;
+  state: HardeningPostureState;
+  processPolicyRefs?: string[];
+  launchPolicyRefs?: string[];
+  restartPolicyRefs?: string[];
+  adapterPostureRefs?: string[];
+  firewallPostureRefs?: string[];
+  signalObservationRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type NetworkExposurePostureRecord = {
+  kind?: "network.exposure.posture";
+  postureId: string;
+  observerRef: string;
+  subjectRef: string;
+  state: NetworkExposureState;
+  routeRefs?: string[];
+  exposedPortRefs?: string[];
+  firewallPostureRefs?: string[];
+  ingressRefs?: string[];
+  signalObservationRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type EvidenceRequestPostureRecord = {
+  kind?: "evidence.request.posture";
+  requestId: string;
+  requesterRef: string;
+  targetRef: string;
+  state: EvidenceRequestState;
+  findingRefs?: string[];
+  recommendationRefs?: string[];
+  requiredEvidenceClassRefs?: string[];
+  eventRefs?: string[];
+  detailRefs?: string[];
+  storageRefs?: string[];
+  authorityRefs?: string[];
+  evidenceRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
 export type ProjectionSnapshot = {
   projectionId: string;
   policyId: string;
@@ -3413,6 +3507,10 @@ export function assertCybersecFinding(record: unknown): CybersecFindingRecord;
 export function assertCybersecEvidenceHold(record: unknown): CybersecEvidenceHoldRecord;
 export function assertCybersecMitigationRecommendation(record: unknown): CybersecMitigationRecommendationRecord;
 export function assertCybersecMitigationConsumerPosture(record: unknown): CybersecMitigationConsumerPostureRecord;
+export function assertHardeningSignalObservation(record: unknown): HardeningSignalObservationRecord;
+export function assertServiceHardeningPosture(record: unknown): ServiceHardeningPostureRecord;
+export function assertNetworkExposurePosture(record: unknown): NetworkExposurePostureRecord;
+export function assertEvidenceRequestPosture(record: unknown): EvidenceRequestPostureRecord;
 export function assertSwarmIdentityGraph(records: unknown): unknown[];
 export function assertCaacEnvelopeForMode(envelope: unknown, opts?: { mode?: string; now?: number }): CaacEnvelope | Record<string, unknown>;
 export function buildCapabilityDirectoryProjection(input?: {

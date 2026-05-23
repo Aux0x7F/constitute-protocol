@@ -149,6 +149,10 @@ import {
   assertCybersecEvidenceHold,
   assertCybersecMitigationRecommendation,
   assertCybersecMitigationConsumerPosture,
+  assertHardeningSignalObservation,
+  assertServiceHardeningPosture,
+  assertNetworkExposurePosture,
+  assertEvidenceRequestPosture,
   assertPrivateContentEnvelope,
   assertSwarmActivation,
   assertSwarmDevice,
@@ -4079,6 +4083,111 @@ test("agreement grammar separates action authority, access epochs, private reada
     issuedAt: 1700000080,
     effectiveAt: 1700000081,
   }).plane, AGREEMENT.PLANE.ACTION_AUTHORITY);
+});
+
+test("hardening signal grammar separates observations, posture, exposure, and evidence requests", () => {
+  const signal = assertHardeningSignalObservation({
+    kind: SWARM.RECORD_KIND.HARDENING_SIGNAL_OBSERVATION,
+    observationId: "hardening:signal:gateway-firewall:1",
+    observerRef: "gateway:lab",
+    subjectRef: "host:lab-gateway",
+    signalKind: SWARM.HARDENING_SIGNAL_KIND.FIREWALL,
+    state: SWARM.HARDENING_OBSERVATION_STATE.OBSERVED,
+    severity: "info",
+    authorityRefs: ["authority:ops"],
+    eventRefs: ["event:firewall:allow:gateway"],
+    evidenceRefs: ["evidence:firewall:gateway"],
+    safeFacts: { ruleCount: 1, temporary: true },
+    observedAt: 1700000100,
+    expiresAt: 1700003700,
+  });
+  assert.equal(signal.plane, AGREEMENT.PLANE.MATERIALIZATION);
+
+  assert.throws(() => assertHardeningSignalObservation({
+    ...signal,
+    observationId: "hardening:signal:missing",
+    state: SWARM.HARDENING_OBSERVATION_STATE.MISSING,
+    blockedReasons: [],
+  }), /blockedReasons/);
+  assert.throws(() => assertHardeningSignalObservation({
+    ...signal,
+    observationId: "hardening:signal:leaky",
+    safeFacts: { rawPayload: "secret" },
+  }), /unsafe safe fact key|forbidden protocol field/);
+
+  const servicePosture = assertServiceHardeningPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_HARDENING_POSTURE,
+    postureId: "service-hardening:gateway:1",
+    serviceRef: "service:gateway",
+    observerRef: "service-manager:lab",
+    state: SWARM.HARDENING_POSTURE_STATE.READY,
+    processPolicyRefs: ["policy:process:gateway"],
+    launchPolicyRefs: ["policy:launch:gateway"],
+    restartPolicyRefs: ["policy:restart:gateway"],
+    adapterPostureRefs: ["adapter:gateway:quic"],
+    firewallPostureRefs: ["firewall:gateway:temporary"],
+    signalObservationRefs: [signal.observationId],
+    evidenceRefs: [signal.observationId],
+    safeFacts: { restartBackoff: "bounded" },
+    observedAt: 1700000101,
+    expiresAt: 1700003701,
+  });
+  assert.equal(servicePosture.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertServiceHardeningPosture({
+    ...servicePosture,
+    postureId: "service-hardening:missing-evidence",
+    state: SWARM.HARDENING_POSTURE_STATE.MISSING_EVIDENCE,
+    blockedReasons: [],
+  }), /blockedReasons/);
+
+  const exposure = assertNetworkExposurePosture({
+    kind: SWARM.RECORD_KIND.NETWORK_EXPOSURE_POSTURE,
+    postureId: "network-exposure:gateway:1",
+    observerRef: "gateway:lab",
+    subjectRef: "host:lab-gateway",
+    state: SWARM.NETWORK_EXPOSURE_STATE.GUARDED,
+    routeRefs: ["route:gateway:quic"],
+    exposedPortRefs: ["udp:7447"],
+    firewallPostureRefs: ["firewall:gateway:temporary"],
+    ingressRefs: ["ingress:gateway:quic"],
+    signalObservationRefs: [signal.observationId],
+    evidenceRefs: ["evidence:netstat:gateway"],
+    safeFacts: { publicPortCount: 1 },
+    observedAt: 1700000102,
+    expiresAt: 1700003702,
+  });
+  assert.equal(exposure.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertNetworkExposurePosture({
+    ...exposure,
+    postureId: "network-exposure:blocked",
+    state: SWARM.NETWORK_EXPOSURE_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blockedReasons/);
+
+  const evidenceRequest = assertEvidenceRequestPosture({
+    kind: SWARM.RECORD_KIND.EVIDENCE_REQUEST_POSTURE,
+    requestId: "evidence-request:cybersec:gateway-firewall",
+    requesterRef: "cybersec:processor",
+    targetRef: "gateway:lab",
+    state: SWARM.EVIDENCE_REQUEST_STATE.FULFILLED,
+    findingRefs: ["cybersec:finding:gateway-firewall"],
+    recommendationRefs: ["cybersec:recommendation:request-firewall-evidence"],
+    requiredEvidenceClassRefs: ["evidence-class:firewall"],
+    eventRefs: ["event:firewall:allow:gateway"],
+    authorityRefs: ["authority:ops"],
+    evidenceRefs: [signal.observationId],
+    safeFacts: { requestScope: "firewallPosture" },
+    issuedAt: 1700000103,
+    expiresAt: 1700003703,
+  });
+  assert.equal(evidenceRequest.plane, AGREEMENT.PLANE.MATERIALIZATION);
+  assert.throws(() => assertEvidenceRequestPosture({
+    ...evidenceRequest,
+    requestId: "evidence-request:empty",
+    eventRefs: [],
+    detailRefs: [],
+    storageRefs: [],
+  }), /requires eventRefs/);
 });
 
 test("multi-identity authority proof covers sync, read, write/reduce, and revoke/expire separately", () => {
