@@ -3130,6 +3130,7 @@ export type FabricMemberRole =
   | "domainService";
 export type FabricMemberContributionState = "claimed" | "accepted" | "running" | "degraded" | "blocked" | "released" | "expired" | "superseded";
 export type FabricFulfillmentPlanState = "ready" | "degraded" | "blocked" | "expired";
+export type FabricTopologyRoleState = "ready" | "degraded" | "blocked" | "missing";
 export type FabricControlDecisionState = "notRequested" | "waitingPlan" | "ready" | "degraded" | "blocked" | "expired";
 export type FabricLegacyControlState = "legacyDirect" | "fallbackAvailable" | "quarantined" | "blocked" | "released";
 export type FabricLifecyclePlanState = "ready" | "running" | "degraded" | "blocked" | "released" | "expired";
@@ -3200,6 +3201,48 @@ export type HostFabricFulfillmentPlan = {
   requiredRoleRefs: string[];
   memberContributionRefs?: string[];
   missingRoleRefs?: string[];
+  lifecyclePlanRefs?: string[];
+  materializationBudgetRefs?: string[];
+  associationHandoffRef?: string;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type HostFabricTopologyRolePosture = {
+  roleRef: string;
+  state: FabricTopologyRoleState;
+  contributionRefs?: string[];
+  participantRefs?: string[];
+  memberRefs?: string[];
+  moduleRefs?: string[];
+  sourceRefs?: string[];
+  lifecyclePlanRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type HostFabricTopologyProjection = {
+  kind?: "hostFabric.topology.projection";
+  projectionId: string;
+  fabricRef: string;
+  hostRef: string;
+  contractRef: string;
+  sourcePlanRef: string;
+  state: FabricFulfillmentPlanState;
+  rolePostures: HostFabricTopologyRolePosture[];
+  requiredRoleRefs: string[];
+  readyRoleRefs?: string[];
+  degradedRoleRefs?: string[];
+  blockedRoleRefs?: string[];
+  missingRoleRefs?: string[];
+  memberContributionRefs?: string[];
+  participantRefs?: string[];
+  moduleRefs?: string[];
+  sourceRefs?: string[];
   lifecyclePlanRefs?: string[];
   materializationBudgetRefs?: string[];
   associationHandoffRef?: string;
@@ -3648,6 +3691,8 @@ export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerF
 export function assertSubstrateAssociationHandoff(record: unknown): SubstrateAssociationHandoff;
 export function assertHostFabricMemberContribution(record: unknown): HostFabricMemberContribution;
 export function assertHostFabricFulfillmentPlan(record: unknown): HostFabricFulfillmentPlan;
+export function assertHostFabricTopologyRolePosture(record: unknown): HostFabricTopologyRolePosture;
+export function assertHostFabricTopologyProjection(record: unknown): HostFabricTopologyProjection;
 export function assertHostFabricControlDecision(record: unknown): HostFabricControlDecision;
 export function assertHostFabricLegacyControlBridge(record: unknown): HostFabricLegacyControlBridge;
 export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;

@@ -339,6 +339,12 @@ export const FABRIC = Object.freeze({
     BLOCKED: "blocked",
     EXPIRED: "expired",
   }),
+  TOPOLOGY_ROLE_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    MISSING: "missing",
+  }),
   CONTROL_DECISION_STATE: Object.freeze({
     NOT_REQUESTED: "notRequested",
     WAITING_PLAN: "waitingPlan",
@@ -1612,6 +1618,7 @@ export const SWARM = Object.freeze({
     ASSOCIATION_BOUNDARY_PROOF: "association.boundary.proof",
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
+    HOST_FABRIC_TOPOLOGY_PROJECTION: "hostFabric.topology.projection",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
@@ -1720,6 +1727,7 @@ export const SWARM = Object.freeze({
     ASSOCIATION_BOUNDARY_PROOF: "association.boundary.proof",
     HOST_FABRIC_MEMBER_CONTRIBUTION: "hostFabric.member.contribution",
     HOST_FABRIC_FULFILLMENT_PLAN: "hostFabric.fulfillment.plan",
+    HOST_FABRIC_TOPOLOGY_PROJECTION: "hostFabric.topology.projection",
     HOST_FABRIC_CONTROL_DECISION: "hostFabric.control.decision",
     HOST_FABRIC_LEGACY_CONTROL_BRIDGE: "hostFabric.legacyControl.bridge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
@@ -4312,6 +4320,75 @@ export function assertHostFabricFulfillmentPlan(record) {
   return { ...record, state, requiredRoleRefs, memberContributionRefs, blockedReasons };
 }
 
+export function assertHostFabricTopologyRolePosture(record) {
+  if (!isObject(record)) throw new Error("host-fabric topology role posture must be an object");
+  requireString(record.roleRef, "host-fabric topology role posture roleRef");
+  const state = assertEnumValue(record.state, FABRIC.TOPOLOGY_ROLE_STATE, "host-fabric topology role posture state");
+  const contributionRefs = assertOptionalReferenceList(record.contributionRefs, "host-fabric topology role posture contributionRefs");
+  const participantRefs = assertOptionalReferenceList(record.participantRefs, "host-fabric topology role posture participantRefs");
+  assertOptionalResolvedMemberRefList(record.memberRefs, "host-fabric topology role posture memberRefs");
+  assertOptionalReferenceList(record.moduleRefs, "host-fabric topology role posture moduleRefs");
+  assertOptionalReferenceList(record.sourceRefs, "host-fabric topology role posture sourceRefs");
+  assertOptionalReferenceList(record.lifecyclePlanRefs, "host-fabric topology role posture lifecyclePlanRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "host-fabric topology role posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric topology role posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.TOPOLOGY_ROLE_STATE.BLOCKED, FABRIC.TOPOLOGY_ROLE_STATE.MISSING],
+    blockedReasons,
+    "host-fabric topology role posture",
+  );
+  if (state === FABRIC.TOPOLOGY_ROLE_STATE.READY && contributionRefs.length === 0) {
+    throw new Error("ready host-fabric topology role posture requires contributionRefs");
+  }
+  if (state !== FABRIC.TOPOLOGY_ROLE_STATE.MISSING && participantRefs.length === 0) {
+    throw new Error("non-missing host-fabric topology role posture requires participantRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric topology role posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric topology role posture");
+  return { ...record, state, contributionRefs, participantRefs, blockedReasons };
+}
+
+export function assertHostFabricTopologyProjection(record) {
+  if (!isObject(record)) throw new Error("host-fabric topology projection must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_TOPOLOGY_PROJECTION, "host-fabric topology projection");
+  requireString(record.projectionId, "host-fabric topology projection projectionId");
+  requireString(record.fabricRef, "host-fabric topology projection fabricRef");
+  requireString(record.hostRef, "host-fabric topology projection hostRef");
+  requireString(record.contractRef, "host-fabric topology projection contractRef");
+  requireString(record.sourcePlanRef, "host-fabric topology projection sourcePlanRef");
+  const state = assertEnumValue(record.state, FABRIC.FULFILLMENT_PLAN_STATE, "host-fabric topology projection state");
+  const rolePostures = requireArray(record.rolePostures, "host-fabric topology projection rolePostures").map(assertHostFabricTopologyRolePosture);
+  if (rolePostures.length === 0) throw new Error("host-fabric topology projection requires rolePostures");
+  const requiredRoleRefs = assertReferenceList(record.requiredRoleRefs, "host-fabric topology projection requiredRoleRefs");
+  assertOptionalReferenceList(record.readyRoleRefs, "host-fabric topology projection readyRoleRefs");
+  assertOptionalReferenceList(record.degradedRoleRefs, "host-fabric topology projection degradedRoleRefs");
+  assertOptionalReferenceList(record.blockedRoleRefs, "host-fabric topology projection blockedRoleRefs");
+  assertOptionalReferenceList(record.missingRoleRefs, "host-fabric topology projection missingRoleRefs");
+  const memberContributionRefs = assertOptionalReferenceList(record.memberContributionRefs, "host-fabric topology projection memberContributionRefs");
+  assertOptionalReferenceList(record.participantRefs, "host-fabric topology projection participantRefs");
+  assertOptionalReferenceList(record.moduleRefs, "host-fabric topology projection moduleRefs");
+  assertOptionalReferenceList(record.sourceRefs, "host-fabric topology projection sourceRefs");
+  assertOptionalReferenceList(record.lifecyclePlanRefs, "host-fabric topology projection lifecyclePlanRefs");
+  assertOptionalReferenceList(record.materializationBudgetRefs, "host-fabric topology projection materializationBudgetRefs");
+  if (record.associationHandoffRef !== undefined) requireString(record.associationHandoffRef, "host-fabric topology projection associationHandoffRef");
+  assertOptionalReferenceList(record.evidenceRefs, "host-fabric topology projection evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "host-fabric topology projection blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.FULFILLMENT_PLAN_STATE.BLOCKED, FABRIC.FULFILLMENT_PLAN_STATE.EXPIRED],
+    blockedReasons,
+    "host-fabric topology projection",
+  );
+  if (state === FABRIC.FULFILLMENT_PLAN_STATE.READY && memberContributionRefs.length === 0) {
+    throw new Error("ready host-fabric topology projection requires memberContributionRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "host-fabric topology projection safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "host-fabric topology projection");
+  assertFabricObservedWindow(record, "host-fabric topology projection");
+  return { ...record, state, rolePostures, requiredRoleRefs, memberContributionRefs, blockedReasons };
+}
+
 export function assertHostFabricControlDecision(record) {
   if (!isObject(record)) throw new Error("host-fabric control decision must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION, "host-fabric control decision");
@@ -5775,6 +5852,7 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.SUBSTRATE_ASSOCIATION_HANDOFF,
     SWARM.RECORD_KIND.HOST_FABRIC_MEMBER_CONTRIBUTION,
     SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
+    SWARM.RECORD_KIND.HOST_FABRIC_TOPOLOGY_PROJECTION,
     SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
     SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
     SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,

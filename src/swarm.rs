@@ -150,6 +150,7 @@ pub const RECORD_SUBSTRATE_ASSOCIATION_HANDOFF: &str = "substrate.association.ha
 pub const RECORD_ASSOCIATION_BOUNDARY_PROOF: &str = "association.boundary.proof";
 pub const RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION: &str = "hostFabric.member.contribution";
 pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.plan";
+pub const RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION: &str = "hostFabric.topology.projection";
 pub const RECORD_HOST_FABRIC_CONTROL_DECISION: &str = "hostFabric.control.decision";
 pub const RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE: &str = "hostFabric.legacyControl.bridge";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
@@ -300,6 +301,10 @@ pub const FABRIC_FULFILLMENT_PLAN_READY: &str = "ready";
 pub const FABRIC_FULFILLMENT_PLAN_DEGRADED: &str = "degraded";
 pub const FABRIC_FULFILLMENT_PLAN_BLOCKED: &str = "blocked";
 pub const FABRIC_FULFILLMENT_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_TOPOLOGY_ROLE_READY: &str = "ready";
+pub const FABRIC_TOPOLOGY_ROLE_DEGRADED: &str = "degraded";
+pub const FABRIC_TOPOLOGY_ROLE_BLOCKED: &str = "blocked";
+pub const FABRIC_TOPOLOGY_ROLE_MISSING: &str = "missing";
 pub const FABRIC_CONTROL_DECISION_NOT_REQUESTED: &str = "notRequested";
 pub const FABRIC_CONTROL_DECISION_WAITING_PLAN: &str = "waitingPlan";
 pub const FABRIC_CONTROL_DECISION_READY: &str = "ready";
@@ -3538,6 +3543,79 @@ pub struct HostFabricFulfillmentPlan {
     pub member_contribution_refs: Vec<String>,
     #[serde(default)]
     pub missing_role_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub materialization_budget_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub association_handoff_ref: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricTopologyRolePosture {
+    pub role_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub contribution_refs: Vec<String>,
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+    #[serde(default)]
+    pub member_refs: Vec<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricTopologyProjection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub projection_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub contract_ref: String,
+    pub source_plan_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub role_postures: Vec<HostFabricTopologyRolePosture>,
+    #[serde(default)]
+    pub required_role_refs: Vec<String>,
+    #[serde(default)]
+    pub ready_role_refs: Vec<String>,
+    #[serde(default)]
+    pub degraded_role_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_role_refs: Vec<String>,
+    #[serde(default)]
+    pub missing_role_refs: Vec<String>,
+    #[serde(default)]
+    pub member_contribution_refs: Vec<String>,
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
     #[serde(default)]
     pub lifecycle_plan_refs: Vec<String>,
     #[serde(default)]
@@ -9804,6 +9882,180 @@ pub fn validate_host_fabric_fulfillment_plan(record: &HostFabricFulfillmentPlan)
     )
 }
 
+pub fn validate_host_fabric_topology_role_posture(
+    record: &HostFabricTopologyRolePosture,
+) -> Result<()> {
+    require_non_empty(
+        &record.role_ref,
+        "host-fabric topology role posture missing roleRef",
+    )?;
+    validate_fabric_topology_role_state(&record.state)?;
+    validate_reference_list(
+        &record.contribution_refs,
+        "host-fabric topology role posture missing contributionRefs",
+    )?;
+    validate_reference_list(
+        &record.participant_refs,
+        "host-fabric topology role posture missing participantRefs",
+    )?;
+    validate_resolved_member_ref_list(
+        &record.member_refs,
+        "host-fabric topology role posture memberRefs",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "host-fabric topology role posture missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "host-fabric topology role posture missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "host-fabric topology role posture missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric topology role posture missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_TOPOLOGY_ROLE_BLOCKED | FABRIC_TOPOLOGY_ROLE_MISSING
+        ),
+        &record.blocked_reasons,
+        "host-fabric topology role posture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric topology role posture safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology role posture",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology role posture",
+    )
+}
+
+pub fn validate_host_fabric_topology_projection(
+    record: &HostFabricTopologyProjection,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION,
+        "host-fabric topology projection",
+    )?;
+    require_non_empty(
+        &record.projection_id,
+        "host-fabric topology projection missing projectionId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric topology projection missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric topology projection missing hostRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "host-fabric topology projection missing contractRef",
+    )?;
+    require_non_empty(
+        &record.source_plan_ref,
+        "host-fabric topology projection missing sourcePlanRef",
+    )?;
+    validate_fabric_fulfillment_plan_state(&record.state)?;
+    if record.role_postures.is_empty() {
+        return Err(anyhow!(
+            "host-fabric topology projection requires rolePostures"
+        ));
+    }
+    for role in &record.role_postures {
+        validate_host_fabric_topology_role_posture(role)?;
+    }
+    require_non_empty_vec(
+        &record.required_role_refs,
+        "host-fabric topology projection requires requiredRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.ready_role_refs,
+        "host-fabric topology projection missing readyRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.degraded_role_refs,
+        "host-fabric topology projection missing degradedRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_role_refs,
+        "host-fabric topology projection missing blockedRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.missing_role_refs,
+        "host-fabric topology projection missing missingRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.member_contribution_refs,
+        "host-fabric topology projection missing memberContributionRefs",
+    )?;
+    validate_reference_list(
+        &record.participant_refs,
+        "host-fabric topology projection missing participantRefs",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "host-fabric topology projection missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "host-fabric topology projection missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "host-fabric topology projection missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.materialization_budget_refs,
+        "host-fabric topology projection missing materializationBudgetRefs",
+    )?;
+    validate_optional_ref(
+        record.association_handoff_ref.as_deref(),
+        "host-fabric topology projection missing associationHandoffRef",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric topology projection missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_FULFILLMENT_PLAN_BLOCKED | FABRIC_FULFILLMENT_PLAN_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "host-fabric topology projection",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric topology projection safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology projection",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology projection",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric topology projection",
+    )
+}
+
 pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision) -> Result<()> {
     validate_optional_kind(
         &record.kind,
@@ -11351,6 +11603,20 @@ fn validate_fabric_fulfillment_plan_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported host-fabric fulfillment plan state"))
+    }
+}
+
+fn validate_fabric_topology_role_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_TOPOLOGY_ROLE_READY
+            | FABRIC_TOPOLOGY_ROLE_DEGRADED
+            | FABRIC_TOPOLOGY_ROLE_BLOCKED
+            | FABRIC_TOPOLOGY_ROLE_MISSING
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric topology role state"))
     }
 }
 
@@ -14293,6 +14559,48 @@ mod tests {
             expires_at: Some(observed_at + 600),
         };
         validate_host_fabric_fulfillment_plan(&plan).expect("valid fabric plan");
+
+        let topology = HostFabricTopologyProjection {
+            kind: Some(RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION.to_string()),
+            projection_id: "host-fabric-topology:lab-gateway:association".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            contract_ref: "contract:gateway-association@0.1.0".to_string(),
+            source_plan_ref: plan.plan_id.clone(),
+            state: FABRIC_FULFILLMENT_PLAN_READY.to_string(),
+            role_postures: vec![HostFabricTopologyRolePosture {
+                role_ref: "role:gatewayAssociation".to_string(),
+                state: FABRIC_TOPOLOGY_ROLE_READY.to_string(),
+                contribution_refs: vec![contribution.contribution_id.clone()],
+                participant_refs: vec![contribution.participant_ref.clone()],
+                member_refs: vec![contribution.member_ref.clone()],
+                module_refs: contribution.module_refs.clone(),
+                source_refs: contribution.source_refs.clone(),
+                lifecycle_plan_refs: vec![lifecycle.lifecycle_plan_id.clone()],
+                evidence_refs: contribution.evidence_refs.clone(),
+                blocked_reasons: vec![],
+                safe_facts: json!({ "role": "gatewayAssociation" }),
+            }],
+            required_role_refs: plan.required_role_refs.clone(),
+            ready_role_refs: vec!["role:gatewayAssociation".to_string()],
+            degraded_role_refs: vec![],
+            blocked_role_refs: vec![],
+            missing_role_refs: vec![],
+            member_contribution_refs: plan.member_contribution_refs.clone(),
+            participant_refs: vec![contribution.participant_ref.clone()],
+            module_refs: contribution.module_refs.clone(),
+            source_refs: contribution.source_refs.clone(),
+            lifecycle_plan_refs: plan.lifecycle_plan_refs.clone(),
+            materialization_budget_refs: plan.materialization_budget_refs.clone(),
+            association_handoff_ref: plan.association_handoff_ref.clone(),
+            evidence_refs: vec!["evidence:fabric:topology-ready".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "reducer": "host-fabric" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_topology_projection(&topology)
+            .expect("valid fabric topology projection");
 
         let control_decision = HostFabricControlDecision {
             kind: Some(RECORD_HOST_FABRIC_CONTROL_DECISION.to_string()),

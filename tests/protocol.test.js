@@ -28,6 +28,7 @@ import {
   assertContractIntentionPosture,
   assertAssociationBoundaryProof,
   assertHostFabricFulfillmentPlan,
+  assertHostFabricTopologyProjection,
   assertHostFabricControlDecision,
   assertHostFabricLegacyControlBridge,
   assertHostFabricMemberContribution,
@@ -1963,6 +1964,42 @@ test("host fabric records separate association, composition, lifecycle, source t
     expiresAt: observedAt + 600,
   });
   assert.equal(plan.memberContributionRefs[0], memberContribution.contributionId);
+
+  const topology = assertHostFabricTopologyProjection({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_TOPOLOGY_PROJECTION,
+    projectionId: "host-fabric-topology:lab-gateway:association",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    contractRef: "contract:gateway-association@0.1.0",
+    sourcePlanRef: plan.planId,
+    state: FABRIC.FULFILLMENT_PLAN_STATE.READY,
+    rolePostures: [{
+      roleRef: "role:gatewayAssociation",
+      state: FABRIC.TOPOLOGY_ROLE_STATE.READY,
+      contributionRefs: [memberContribution.contributionId],
+      participantRefs: [memberContribution.participantRef],
+      memberRefs: [memberContribution.memberRef],
+      moduleRefs: memberContribution.moduleRefs,
+      sourceRefs: memberContribution.sourceRefs,
+      lifecyclePlanRefs: [lifecycle.lifecyclePlanId],
+      evidenceRefs: memberContribution.evidenceRefs,
+      safeFacts: { role: "gatewayAssociation" },
+    }],
+    requiredRoleRefs: plan.requiredRoleRefs,
+    readyRoleRefs: ["role:gatewayAssociation"],
+    memberContributionRefs: plan.memberContributionRefs,
+    participantRefs: [memberContribution.participantRef],
+    moduleRefs: memberContribution.moduleRefs,
+    sourceRefs: memberContribution.sourceRefs,
+    lifecyclePlanRefs: plan.lifecyclePlanRefs,
+    materializationBudgetRefs: plan.materializationBudgetRefs,
+    associationHandoffRef: plan.associationHandoffRef,
+    evidenceRefs: ["evidence:fabric:topology-ready"],
+    safeFacts: { reducer: "host-fabric" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(topology.sourcePlanRef, plan.planId);
 
   const controlDecision = assertHostFabricControlDecision({
     kind: SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
