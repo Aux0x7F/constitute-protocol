@@ -129,6 +129,9 @@ pub const RECORD_CONTRIBUTION_LIFECYCLE: &str = "contribution.lifecycle";
 pub const RECORD_MEDIA_FULFILLMENT_EVIDENCE: &str = "media.fulfillment.evidence";
 pub const RECORD_MEDIA_TRANSPORT_PATH: &str = "media.transport.path";
 pub const RECORD_MEDIA_TRANSPORT_OBSERVATION: &str = "media.transport.observation";
+pub const RECORD_CARRIER_EDGE_REQUIREMENT: &str = "carrier.edge.requirement";
+pub const RECORD_CARRIER_EDGE_SELECTION: &str = "carrier.edge.selection";
+pub const RECORD_CARRIER_EDGE_SESSION_EVIDENCE: &str = "carrier.edge.session.evidence";
 pub const RECORD_SERVICE_ADMISSION: &str = "service.admission";
 pub const RECORD_SERVICE_RESPONSE: &str = "service.response";
 pub const RECORD_SERVICE_EDGE_ADAPTER_POSTURE: &str = "service.edge.adapter.posture";
@@ -439,6 +442,44 @@ pub const SERVICE_EDGE_RELEASE_HELD: &str = "held";
 pub const SERVICE_EDGE_RELEASE_RELEASABLE: &str = "releasable";
 pub const SERVICE_EDGE_RELEASE_RELEASED: &str = "released";
 pub const SERVICE_EDGE_RELEASE_BLOCKED: &str = "blocked";
+
+pub const CARRIER_EDGE_ADAPTER_WEB_SOCKET: &str = "webSocket";
+pub const CARRIER_EDGE_ADAPTER_QUIC: &str = "quic";
+pub const CARRIER_EDGE_ADAPTER_IPC: &str = "ipc";
+pub const CARRIER_EDGE_ADAPTER_WORKER: &str = "worker";
+pub const CARRIER_EDGE_ADAPTER_LOOPBACK: &str = "loopback";
+pub const CARRIER_EDGE_ADAPTER_RELAY: &str = "relay";
+pub const CARRIER_EDGE_ADAPTER_NAMED_PIPE: &str = "namedPipe";
+
+pub const CARRIER_EDGE_REQUIREMENT_PENDING: &str = "pending";
+pub const CARRIER_EDGE_REQUIREMENT_ACTIONABLE: &str = "actionable";
+pub const CARRIER_EDGE_REQUIREMENT_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_REQUIREMENT_BLOCKED: &str = "blocked";
+pub const CARRIER_EDGE_REQUIREMENT_RELEASED: &str = "released";
+
+pub const CARRIER_EDGE_SELECTION_PENDING: &str = "pending";
+pub const CARRIER_EDGE_SELECTION_SELECTED: &str = "selected";
+pub const CARRIER_EDGE_SELECTION_ACTIONABLE: &str = "actionable";
+pub const CARRIER_EDGE_SELECTION_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_SELECTION_BLOCKED: &str = "blocked";
+pub const CARRIER_EDGE_SELECTION_RELEASED: &str = "released";
+pub const CARRIER_EDGE_SELECTION_EXPIRED: &str = "expired";
+
+pub const CARRIER_EDGE_SESSION_OPENING: &str = "opening";
+pub const CARRIER_EDGE_SESSION_OPEN: &str = "open";
+pub const CARRIER_EDGE_SESSION_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_SESSION_BACKPRESSURE: &str = "backpressure";
+pub const CARRIER_EDGE_SESSION_RECONNECTING: &str = "reconnecting";
+pub const CARRIER_EDGE_SESSION_BLOCKED: &str = "blocked";
+pub const CARRIER_EDGE_SESSION_CLOSING: &str = "closing";
+pub const CARRIER_EDGE_SESSION_CLOSED: &str = "closed";
+pub const CARRIER_EDGE_SESSION_RELEASED: &str = "released";
+pub const CARRIER_EDGE_SESSION_EXPIRED: &str = "expired";
+
+pub const CARRIER_EDGE_BACKPRESSURE_CLEAR: &str = "clear";
+pub const CARRIER_EDGE_BACKPRESSURE_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_BACKPRESSURE_SATURATED: &str = "saturated";
+pub const CARRIER_EDGE_BACKPRESSURE_BLOCKED: &str = "blocked";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -953,6 +994,110 @@ pub struct MediaTransportObservation {
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CarrierEdgeRequirement {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub requirement_id: String,
+    pub subject_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub consumer_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fabric_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_association_ref: Option<String>,
+    #[serde(default)]
+    pub required_capability_refs: Vec<String>,
+    #[serde(default)]
+    pub allowed_adapter_kinds: Vec<String>,
+    #[serde(default)]
+    pub candidate_adapter_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy_ref: Option<String>,
+    pub state: String,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CarrierEdgeSelection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub selection_id: String,
+    pub requirement_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fabric_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    pub adapter_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selected_adapter_ref: Option<String>,
+    #[serde(default)]
+    pub candidate_adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selector_ref: Option<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backpressure_state: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CarrierEdgeSessionEvidence {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub evidence_id: String,
+    pub selection_ref: String,
+    pub edge_session_ref: String,
+    pub adapter_ref: String,
+    pub adapter_kind: String,
+    pub participant_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub peer_ref: Option<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backpressure_state: Option<String>,
+    #[serde(default)]
+    pub retry_posture: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
     pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
@@ -8816,6 +8961,9 @@ pub fn validate_swarm_identity_graph(records: &[Value]) -> Result<()> {
                 | RECORD_CONTRIBUTION_LIFECYCLE
                 | RECORD_MEDIA_TRANSPORT_PATH
                 | RECORD_MEDIA_TRANSPORT_OBSERVATION
+                | RECORD_CARRIER_EDGE_REQUIREMENT
+                | RECORD_CARRIER_EDGE_SELECTION
+                | RECORD_CARRIER_EDGE_SESSION_EVIDENCE
                 | RECORD_SERVICE_EDGE_ADAPTER_POSTURE
                 | "stream.session.offer"
                 | "stream.session.answer"
@@ -12860,6 +13008,89 @@ fn validate_media_transport_observation_state(value: &str) -> Result<()> {
     }
 }
 
+fn validate_carrier_edge_adapter_kind(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_ADAPTER_WEB_SOCKET
+            | CARRIER_EDGE_ADAPTER_QUIC
+            | CARRIER_EDGE_ADAPTER_IPC
+            | CARRIER_EDGE_ADAPTER_WORKER
+            | CARRIER_EDGE_ADAPTER_LOOPBACK
+            | CARRIER_EDGE_ADAPTER_RELAY
+            | CARRIER_EDGE_ADAPTER_NAMED_PIPE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge adapter kind"))
+    }
+}
+
+fn validate_carrier_edge_requirement_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_REQUIREMENT_PENDING
+            | CARRIER_EDGE_REQUIREMENT_ACTIONABLE
+            | CARRIER_EDGE_REQUIREMENT_DEGRADED
+            | CARRIER_EDGE_REQUIREMENT_BLOCKED
+            | CARRIER_EDGE_REQUIREMENT_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge requirement state"))
+    }
+}
+
+fn validate_carrier_edge_selection_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_SELECTION_PENDING
+            | CARRIER_EDGE_SELECTION_SELECTED
+            | CARRIER_EDGE_SELECTION_ACTIONABLE
+            | CARRIER_EDGE_SELECTION_DEGRADED
+            | CARRIER_EDGE_SELECTION_BLOCKED
+            | CARRIER_EDGE_SELECTION_RELEASED
+            | CARRIER_EDGE_SELECTION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge selection state"))
+    }
+}
+
+fn validate_carrier_edge_session_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_SESSION_OPENING
+            | CARRIER_EDGE_SESSION_OPEN
+            | CARRIER_EDGE_SESSION_DEGRADED
+            | CARRIER_EDGE_SESSION_BACKPRESSURE
+            | CARRIER_EDGE_SESSION_RECONNECTING
+            | CARRIER_EDGE_SESSION_BLOCKED
+            | CARRIER_EDGE_SESSION_CLOSING
+            | CARRIER_EDGE_SESSION_CLOSED
+            | CARRIER_EDGE_SESSION_RELEASED
+            | CARRIER_EDGE_SESSION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge session state"))
+    }
+}
+
+fn validate_carrier_edge_backpressure_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_BACKPRESSURE_CLEAR
+            | CARRIER_EDGE_BACKPRESSURE_DEGRADED
+            | CARRIER_EDGE_BACKPRESSURE_SATURATED
+            | CARRIER_EDGE_BACKPRESSURE_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge backpressure state"))
+    }
+}
+
 fn validate_posture_facet(facet: &PostureFacet, context: &str) -> Result<()> {
     validate_posture_facet_state(&facet.state)?;
     if matches!(facet.state.as_str(), "missing" | "blocked" | "degraded")
@@ -13839,6 +14070,267 @@ pub fn validate_media_transport_observation(record: &MediaTransportObservation) 
         &serde_json::to_value(record)?,
         "media transport observation",
     )?;
+    Ok(())
+}
+
+pub fn validate_carrier_edge_requirement(record: &CarrierEdgeRequirement) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CARRIER_EDGE_REQUIREMENT,
+        "carrier edge requirement",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "carrier edge requirement")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "carrier edge requirement")?;
+    require_non_empty(
+        &record.requirement_id,
+        "carrier edge requirement missing requirementId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "carrier edge requirement missing subjectRef",
+    )?;
+    for (value, field) in [
+        (&record.source_ref, "sourceRef"),
+        (&record.consumer_ref, "consumerRef"),
+        (&record.fabric_ref, "fabricRef"),
+        (&record.host_ref, "hostRef"),
+        (&record.route_association_ref, "routeAssociationRef"),
+        (&record.policy_ref, "policyRef"),
+    ] {
+        if let Some(value) = value {
+            require_non_empty(value, &format!("carrier edge requirement missing {field}"))?;
+        }
+    }
+    validate_capability_names(&record.required_capability_refs)?;
+    for adapter_kind in &record.allowed_adapter_kinds {
+        validate_carrier_edge_adapter_kind(adapter_kind)?;
+    }
+    validate_reference_list(
+        &record.candidate_adapter_refs,
+        "carrier edge requirement missing candidateAdapterRefs",
+    )?;
+    validate_carrier_edge_requirement_state(&record.state)?;
+    validate_safe_facts(&record.safe_facts, "carrier edge requirement safeFacts")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "carrier edge requirement missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "carrier edge requirement missing blockedReasons",
+    )?;
+    if record.state == CARRIER_EDGE_REQUIREMENT_ACTIONABLE
+        && record.allowed_adapter_kinds.is_empty()
+        && record.candidate_adapter_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "actionable carrier edge requirement requires allowedAdapterKinds or candidateAdapterRefs"
+        ));
+    }
+    if record.state == CARRIER_EDGE_REQUIREMENT_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "blocked carrier edge requirement requires blockedReasons"
+        ));
+    }
+    if record.issued_at == 0 {
+        return Err(anyhow!("carrier edge requirement missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "carrier edge requirement expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_carrier_edge_selection(record: &CarrierEdgeSelection) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CARRIER_EDGE_SELECTION,
+        "carrier edge selection",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "carrier edge selection")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "carrier edge selection")?;
+    require_non_empty(
+        &record.selection_id,
+        "carrier edge selection missing selectionId",
+    )?;
+    require_non_empty(
+        &record.requirement_ref,
+        "carrier edge selection missing requirementRef",
+    )?;
+    for (value, field) in [
+        (&record.fabric_ref, "fabricRef"),
+        (&record.host_ref, "hostRef"),
+        (&record.selected_adapter_ref, "selectedAdapterRef"),
+        (&record.selector_ref, "selectorRef"),
+    ] {
+        if let Some(value) = value {
+            require_non_empty(value, &format!("carrier edge selection missing {field}"))?;
+        }
+    }
+    validate_carrier_edge_adapter_kind(&record.adapter_kind)?;
+    validate_reference_list(
+        &record.candidate_adapter_refs,
+        "carrier edge selection missing candidateAdapterRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "carrier edge selection missing fallbackRefs",
+    )?;
+    validate_carrier_edge_selection_state(&record.state)?;
+    if let Some(backpressure_state) = &record.backpressure_state {
+        validate_carrier_edge_backpressure_state(backpressure_state)?;
+    }
+    validate_safe_facts(&record.safe_facts, "carrier edge selection safeFacts")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "carrier edge selection missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "carrier edge selection missing blockedReasons",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        CARRIER_EDGE_SELECTION_SELECTED
+            | CARRIER_EDGE_SELECTION_ACTIONABLE
+            | CARRIER_EDGE_SELECTION_DEGRADED
+    ) && record
+        .selected_adapter_ref
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "selected carrier edge selection requires selectedAdapterRef"
+        ));
+    }
+    if record.state == CARRIER_EDGE_SELECTION_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "blocked carrier edge selection requires blockedReasons"
+        ));
+    }
+    if record.backpressure_state.as_deref() == Some(CARRIER_EDGE_BACKPRESSURE_BLOCKED)
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked carrier edge backpressure requires blockedReasons"
+        ));
+    }
+    if record.observed_at == 0 {
+        return Err(anyhow!("carrier edge selection missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "carrier edge selection expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_carrier_edge_session_evidence(record: &CarrierEdgeSessionEvidence) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CARRIER_EDGE_SESSION_EVIDENCE,
+        "carrier edge session evidence",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "carrier edge session evidence",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "carrier edge session evidence",
+    )?;
+    require_non_empty(
+        &record.evidence_id,
+        "carrier edge session evidence missing evidenceId",
+    )?;
+    require_non_empty(
+        &record.selection_ref,
+        "carrier edge session evidence missing selectionRef",
+    )?;
+    require_non_empty(
+        &record.edge_session_ref,
+        "carrier edge session evidence missing edgeSessionRef",
+    )?;
+    require_non_empty(
+        &record.adapter_ref,
+        "carrier edge session evidence missing adapterRef",
+    )?;
+    validate_carrier_edge_adapter_kind(&record.adapter_kind)?;
+    require_non_empty(
+        &record.participant_ref,
+        "carrier edge session evidence missing participantRef",
+    )?;
+    if let Some(peer_ref) = &record.peer_ref {
+        require_non_empty(peer_ref, "carrier edge session evidence missing peerRef")?;
+    }
+    validate_carrier_edge_session_state(&record.state)?;
+    if let Some(connection_state) = &record.connection_state {
+        require_non_empty(
+            connection_state,
+            "carrier edge session evidence missing connectionState",
+        )?;
+    }
+    if let Some(backpressure_state) = &record.backpressure_state {
+        validate_carrier_edge_backpressure_state(backpressure_state)?;
+    }
+    validate_safe_facts(
+        &record.retry_posture,
+        "carrier edge session evidence retryPosture",
+    )?;
+    validate_safe_facts(
+        &record.release_posture,
+        "carrier edge session evidence releasePosture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "carrier edge session evidence safeFacts",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "carrier edge session evidence missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "carrier edge session evidence missing blockedReasons",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        CARRIER_EDGE_SESSION_BLOCKED | CARRIER_EDGE_SESSION_EXPIRED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked carrier edge session evidence requires blockedReasons"
+        ));
+    }
+    if record.backpressure_state.as_deref() == Some(CARRIER_EDGE_BACKPRESSURE_BLOCKED)
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked carrier edge session backpressure requires blockedReasons"
+        ));
+    }
+    if record.observed_at == 0 {
+        return Err(anyhow!("carrier edge session evidence missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "carrier edge session evidence expiresAt must be after observedAt"
+        ));
+    }
     Ok(())
 }
 
@@ -17541,6 +18033,97 @@ mod tests {
         let live_graph = vec![json!({
             "kind": RECORD_MEDIA_TRANSPORT_OBSERVATION,
             "observationId": "media-observation-1"
+        })];
+        assert!(validate_swarm_identity_graph(&live_graph).is_err());
+    }
+
+    #[test]
+    fn validates_carrier_edge_records() {
+        let requirement = CarrierEdgeRequirement {
+            kind: Some(RECORD_CARRIER_EDGE_REQUIREMENT.to_string()),
+            requirement_id: "carrier-req:gateway-edge:nvr".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            source_ref: Some("service:nvr".to_string()),
+            consumer_ref: Some("fabric:lab-host".to_string()),
+            fabric_ref: Some("fabric:lab-host".to_string()),
+            host_ref: Some("host:lab".to_string()),
+            route_association_ref: Some("association:gateway:lab".to_string()),
+            required_capability_refs: vec![CAPABILITY_SWARM_EDGE_ATTACH.to_string()],
+            allowed_adapter_kinds: vec![
+                CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
+                CARRIER_EDGE_ADAPTER_QUIC.to_string(),
+            ],
+            candidate_adapter_refs: vec!["adapter:gateway:websocket".to_string()],
+            policy_ref: Some("policy:carrier:default".to_string()),
+            state: CARRIER_EDGE_REQUIREMENT_ACTIONABLE.to_string(),
+            safe_facts: json!({ "preferredKind": "webSocket" }),
+            evidence_refs: vec!["association:gateway:lab".to_string()],
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_carrier_edge_requirement(&requirement).expect("valid carrier requirement");
+
+        let selection = CarrierEdgeSelection {
+            kind: Some(RECORD_CARRIER_EDGE_SELECTION.to_string()),
+            selection_id: "carrier-select:gateway-edge:nvr".to_string(),
+            requirement_ref: requirement.requirement_id.clone(),
+            fabric_ref: Some("fabric:lab-host".to_string()),
+            host_ref: Some("host:lab".to_string()),
+            adapter_kind: CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
+            selected_adapter_ref: Some("adapter:gateway:websocket".to_string()),
+            candidate_adapter_refs: vec!["adapter:gateway:websocket".to_string()],
+            fallback_refs: vec!["adapter:gateway:quic".to_string()],
+            selector_ref: Some("selector:carrier:default".to_string()),
+            state: CARRIER_EDGE_SELECTION_ACTIONABLE.to_string(),
+            backpressure_state: Some(CARRIER_EDGE_BACKPRESSURE_CLEAR.to_string()),
+            safe_facts: json!({ "selectedBecause": "lowestLatency" }),
+            evidence_refs: vec![requirement.requirement_id.clone()],
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_001,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_carrier_edge_selection(&selection).expect("valid carrier selection");
+
+        let evidence = CarrierEdgeSessionEvidence {
+            kind: Some(RECORD_CARRIER_EDGE_SESSION_EVIDENCE.to_string()),
+            evidence_id: "carrier-evidence:edge-session-1".to_string(),
+            selection_ref: selection.selection_id.clone(),
+            edge_session_ref: "edge-session-1".to_string(),
+            adapter_ref: "adapter:gateway:websocket".to_string(),
+            adapter_kind: CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
+            participant_ref: "gateway:lab".to_string(),
+            peer_ref: Some("service:nvr".to_string()),
+            state: CARRIER_EDGE_SESSION_OPEN.to_string(),
+            connection_state: Some("connected".to_string()),
+            backpressure_state: Some(CARRIER_EDGE_BACKPRESSURE_CLEAR.to_string()),
+            retry_posture: json!({ "attempts": 0 }),
+            release_posture: json!({ "state": "held" }),
+            safe_facts: json!({ "pendingFrames": 0 }),
+            evidence_refs: vec![selection.selection_id.clone()],
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_002,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_carrier_edge_session_evidence(&evidence).expect("valid carrier evidence");
+
+        let mut blocked_requirement = requirement.clone();
+        blocked_requirement.state = CARRIER_EDGE_REQUIREMENT_BLOCKED.to_string();
+        blocked_requirement.blocked_reasons.clear();
+        assert!(validate_carrier_edge_requirement(&blocked_requirement).is_err());
+
+        let mut missing_selection = selection.clone();
+        missing_selection.state = CARRIER_EDGE_SELECTION_ACTIONABLE.to_string();
+        missing_selection.selected_adapter_ref = None;
+        assert!(validate_carrier_edge_selection(&missing_selection).is_err());
+
+        let mut unsafe_evidence = evidence;
+        unsafe_evidence.safe_facts = json!({ "token": "secret" });
+        assert!(validate_carrier_edge_session_evidence(&unsafe_evidence).is_err());
+
+        let live_graph = vec![json!({
+            "kind": RECORD_CARRIER_EDGE_SESSION_EVIDENCE,
+            "evidenceId": "carrier-evidence:edge-session-1"
         })];
         assert!(validate_swarm_identity_graph(&live_graph).is_err());
     }

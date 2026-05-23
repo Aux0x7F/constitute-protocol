@@ -1945,6 +1945,84 @@ export type MediaTransportObservation = {
   expiresAt?: number;
 };
 
+export type CarrierEdgeAdapterKind = "webSocket" | "quic" | "ipc" | "worker" | "loopback" | "relay" | "namedPipe";
+export type CarrierEdgeRequirementState = "pending" | "actionable" | "degraded" | "blocked" | "released";
+export type CarrierEdgeSelectionState = "pending" | "selected" | "actionable" | "degraded" | "blocked" | "released" | "expired";
+export type CarrierEdgeSessionState =
+  | "opening"
+  | "open"
+  | "degraded"
+  | "backpressure"
+  | "reconnecting"
+  | "blocked"
+  | "closing"
+  | "closed"
+  | "released"
+  | "expired";
+export type CarrierEdgeBackpressureState = "clear" | "degraded" | "saturated" | "blocked";
+
+export type CarrierEdgeRequirement = {
+  kind?: "carrier.edge.requirement";
+  requirementId: string;
+  subjectRef: string;
+  sourceRef?: string;
+  consumerRef?: string;
+  fabricRef?: string;
+  hostRef?: string;
+  routeAssociationRef?: string;
+  requiredCapabilityRefs?: string[];
+  allowedAdapterKinds?: CarrierEdgeAdapterKind[];
+  candidateAdapterRefs?: string[];
+  policyRef?: string;
+  state: CarrierEdgeRequirementState;
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  issuedAt: number;
+  expiresAt?: number;
+};
+
+export type CarrierEdgeSelection = {
+  kind?: "carrier.edge.selection";
+  selectionId: string;
+  requirementRef: string;
+  fabricRef?: string;
+  hostRef?: string;
+  adapterKind: CarrierEdgeAdapterKind;
+  selectedAdapterRef?: string;
+  candidateAdapterRefs?: string[];
+  fallbackRefs?: string[];
+  selectorRef?: string;
+  state: CarrierEdgeSelectionState;
+  backpressureState?: CarrierEdgeBackpressureState;
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type CarrierEdgeSessionEvidence = {
+  kind?: "carrier.edge.session.evidence";
+  evidenceId: string;
+  selectionRef: string;
+  edgeSessionRef: string;
+  adapterRef: string;
+  adapterKind: CarrierEdgeAdapterKind;
+  participantRef: string;
+  peerRef?: string;
+  state: CarrierEdgeSessionState;
+  connectionState?: string;
+  backpressureState?: CarrierEdgeBackpressureState;
+  retryPosture?: Record<string, unknown>;
+  releasePosture?: Record<string, unknown>;
+  safeFacts?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type SurfaceModuleRole =
   | "runtimeClient"
   | "projectionModel"
@@ -3697,6 +3775,9 @@ export function assertStreamSessionClose(record: unknown): StreamSessionClose;
 export function assertMediaFulfillmentEvidence(record: unknown): MediaFulfillmentEvidence;
 export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
+export function assertCarrierEdgeRequirement(record: unknown): CarrierEdgeRequirement;
+export function assertCarrierEdgeSelection(record: unknown): CarrierEdgeSelection;
+export function assertCarrierEdgeSessionEvidence(record: unknown): CarrierEdgeSessionEvidence;
 export function assertAppContract(record: unknown): AppContractRecord;
 export function assertAppModuleRole(record: unknown): AppModuleRoleRecord;
 export function assertAppActivity(record: unknown): AppActivityRecord;

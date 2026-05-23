@@ -1602,6 +1602,9 @@ export const SWARM = Object.freeze({
     MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
     MEDIA_TRANSPORT_PATH: "media.transport.path",
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
+    CARRIER_EDGE_REQUIREMENT: "carrier.edge.requirement",
+    CARRIER_EDGE_SELECTION: "carrier.edge.selection",
+    CARRIER_EDGE_SESSION_EVIDENCE: "carrier.edge.session.evidence",
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
     SERVICE_EDGE_ADAPTER_POSTURE: "service.edge.adapter.posture",
@@ -1713,6 +1716,9 @@ export const SWARM = Object.freeze({
     MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
     MEDIA_TRANSPORT_PATH: "media.transport.path",
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
+    CARRIER_EDGE_REQUIREMENT: "carrier.edge.requirement",
+    CARRIER_EDGE_SELECTION: "carrier.edge.selection",
+    CARRIER_EDGE_SESSION_EVIDENCE: "carrier.edge.session.evidence",
     SERVICE_REGISTRY_CLAIM: "service.registry.claim",
     SERVICE_REGISTRY_MATERIALIZATION: "service.registry.materialization",
     SERVICE_EDGE_ADAPTER_POSTURE: "service.edge.adapter.posture",
@@ -2091,6 +2097,49 @@ export const SWARM = Object.freeze({
     FAILED: "failed",
     CLOSED: "closed",
     RELEASED: "released",
+    BLOCKED: "blocked",
+  }),
+  CARRIER_EDGE_ADAPTER_KIND: Object.freeze({
+    WEB_SOCKET: "webSocket",
+    QUIC: "quic",
+    IPC: "ipc",
+    WORKER: "worker",
+    LOOPBACK: "loopback",
+    RELAY: "relay",
+    NAMED_PIPE: "namedPipe",
+  }),
+  CARRIER_EDGE_REQUIREMENT_STATE: Object.freeze({
+    PENDING: "pending",
+    ACTIONABLE: "actionable",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
+  CARRIER_EDGE_SELECTION_STATE: Object.freeze({
+    PENDING: "pending",
+    SELECTED: "selected",
+    ACTIONABLE: "actionable",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  CARRIER_EDGE_SESSION_STATE: Object.freeze({
+    OPENING: "opening",
+    OPEN: "open",
+    DEGRADED: "degraded",
+    BACKPRESSURE: "backpressure",
+    RECONNECTING: "reconnecting",
+    BLOCKED: "blocked",
+    CLOSING: "closing",
+    CLOSED: "closed",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  CARRIER_EDGE_BACKPRESSURE_STATE: Object.freeze({
+    CLEAR: "clear",
+    DEGRADED: "degraded",
+    SATURATED: "saturated",
     BLOCKED: "blocked",
   }),
   RECOVERY_REF_KIND: Object.freeze({
@@ -3475,6 +3524,36 @@ function assertMediaTransportObservationState(value, name = "media transport obs
   return state;
 }
 
+function assertCarrierEdgeAdapterKind(value, name = "carrier edge adapter kind") {
+  const kind = requireString(value, name);
+  if (!Object.values(SWARM.CARRIER_EDGE_ADAPTER_KIND).includes(kind)) throw new Error(`unsupported ${name}`);
+  return kind;
+}
+
+function assertCarrierEdgeRequirementState(value, name = "carrier edge requirement state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.CARRIER_EDGE_REQUIREMENT_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertCarrierEdgeSelectionState(value, name = "carrier edge selection state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.CARRIER_EDGE_SELECTION_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertCarrierEdgeSessionState(value, name = "carrier edge session state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.CARRIER_EDGE_SESSION_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertCarrierEdgeBackpressureState(value, name = "carrier edge backpressure state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.CARRIER_EDGE_BACKPRESSURE_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
 export function assertRoutingScopePosture(posture, name = "routing scope") {
   if (!isObject(posture)) throw new Error(`${name} must be an object`);
   const kind = assertRoutingScopeKind(posture.kind, `${name} kind`);
@@ -4120,6 +4199,105 @@ export function assertMediaTransportObservation(record) {
     throw new Error("media transport observation expiresAt must be after observedAt");
   }
   rejectMediaByteFields(record, "media transport observation");
+  return record;
+}
+
+export function assertCarrierEdgeRequirement(record) {
+  if (!isObject(record)) throw new Error("carrier edge requirement must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT, "carrier edge requirement");
+  requireString(record.requirementId, "carrier edge requirement requirementId");
+  requireString(record.subjectRef, "carrier edge requirement subjectRef");
+  for (const field of ["sourceRef", "consumerRef", "fabricRef", "hostRef", "routeAssociationRef", "policyRef"]) {
+    if (record[field] !== undefined) requireString(record[field], `carrier edge requirement ${field}`);
+  }
+  assertOptionalCapabilityList(record.requiredCapabilityRefs, "carrier edge requirement requiredCapabilityRefs");
+  const allowedAdapterKinds = assertOptionalReferenceList(record.allowedAdapterKinds, "carrier edge requirement allowedAdapterKinds")
+    .map((kind) => assertCarrierEdgeAdapterKind(kind));
+  const candidateAdapterRefs = assertOptionalReferenceList(record.candidateAdapterRefs, "carrier edge requirement candidateAdapterRefs");
+  const state = assertCarrierEdgeRequirementState(record.state);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "carrier edge requirement blockedReasons");
+  if (state === SWARM.CARRIER_EDGE_REQUIREMENT_STATE.ACTIONABLE && allowedAdapterKinds.length === 0 && candidateAdapterRefs.length === 0) {
+    throw new Error("actionable carrier edge requirement requires allowedAdapterKinds or candidateAdapterRefs");
+  }
+  if (state === SWARM.CARRIER_EDGE_REQUIREMENT_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked carrier edge requirement requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "carrier edge requirement safeFacts");
+  assertOptionalReferenceList(record.evidenceRefs, "carrier edge requirement evidenceRefs");
+  if (!Number(record.issuedAt || 0)) throw new Error("carrier edge requirement missing issuedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.issuedAt)) {
+    throw new Error("carrier edge requirement expiresAt must be after issuedAt");
+  }
+  rejectMediaByteFields(record, "carrier edge requirement");
+  return record;
+}
+
+export function assertCarrierEdgeSelection(record) {
+  if (!isObject(record)) throw new Error("carrier edge selection must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION, "carrier edge selection");
+  requireString(record.selectionId, "carrier edge selection selectionId");
+  requireString(record.requirementRef, "carrier edge selection requirementRef");
+  for (const field of ["fabricRef", "hostRef", "selectedAdapterRef", "selectorRef"]) {
+    if (record[field] !== undefined) requireString(record[field], `carrier edge selection ${field}`);
+  }
+  assertCarrierEdgeAdapterKind(record.adapterKind);
+  assertOptionalReferenceList(record.candidateAdapterRefs, "carrier edge selection candidateAdapterRefs");
+  assertOptionalReferenceList(record.fallbackRefs, "carrier edge selection fallbackRefs");
+  const state = assertCarrierEdgeSelectionState(record.state);
+  if (record.backpressureState !== undefined) assertCarrierEdgeBackpressureState(record.backpressureState);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "carrier edge selection blockedReasons");
+  if ([
+    SWARM.CARRIER_EDGE_SELECTION_STATE.SELECTED,
+    SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    SWARM.CARRIER_EDGE_SELECTION_STATE.DEGRADED,
+  ].includes(state) && !String(record.selectedAdapterRef || "").trim()) {
+    throw new Error("selected carrier edge selection requires selectedAdapterRef");
+  }
+  if (state === SWARM.CARRIER_EDGE_SELECTION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked carrier edge selection requires blockedReasons");
+  }
+  if (record.backpressureState === SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked carrier edge backpressure requires blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "carrier edge selection safeFacts");
+  assertOptionalReferenceList(record.evidenceRefs, "carrier edge selection evidenceRefs");
+  if (!Number(record.observedAt || 0)) throw new Error("carrier edge selection missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.observedAt)) {
+    throw new Error("carrier edge selection expiresAt must be after observedAt");
+  }
+  rejectMediaByteFields(record, "carrier edge selection");
+  return record;
+}
+
+export function assertCarrierEdgeSessionEvidence(record) {
+  if (!isObject(record)) throw new Error("carrier edge session evidence must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CARRIER_EDGE_SESSION_EVIDENCE, "carrier edge session evidence");
+  requireString(record.evidenceId, "carrier edge session evidence evidenceId");
+  requireString(record.selectionRef, "carrier edge session evidence selectionRef");
+  requireString(record.edgeSessionRef, "carrier edge session evidence edgeSessionRef");
+  requireString(record.adapterRef, "carrier edge session evidence adapterRef");
+  assertCarrierEdgeAdapterKind(record.adapterKind);
+  requireString(record.participantRef, "carrier edge session evidence participantRef");
+  if (record.peerRef !== undefined) requireString(record.peerRef, "carrier edge session evidence peerRef");
+  const state = assertCarrierEdgeSessionState(record.state);
+  if (record.connectionState !== undefined) requireString(record.connectionState, "carrier edge session evidence connectionState");
+  if (record.backpressureState !== undefined) assertCarrierEdgeBackpressureState(record.backpressureState);
+  if (record.retryPosture !== undefined) assertSafeObject(record.retryPosture, "carrier edge session evidence retryPosture");
+  if (record.releasePosture !== undefined) assertSafeObject(record.releasePosture, "carrier edge session evidence releasePosture");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "carrier edge session evidence safeFacts");
+  assertOptionalReferenceList(record.evidenceRefs, "carrier edge session evidence evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "carrier edge session evidence blockedReasons");
+  if ([SWARM.CARRIER_EDGE_SESSION_STATE.BLOCKED, SWARM.CARRIER_EDGE_SESSION_STATE.EXPIRED].includes(state) && blockedReasons.length === 0) {
+    throw new Error("blocked carrier edge session evidence requires blockedReasons");
+  }
+  if (record.backpressureState === SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked carrier edge session backpressure requires blockedReasons");
+  }
+  if (!Number(record.observedAt || 0)) throw new Error("carrier edge session evidence missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt) <= Number(record.observedAt)) {
+    throw new Error("carrier edge session evidence expiresAt must be after observedAt");
+  }
+  rejectMediaByteFields(record, "carrier edge session evidence");
   return record;
 }
 

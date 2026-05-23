@@ -103,6 +103,9 @@ import {
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertCarrierEdgeRequirement,
+  assertCarrierEdgeSelection,
+  assertCarrierEdgeSessionEvidence,
   assertAppActivity,
   assertAppContract,
   assertAppModuleRole,
@@ -957,6 +960,104 @@ test("service edge adapter posture validates service-owned admission and backpre
     ...posture,
     queue: { pending: -1 },
   }), /queue pending must be non-negative/);
+});
+
+test("carrier edge records separate connectivity requirement selection and session evidence", () => {
+  const issuedAt = 1700000000;
+  assert.equal(SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT, "carrier.edge.requirement");
+  assert.equal(SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET, "webSocket");
+
+  const requirement = assertCarrierEdgeRequirement({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT,
+    requirementId: "carrier-req:gateway-edge:nvr",
+    subjectRef: "service:nvr",
+    sourceRef: `service:${SERVICE_PK}`,
+    consumerRef: "fabric:lab-host",
+    fabricRef: "fabric:lab-host",
+    hostRef: "host:lab",
+    routeAssociationRef: "association:gateway:lab",
+    requiredCapabilityRefs: [SWARM.CORE_CAPABILITY.SWARM_EDGE_ATTACH],
+    allowedAdapterKinds: [
+      SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+      SWARM.CARRIER_EDGE_ADAPTER_KIND.QUIC,
+    ],
+    candidateAdapterRefs: ["adapter:gateway:websocket", "adapter:gateway:quic"],
+    policyRef: "policy:carrier:default",
+    state: SWARM.CARRIER_EDGE_REQUIREMENT_STATE.ACTIONABLE,
+    safeFacts: { preferredKind: "webSocket" },
+    evidenceRefs: ["association:gateway:lab"],
+    issuedAt,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(requirement.state, SWARM.CARRIER_EDGE_REQUIREMENT_STATE.ACTIONABLE);
+
+  const selection = assertCarrierEdgeSelection({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION,
+    selectionId: "carrier-select:gateway-edge:nvr",
+    requirementRef: requirement.requirementId,
+    fabricRef: "fabric:lab-host",
+    hostRef: "host:lab",
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    selectedAdapterRef: "adapter:gateway:websocket",
+    candidateAdapterRefs: ["adapter:gateway:websocket", "adapter:gateway:quic"],
+    fallbackRefs: ["adapter:gateway:quic"],
+    selectorRef: "selector:carrier:default",
+    state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    backpressureState: SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.CLEAR,
+    safeFacts: { selectedBecause: "lowestLatency" },
+    evidenceRefs: [requirement.requirementId],
+    observedAt: issuedAt + 1,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(selection.selectedAdapterRef, "adapter:gateway:websocket");
+
+  assertCarrierEdgeSessionEvidence({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SESSION_EVIDENCE,
+    evidenceId: "carrier-evidence:edge-session-1",
+    selectionRef: selection.selectionId,
+    edgeSessionRef: "edge-session-1",
+    adapterRef: "adapter:gateway:websocket",
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    participantRef: `gateway:${GATEWAY_PK}`,
+    peerRef: `service:${SERVICE_PK}`,
+    state: SWARM.CARRIER_EDGE_SESSION_STATE.OPEN,
+    connectionState: "connected",
+    backpressureState: SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.CLEAR,
+    retryPosture: { attempts: 0 },
+    releasePosture: { state: "held" },
+    safeFacts: { pendingFrames: 0 },
+    evidenceRefs: [selection.selectionId],
+    observedAt: issuedAt + 2,
+    expiresAt: issuedAt + 90_000,
+  });
+
+  assert.throws(() => assertCarrierEdgeRequirement({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT,
+    requirementId: "carrier-req:blocked",
+    subjectRef: "service:nvr",
+    state: SWARM.CARRIER_EDGE_REQUIREMENT_STATE.BLOCKED,
+    issuedAt,
+  }), /blockedReasons/);
+  assert.throws(() => assertCarrierEdgeSelection({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION,
+    selectionId: "carrier-select:missing-adapter",
+    requirementRef: requirement.requirementId,
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    observedAt: issuedAt,
+  }), /selectedAdapterRef/);
+  assert.throws(() => assertCarrierEdgeSessionEvidence({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SESSION_EVIDENCE,
+    evidenceId: "carrier-evidence:unsafe",
+    selectionRef: selection.selectionId,
+    edgeSessionRef: "edge-session-1",
+    adapterRef: "adapter:gateway:websocket",
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    participantRef: `gateway:${GATEWAY_PK}`,
+    state: SWARM.CARRIER_EDGE_SESSION_STATE.OPEN,
+    safeFacts: { token: "secret" },
+    observedAt: issuedAt,
+  }), /unsafe safe fact/);
 });
 
 test("surface app fulfillment identity posture separates contract, service, host, route, and runner identity", () => {
