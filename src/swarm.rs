@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -126,14 +126,21 @@ pub const RECORD_RESOURCE_PROFILE: &str = "resource.profile";
 pub const RECORD_RESOURCE_POSTURE: &str = "resource.posture";
 pub const RECORD_RETENTION_RELEASE: &str = "retention.release";
 pub const RECORD_CONTRIBUTION_LIFECYCLE: &str = "contribution.lifecycle";
+pub const RECORD_OPERATION_INSTANCE_POSTURE: &str = "operation.instance.posture";
+pub const RECORD_FULFILLMENT_SESSION: &str = "fulfillment.session";
 pub const RECORD_MEDIA_FULFILLMENT_EVIDENCE: &str = "media.fulfillment.evidence";
 pub const RECORD_MEDIA_TRANSPORT_PATH: &str = "media.transport.path";
 pub const RECORD_MEDIA_TRANSPORT_OBSERVATION: &str = "media.transport.observation";
+pub const RECORD_CARRIER_EDGE_REQUIREMENT: &str = "carrier.edge.requirement";
+pub const RECORD_CARRIER_EDGE_SELECTION: &str = "carrier.edge.selection";
+pub const RECORD_CARRIER_EDGE_SESSION_EVIDENCE: &str = "carrier.edge.session.evidence";
 pub const RECORD_SERVICE_ADMISSION: &str = "service.admission";
 pub const RECORD_SERVICE_RESPONSE: &str = "service.response";
 pub const RECORD_SERVICE_EDGE_ADAPTER_POSTURE: &str = "service.edge.adapter.posture";
 pub const RECORD_SERVICE_MANAGER_POSTURE: &str = "service.manager.posture";
 pub const RECORD_SERVICE_MANAGER_OPERATION_POSTURE: &str = "service.manager.operation.posture";
+pub const RECORD_SERVICE_MANAGER_CONTROL_REQUEST_POSTURE: &str =
+    "service.manager.control.request.posture";
 pub const RECORD_SERVICE_MANAGER_PROOF_DIGEST: &str = "service.manager.proof.digest";
 pub const RECORD_SERVICE_MANAGER_RELEASE_CONTRACT: &str = "service.manager.release.contract";
 pub const RECORD_SERVICE_MANAGER_SECRET_BOUNDARY: &str = "service.manager.secretBoundary";
@@ -150,9 +157,24 @@ pub const RECORD_SUBSTRATE_ASSOCIATION_HANDOFF: &str = "substrate.association.ha
 pub const RECORD_ASSOCIATION_BOUNDARY_PROOF: &str = "association.boundary.proof";
 pub const RECORD_HOST_FABRIC_MEMBER_CONTRIBUTION: &str = "hostFabric.member.contribution";
 pub const RECORD_HOST_FABRIC_FULFILLMENT_PLAN: &str = "hostFabric.fulfillment.plan";
+pub const RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION: &str = "hostFabric.topology.projection";
+pub const RECORD_HOST_FABRIC_CONTROL_DECISION: &str = "hostFabric.control.decision";
+pub const RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE: &str = "hostFabric.legacyControl.bridge";
+pub const RECORD_HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE: &str =
+    "hostFabric.adapterExecution.evidence";
+pub const RECORD_LIFECYCLE_DEPENDENCY_EDGE: &str = "lifecycle.dependency.edge";
 pub const RECORD_LIFECYCLE_PLAN_POSTURE: &str = "lifecycle.plan.posture";
 pub const RECORD_CONTENT_INDEX_REF_POSTURE: &str = "contentIndex.ref.posture";
+pub const RECORD_CONTENT_INDEX_RESOLVER_POSTURE: &str = "contentIndex.resolver.posture";
 pub const RECORD_CONTRACT_INTENTION_POSTURE: &str = "contract.intention.posture";
+pub const RECORD_LIFECYCLE_MANIFEST_SEED: &str = "lifecycle.manifest.seed";
+pub const RECORD_ADAPTER_DEBT_POSTURE: &str = "adapter.debt.posture";
+pub const RECORD_ADAPTER_DEBT_DELETION_WORKLIST: &str = "adapter.debt.deletion.worklist";
+pub const RECORD_ADAPTER_RESIDENCY_POSTURE: &str = "adapter.residency.tool-materialization.posture";
+pub const RECORD_MANIFEST_SELECTED_OPERATION_POSTURE: &str = "manifest-selected.operation.posture";
+pub const RECORD_RUNTIME_FULFILLMENT_SESSION_PROJECTION: &str =
+    "runtime.fulfillment-session.projection";
+pub const RECORD_CONTROL_INVERSION_PROOF: &str = "control-inversion.proof";
 pub const RECORD_UNIQUE_EDGE_CLASSIFICATION: &str = "uniqueEdge.classification";
 pub const RECORD_CONTRACT_TARGET: &str = "contract.target";
 pub const RECORD_CONTRACT_TARGET_REGISTRY_POSTURE: &str = "contract.target.registry.posture";
@@ -298,12 +320,36 @@ pub const FABRIC_FULFILLMENT_PLAN_READY: &str = "ready";
 pub const FABRIC_FULFILLMENT_PLAN_DEGRADED: &str = "degraded";
 pub const FABRIC_FULFILLMENT_PLAN_BLOCKED: &str = "blocked";
 pub const FABRIC_FULFILLMENT_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_TOPOLOGY_ROLE_READY: &str = "ready";
+pub const FABRIC_TOPOLOGY_ROLE_DEGRADED: &str = "degraded";
+pub const FABRIC_TOPOLOGY_ROLE_BLOCKED: &str = "blocked";
+pub const FABRIC_TOPOLOGY_ROLE_MISSING: &str = "missing";
+pub const FABRIC_CONTROL_DECISION_NOT_REQUESTED: &str = "notRequested";
+pub const FABRIC_CONTROL_DECISION_WAITING_PLAN: &str = "waitingPlan";
+pub const FABRIC_CONTROL_DECISION_READY: &str = "ready";
+pub const FABRIC_CONTROL_DECISION_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTROL_DECISION_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTROL_DECISION_EXPIRED: &str = "expired";
+pub const FABRIC_LEGACY_CONTROL_LEGACY_DIRECT: &str = "legacyDirect";
+pub const FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE: &str = "fallbackAvailable";
+pub const FABRIC_LEGACY_CONTROL_QUARANTINED: &str = "quarantined";
+pub const FABRIC_LEGACY_CONTROL_BLOCKED: &str = "blocked";
+pub const FABRIC_LEGACY_CONTROL_RELEASED: &str = "released";
+pub const FABRIC_ADAPTER_EXECUTION_SUCCEEDED: &str = "succeeded";
+pub const FABRIC_ADAPTER_EXECUTION_DEGRADED: &str = "degraded";
+pub const FABRIC_ADAPTER_EXECUTION_BLOCKED: &str = "blocked";
+pub const FABRIC_ADAPTER_EXECUTION_FAILED: &str = "failed";
+pub const FABRIC_ADAPTER_EXECUTION_SKIPPED: &str = "skipped";
 pub const FABRIC_LIFECYCLE_PLAN_READY: &str = "ready";
 pub const FABRIC_LIFECYCLE_PLAN_RUNNING: &str = "running";
 pub const FABRIC_LIFECYCLE_PLAN_DEGRADED: &str = "degraded";
 pub const FABRIC_LIFECYCLE_PLAN_BLOCKED: &str = "blocked";
 pub const FABRIC_LIFECYCLE_PLAN_RELEASED: &str = "released";
 pub const FABRIC_LIFECYCLE_PLAN_EXPIRED: &str = "expired";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_READY: &str = "ready";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_DEGRADED: &str = "degraded";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_BLOCKED: &str = "blocked";
+pub const FABRIC_LIFECYCLE_DEPENDENCY_MISSING: &str = "missing";
 pub const FABRIC_LIFECYCLE_PHASE_SOURCE: &str = "source";
 pub const FABRIC_LIFECYCLE_PHASE_BUILD: &str = "build";
 pub const FABRIC_LIFECYCLE_PHASE_RELEASE: &str = "release";
@@ -323,6 +369,25 @@ pub const FABRIC_LIFECYCLE_PHASE_BLOCKED: &str = "blocked";
 pub const FABRIC_LIFECYCLE_PHASE_FAILED: &str = "failed";
 pub const FABRIC_LIFECYCLE_PHASE_RELEASED: &str = "released";
 pub const FABRIC_LIFECYCLE_PHASE_EXPIRED: &str = "expired";
+pub const FULFILLMENT_SESSION_PENDING: &str = "pending";
+pub const FULFILLMENT_SESSION_ACTIONABLE: &str = "actionable";
+pub const FULFILLMENT_SESSION_RUNNING: &str = "running";
+pub const FULFILLMENT_SESSION_DEGRADED: &str = "degraded";
+pub const FULFILLMENT_SESSION_BLOCKED: &str = "blocked";
+pub const FULFILLMENT_SESSION_RELEASED: &str = "released";
+pub const FULFILLMENT_SESSION_EXPIRED: &str = "expired";
+pub const OPERATION_POSTURE_PLANNED: &str = "planned";
+pub const OPERATION_POSTURE_SELECTED: &str = "selected";
+pub const OPERATION_POSTURE_READY: &str = "ready";
+pub const OPERATION_POSTURE_ACTIONABLE: &str = "actionable";
+pub const OPERATION_POSTURE_RUNNING: &str = "running";
+pub const OPERATION_POSTURE_SUCCEEDED: &str = "succeeded";
+pub const OPERATION_POSTURE_DEGRADED: &str = "degraded";
+pub const OPERATION_POSTURE_BLOCKED: &str = "blocked";
+pub const OPERATION_POSTURE_DEFERRED: &str = "deferred";
+pub const OPERATION_POSTURE_NOT_SELECTED: &str = "notSelected";
+pub const OPERATION_POSTURE_RELEASED: &str = "released";
+pub const OPERATION_POSTURE_EXPIRED: &str = "expired";
 pub const FABRIC_CONTENT_INDEX_READY: &str = "ready";
 pub const FABRIC_CONTENT_INDEX_DEGRADED: &str = "degraded";
 pub const FABRIC_CONTENT_INDEX_BLOCKED: &str = "blocked";
@@ -334,6 +399,32 @@ pub const FABRIC_CONTRACT_INTENTION_DEGRADED: &str = "degraded";
 pub const FABRIC_CONTRACT_INTENTION_BLOCKED: &str = "blocked";
 pub const FABRIC_CONTRACT_INTENTION_SUPERSEDED: &str = "superseded";
 pub const FABRIC_CONTRACT_INTENTION_EXPIRED: &str = "expired";
+pub const FABRIC_LIFECYCLE_MANIFEST_READY: &str = "ready";
+pub const FABRIC_LIFECYCLE_MANIFEST_DEGRADED: &str = "degraded";
+pub const FABRIC_LIFECYCLE_MANIFEST_BLOCKED: &str = "blocked";
+pub const FABRIC_LIFECYCLE_MANIFEST_EXPIRED: &str = "expired";
+pub const FABRIC_LIFECYCLE_PROMOTION_CANDIDATE_READY: &str = "candidateReady";
+pub const FABRIC_LIFECYCLE_PROMOTION_ACCEPTED: &str = "accepted";
+pub const FABRIC_LIFECYCLE_PROMOTION_REJECTED: &str = "rejected";
+pub const FABRIC_LIFECYCLE_PROMOTION_BLOCKED: &str = "blocked";
+pub const FABRIC_LIFECYCLE_PROMOTION_EXPIRED: &str = "expired";
+pub const FABRIC_ADAPTER_DEBT_CLEAR: &str = "clear";
+pub const FABRIC_ADAPTER_DEBT_TRACKING: &str = "tracking";
+pub const FABRIC_ADAPTER_DEBT_BLOCKED: &str = "blocked";
+pub const FABRIC_ADAPTER_DEBT_BLOCKING_TRACKED_NON_BLOCKING: &str = "trackedNonBlocking";
+pub const FABRIC_ADAPTER_DEBT_BLOCKING_BLOCKING: &str = "blocking";
+pub const FABRIC_ADAPTER_DEBT_BLOCKING_RETIRED: &str = "retired";
+pub const FABRIC_ADAPTER_DEBT_BLOCKING_PLANNED: &str = "planned";
+pub const FABRIC_ADAPTER_RESIDENCY_CLEAR: &str = "clear";
+pub const FABRIC_ADAPTER_RESIDENCY_READY: &str = "ready";
+pub const FABRIC_ADAPTER_RESIDENCY_TRACKING: &str = "tracking";
+pub const FABRIC_ADAPTER_RESIDENCY_BLOCKED: &str = "blocked";
+pub const FABRIC_MANIFEST_SELECTED_OPERATION_SUCCEEDED: &str = "succeeded";
+pub const FABRIC_MANIFEST_SELECTED_OPERATION_DEGRADED: &str = "degraded";
+pub const FABRIC_MANIFEST_SELECTED_OPERATION_BLOCKED: &str = "blocked";
+pub const FABRIC_CONTROL_INVERSION_PROOF_PROVED: &str = "proved";
+pub const FABRIC_CONTROL_INVERSION_PROOF_DEGRADED: &str = "degraded";
+pub const FABRIC_CONTROL_INVERSION_PROOF_BLOCKED: &str = "blocked";
 pub const FABRIC_UNIQUE_EDGE_GENERIC_PRIMITIVE: &str = "genericPrimitive";
 pub const FABRIC_UNIQUE_EDGE_UNIQUE_EDGE: &str = "uniqueEdge";
 pub const FABRIC_UNIQUE_EDGE_BLOCKED: &str = "blocked";
@@ -369,6 +460,7 @@ pub const SURFACE_FULFILLMENT_MODE_DEV_OVERLAY: &str = "devOverlay";
 pub const SURFACE_MODULE_ROLE_RUNTIME_CLIENT: &str = "runtimeClient";
 pub const SURFACE_MODULE_ROLE_PROJECTION_MODEL: &str = "projectionModel";
 pub const SURFACE_MODULE_ROLE_PLATFORM_ADAPTER: &str = "platformAdapter";
+pub const SURFACE_MODULE_ROLE_RUNTIME_RUNNER_BRIDGE: &str = "runtimeRunnerBridge";
 pub const SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER: &str = "serviceSurfaceAdapter";
 pub const SURFACE_MODULE_ROLE_SERVICE_EDGE_ADAPTER: &str = "serviceEdgeAdapter";
 pub const SURFACE_MODULE_ROLE_PRODUCT_VIEW: &str = "productView";
@@ -409,6 +501,51 @@ pub const SERVICE_EDGE_RELEASE_HELD: &str = "held";
 pub const SERVICE_EDGE_RELEASE_RELEASABLE: &str = "releasable";
 pub const SERVICE_EDGE_RELEASE_RELEASED: &str = "released";
 pub const SERVICE_EDGE_RELEASE_BLOCKED: &str = "blocked";
+
+pub const CARRIER_EDGE_ADAPTER_WEB_SOCKET: &str = "webSocket";
+pub const CARRIER_EDGE_ADAPTER_QUIC: &str = "quic";
+pub const CARRIER_EDGE_ADAPTER_IPC: &str = "ipc";
+pub const CARRIER_EDGE_ADAPTER_WORKER: &str = "worker";
+pub const CARRIER_EDGE_ADAPTER_LOOPBACK: &str = "loopback";
+pub const CARRIER_EDGE_ADAPTER_RELAY: &str = "relay";
+pub const CARRIER_EDGE_ADAPTER_NAMED_PIPE: &str = "namedPipe";
+
+pub const CARRIER_EDGE_REQUIREMENT_PENDING: &str = "pending";
+pub const CARRIER_EDGE_REQUIREMENT_ACTIONABLE: &str = "actionable";
+pub const CARRIER_EDGE_REQUIREMENT_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_REQUIREMENT_BLOCKED: &str = "blocked";
+pub const CARRIER_EDGE_REQUIREMENT_RELEASED: &str = "released";
+
+pub const CARRIER_EDGE_SELECTION_PENDING: &str = "pending";
+pub const CARRIER_EDGE_SELECTION_SELECTED: &str = "selected";
+pub const CARRIER_EDGE_SELECTION_ACTIONABLE: &str = "actionable";
+pub const CARRIER_EDGE_SELECTION_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_SELECTION_BLOCKED: &str = "blocked";
+pub const CARRIER_EDGE_SELECTION_RELEASED: &str = "released";
+pub const CARRIER_EDGE_SELECTION_EXPIRED: &str = "expired";
+
+pub const CARRIER_EDGE_SESSION_OPENING: &str = "opening";
+pub const CARRIER_EDGE_SESSION_OPEN: &str = "open";
+pub const CARRIER_EDGE_SESSION_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_SESSION_BACKPRESSURE: &str = "backpressure";
+pub const CARRIER_EDGE_SESSION_RECONNECTING: &str = "reconnecting";
+pub const CARRIER_EDGE_SESSION_BLOCKED: &str = "blocked";
+pub const CARRIER_EDGE_SESSION_CLOSING: &str = "closing";
+pub const CARRIER_EDGE_SESSION_CLOSED: &str = "closed";
+pub const CARRIER_EDGE_SESSION_RELEASED: &str = "released";
+pub const CARRIER_EDGE_SESSION_EXPIRED: &str = "expired";
+
+pub const CARRIER_EDGE_BACKPRESSURE_CLEAR: &str = "clear";
+pub const CARRIER_EDGE_BACKPRESSURE_DEGRADED: &str = "degraded";
+pub const CARRIER_EDGE_BACKPRESSURE_SATURATED: &str = "saturated";
+pub const CARRIER_EDGE_BACKPRESSURE_BLOCKED: &str = "blocked";
+
+pub const CARRIER_EDGE_NETWORK_NONE: &str = "none";
+pub const CARRIER_EDGE_NETWORK_PROCESS_LOCAL: &str = "processLocal";
+pub const CARRIER_EDGE_NETWORK_HOST_LOCAL: &str = "hostLocal";
+pub const CARRIER_EDGE_NETWORK_LOOPBACK: &str = "loopback";
+pub const CARRIER_EDGE_NETWORK_LOCAL_NETWORK: &str = "localNetwork";
+pub const CARRIER_EDGE_NETWORK_EXTERNAL_NETWORK: &str = "externalNetwork";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -820,12 +957,180 @@ fn default_contribution_state() -> String {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct FulfillmentSessionNodePosture {
+    pub node_ref: String,
+    pub role: String,
+    pub state: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub participant_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub member_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract_ref: Option<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FulfillmentSession {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub session_id: String,
+    pub parent_intent_ref: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub node_postures: Vec<FulfillmentSessionNodePosture>,
+    #[serde(default)]
+    pub dependency_refs: Vec<String>,
+    #[serde(default)]
+    pub router_binding_refs: Vec<String>,
+    #[serde(default)]
+    pub carrier_edge_refs: Vec<String>,
+    #[serde(default)]
+    pub media_path_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub availability_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub issued_at: u64,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationRoleContributionPosture {
+    pub role_ref: String,
+    pub contribution_ref: String,
+    pub contributor_ref: String,
+    pub contribution_type: String,
+    pub state: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub primitive_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub cleanup_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub deferred_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationInstancePosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub operation_ref: String,
+    pub operation_class_ref: String,
+    pub method_ref: String,
+    pub state: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub parent_intent_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_ref: Option<String>,
+    #[serde(default)]
+    pub role_contributions: Vec<OperationRoleContributionPosture>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub build_refs: Vec<String>,
+    #[serde(default)]
+    pub build_run_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub executable_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_object_refs: Vec<String>,
+    #[serde(default)]
+    pub router_binding_refs: Vec<String>,
+    #[serde(default)]
+    pub carrier_edge_refs: Vec<String>,
+    #[serde(default)]
+    pub service_admission_refs: Vec<String>,
+    #[serde(default)]
+    pub runtime_projection_refs: Vec<String>,
+    #[serde(default)]
+    pub surface_binding_refs: Vec<String>,
+    #[serde(default)]
+    pub fabric_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub cleanup_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub deferred_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaFulfillmentEvidence {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     pub evidence_id: String,
     pub evidence_kind: String,
     pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -862,11 +1167,16 @@ pub struct MediaTransportPath {
     pub kind: Option<String>,
     pub path_id: String,
     pub session_id: String,
+    pub fulfillment_session_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub activation_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub route_promise_id: Option<String>,
     pub transport_profile_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub browser_participant_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service_participant_ref: Option<String>,
     #[serde(default)]
     pub browser_candidate_refs: Vec<String>,
     #[serde(default)]
@@ -878,6 +1188,7 @@ pub struct MediaTransportPath {
     pub state: String,
     pub selected_pair_state: String,
     pub inbound_rtp_state: String,
+    pub track_state: String,
     pub render_state: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blocked_reason: Option<String>,
@@ -898,6 +1209,7 @@ pub struct MediaTransportObservation {
     pub observation_id: String,
     pub path_id: String,
     pub session_id: String,
+    pub fulfillment_session_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub activation_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -914,6 +1226,8 @@ pub struct MediaTransportObservation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inbound_rtp_state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub track_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub render_state: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blocked_reason: Option<String>,
@@ -923,6 +1237,136 @@ pub struct MediaTransportObservation {
     pub safe_facts: Value,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CarrierEdgeRequirement {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub requirement_id: String,
+    pub subject_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub consumer_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fabric_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub route_association_ref: Option<String>,
+    #[serde(default)]
+    pub required_capability_refs: Vec<String>,
+    #[serde(default)]
+    pub allowed_adapter_kinds: Vec<String>,
+    #[serde(default)]
+    pub candidate_adapter_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_sensitivity: Option<String>,
+    pub state: String,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_substrate_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_posture_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub issued_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CarrierEdgeSelection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub selection_id: String,
+    pub requirement_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fabric_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    pub adapter_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selected_adapter_ref: Option<String>,
+    #[serde(default)]
+    pub candidate_adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub selector_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_binding_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_sensitivity: Option<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backpressure_state: Option<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_substrate_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_posture_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CarrierEdgeSessionEvidence {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub evidence_id: String,
+    pub selection_ref: String,
+    pub edge_session_ref: String,
+    pub adapter_ref: String,
+    pub adapter_kind: String,
+    pub participant_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub peer_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_binding_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_sensitivity: Option<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub connection_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backpressure_state: Option<String>,
+    #[serde(default)]
+    pub retry_posture: Value,
+    #[serde(default)]
+    pub reconnect_posture: Value,
+    #[serde(default)]
+    pub close_posture: Value,
+    #[serde(default)]
+    pub release_posture: Value,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_substrate_refs: Vec<String>,
+    #[serde(default)]
+    pub resource_posture_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
     pub observed_at: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<u64>,
@@ -2471,6 +2915,39 @@ pub struct ServiceManagerOperationPostureRecord {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct ServiceManagerControlRequestPostureRecord {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub request_id: String,
+    pub operation: String,
+    pub subject_ref: String,
+    pub service_manager_ref: String,
+    pub requester_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fabric_control_role_ref: Option<String>,
+    #[serde(default)]
+    pub service_refs: Vec<String>,
+    #[serde(default)]
+    pub capability_refs: Vec<String>,
+    #[serde(default)]
+    pub authority_refs: Vec<String>,
+    #[serde(default)]
+    pub grant_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    pub requested_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ServiceManagerProofDigestRecord {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
@@ -3271,6 +3748,8 @@ pub struct StoragePinProjection {
 #[serde(rename_all = "camelCase")]
 pub struct StreamSessionIntent {
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub capability_ref: String,
     pub requester_ref: String,
     pub channel_id: String,
@@ -3285,6 +3764,8 @@ pub struct StreamSessionIntent {
 pub struct StreamSessionAdmission {
     pub admission_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub capability_ref: String,
     pub admitted_by: String,
     #[serde(default)]
@@ -3297,6 +3778,8 @@ pub struct StreamSessionAdmission {
 pub struct StreamSessionOffer {
     pub offer_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub transport: String,
     #[serde(default)]
     pub payload: Value,
@@ -3308,6 +3791,8 @@ pub struct StreamSessionOffer {
 pub struct StreamSessionAnswer {
     pub answer_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub transport: String,
     #[serde(default)]
     pub payload: Value,
@@ -3319,6 +3804,8 @@ pub struct StreamSessionAnswer {
 pub struct StreamSessionCandidate {
     pub candidate_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub transport: String,
     pub candidate_role: String,
     pub actionability: String,
@@ -3336,6 +3823,8 @@ pub struct StreamSessionCandidate {
 pub struct StreamSessionControl {
     pub control_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub command: String,
     #[serde(default)]
     pub params: Value,
@@ -3347,6 +3836,8 @@ pub struct StreamSessionControl {
 pub struct StreamSessionHealth {
     pub health_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub status: String,
     #[serde(default)]
     pub recovery: Value,
@@ -3358,6 +3849,8 @@ pub struct StreamSessionHealth {
 pub struct StreamSessionClose {
     pub close_id: String,
     pub session_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fulfillment_session_id: Option<String>,
     pub reason_code: String,
     pub issued_at: u64,
 }
@@ -3474,10 +3967,16 @@ pub struct HostFabricMemberContribution {
     pub fabric_ref: String,
     pub host_ref: String,
     pub member_ref: String,
+    pub participant_ref: String,
     pub role: String,
+    pub role_ref: String,
     pub state: String,
     pub contract_ref: String,
     pub subject_ref: String,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
     #[serde(default)]
     pub capability_refs: Vec<String>,
     #[serde(default)]
@@ -3523,6 +4022,18 @@ pub struct HostFabricFulfillmentPlan {
     pub lifecycle_plan_refs: Vec<String>,
     #[serde(default)]
     pub materialization_budget_refs: Vec<String>,
+    #[serde(default)]
+    pub action_authority_refs: Vec<String>,
+    #[serde(default)]
+    pub delegated_role_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_requirement_refs: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub association_handoff_ref: Option<String>,
     #[serde(default)]
@@ -3538,13 +4049,239 @@ pub struct HostFabricFulfillmentPlan {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct HostFabricTopologyRolePosture {
+    pub role_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub contribution_refs: Vec<String>,
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+    #[serde(default)]
+    pub member_refs: Vec<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricTopologyProjection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub projection_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub contract_ref: String,
+    pub source_plan_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub role_postures: Vec<HostFabricTopologyRolePosture>,
+    #[serde(default)]
+    pub required_role_refs: Vec<String>,
+    #[serde(default)]
+    pub ready_role_refs: Vec<String>,
+    #[serde(default)]
+    pub degraded_role_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_role_refs: Vec<String>,
+    #[serde(default)]
+    pub missing_role_refs: Vec<String>,
+    #[serde(default)]
+    pub member_contribution_refs: Vec<String>,
+    #[serde(default)]
+    pub participant_refs: Vec<String>,
+    #[serde(default)]
+    pub module_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub lifecycle_plan_refs: Vec<String>,
+    #[serde(default)]
+    pub materialization_budget_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub association_handoff_ref: Option<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricControlDecision {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub decision_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub operation_ref: String,
+    pub subject_ref: String,
+    pub control_owner_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delegated_role_ref: Option<String>,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_expires_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_delegation_ref: Option<String>,
+    #[serde(default)]
+    pub authorization_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rollback_ref: Option<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricLegacyControlBridge {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub bridge_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub legacy_owner_ref: String,
+    pub subject_ref: String,
+    pub operation_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_decision_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delegated_role_ref: Option<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct HostFabricAdapterExecutionEvidence {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub evidence_id: String,
+    pub fabric_ref: String,
+    pub host_ref: String,
+    pub adapter_ref: String,
+    pub subject_ref: String,
+    pub operation_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_decision_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_observed_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_plan_expires_at: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_bridge_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delegated_role_ref: Option<String>,
+    #[serde(default)]
+    pub authorization_refs: Vec<String>,
+    #[serde(default)]
+    pub action_authority_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_requirement_refs: Vec<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub fallback_refs: Vec<String>,
+    #[serde(default)]
+    pub quarantine_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub release_refs: Vec<String>,
+    #[serde(default)]
+    pub cleanup_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct LifecyclePhasePosture {
     pub phase: String,
     pub state: String,
     #[serde(default)]
+    pub dependency_refs: Vec<String>,
+    #[serde(default)]
     pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub output_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecycleDependencyEdge {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub dependency_ref: String,
+    pub source_ref: String,
+    pub target_ref: String,
+    pub state: String,
+    pub required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<u64>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -3564,6 +4301,8 @@ pub struct LifecyclePlanPosture {
     pub lifecycle_contract_refs: Vec<String>,
     #[serde(default)]
     pub phase_postures: Vec<LifecyclePhasePosture>,
+    #[serde(default)]
+    pub dependency_edges: Vec<LifecycleDependencyEdge>,
     #[serde(default)]
     pub member_contribution_refs: Vec<String>,
     #[serde(default)]
@@ -3597,6 +4336,75 @@ pub struct ContentIndexRefPosture {
     pub writer_refs: Vec<String>,
     #[serde(default)]
     pub schema_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIndexResolutionEntry {
+    pub resolution_ref: String,
+    pub subject_ref: String,
+    pub resolution_kind: String,
+    pub content_index_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_snapshot_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tree_hash_ref: Option<String>,
+    #[serde(default)]
+    pub input_refs: Vec<String>,
+    #[serde(default)]
+    pub source_refs: Vec<String>,
+    #[serde(default)]
+    pub file_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub object_refs: Vec<String>,
+    #[serde(default)]
+    pub chunk_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_member_refs: Vec<String>,
+    #[serde(default)]
+    pub availability_refs: Vec<String>,
+    #[serde(default)]
+    pub materialized_projection_refs: Vec<String>,
+    #[serde(default)]
+    pub adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub conflict_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentIndexResolverPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub resolver_ref: String,
+    pub content_index_ref: String,
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_snapshot_ref: Option<String>,
+    #[serde(default)]
+    pub resolutions: Vec<ContentIndexResolutionEntry>,
+    #[serde(default)]
+    pub materialized_projection_refs: Vec<String>,
+    #[serde(default)]
+    pub transition_conflict_refs: Vec<String>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
     #[serde(default)]
@@ -3660,6 +4468,326 @@ pub struct ContractIntentionPosture {
     pub reducer_refs: Vec<String>,
     #[serde(default)]
     pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecycleManifestSeed {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub manifest_ref: String,
+    pub state: String,
+    pub promotion_state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_ref: Option<String>,
+    #[serde(default)]
+    pub candidate_refs: Vec<String>,
+    #[serde(default)]
+    pub source_snapshot_refs: Vec<String>,
+    #[serde(default)]
+    pub content_index_refs: Vec<String>,
+    #[serde(default)]
+    pub build_refs: Vec<String>,
+    #[serde(default)]
+    pub build_run_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_refs: Vec<String>,
+    #[serde(default)]
+    pub log_refs: Vec<String>,
+    #[serde(default)]
+    pub metric_refs: Vec<String>,
+    #[serde(default)]
+    pub release_candidate_refs: Vec<String>,
+    #[serde(default)]
+    pub rollback_refs: Vec<String>,
+    #[serde(default)]
+    pub cleanup_refs: Vec<String>,
+    #[serde(default)]
+    pub proof_gate_refs: Vec<String>,
+    #[serde(default)]
+    pub governance_refs: Vec<String>,
+    #[serde(default)]
+    pub conflict_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterDebtDeletionWorkItem {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub order: u64,
+    pub deletion_slice_ref: String,
+    pub subject_ref: String,
+    pub adapter_ref: String,
+    pub current_shim: String,
+    pub desired_primitive: String,
+    pub proof_to_retire: String,
+    pub blocking_state: String,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterDebtOwnerGroup {
+    pub subject_ref: String,
+    pub state: String,
+    #[serde(default)]
+    pub adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub desired_primitive_refs: Vec<String>,
+    #[serde(default)]
+    pub deletion_slice_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub items: Vec<AdapterDebtDeletionWorkItem>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterDebtDeletionWorklist {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub state: String,
+    pub item_count: u64,
+    pub owner_count: u64,
+    pub retired_as_blocker_count: u64,
+    #[serde(default)]
+    pub order_policy: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocker_policy: Option<String>,
+    #[serde(default)]
+    pub owner_groups: Vec<AdapterDebtOwnerGroup>,
+    #[serde(default)]
+    pub items: Vec<AdapterDebtDeletionWorkItem>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterDebtRetiredAsBlocker {
+    #[serde(rename = "ref")]
+    pub ref_: String,
+    pub state: String,
+    pub native_primitive: String,
+    pub evidence_ref: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterDebtItem {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub debt_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conflict_ref: Option<String>,
+    pub subject_ref: String,
+    pub adapter_ref: String,
+    pub current_shim: String,
+    pub desired_primitive: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<String>,
+    pub deletion_slice_ref: String,
+    pub proof_to_retire: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterDebtPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub state: String,
+    pub debt_item_count: u64,
+    #[serde(default)]
+    pub family_counts: Value,
+    #[serde(default)]
+    pub explicit_adapter_refs: Vec<String>,
+    #[serde(default)]
+    pub desired_primitive_refs: Vec<String>,
+    #[serde(default)]
+    pub deletion_slice_refs: Vec<String>,
+    #[serde(default)]
+    pub retired_as_blockers: Vec<AdapterDebtRetiredAsBlocker>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deletion_worklist: Option<AdapterDebtDeletionWorklist>,
+    #[serde(default)]
+    pub debt_items: Vec<AdapterDebtItem>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct AdapterResidencyPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub state: String,
+    pub adapter_ref: String,
+    pub adapter_role: String,
+    pub residency_count: u64,
+    #[serde(default)]
+    pub residency_refs: Vec<String>,
+    #[serde(default)]
+    pub subject_refs: Vec<String>,
+    #[serde(default)]
+    pub native_dependency_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_backed_input_refs: Vec<String>,
+    #[serde(default)]
+    pub tool_materialization_refs: Vec<String>,
+    #[serde(default)]
+    pub semantic_conflict_refs: Vec<String>,
+    #[serde(default)]
+    pub legacy_transition_conflict_refs: Vec<String>,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ManifestSelectedOperationPosture {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub state: String,
+    pub lifecycle_manifest_ref: String,
+    pub promotion_intent_ref: String,
+    #[serde(default)]
+    pub build_refs: Vec<String>,
+    #[serde(default)]
+    pub build_run_refs: Vec<String>,
+    #[serde(default)]
+    pub artifact_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_object_refs: Vec<String>,
+    #[serde(default)]
+    pub executable_refs: Vec<String>,
+    #[serde(default)]
+    pub executable_hash_refs: Vec<String>,
+    pub runner_operation_ref: String,
+    pub runner_contract_ref: String,
+    pub host_posture_ref: String,
+    pub fulfillment_session_ref: String,
+    pub fulfillment_session_contract_ref: String,
+    pub fulfillment_session_parent_intent_ref: String,
+    #[serde(default)]
+    pub transition_conflict_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeFulfillmentSessionQueryKeys {
+    pub by_session: String,
+    pub by_manifest: String,
+    pub by_parent_intent: String,
+    pub by_subject: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub by_host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub by_runner: Option<String>,
+    #[serde(default)]
+    pub by_storage_availability: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub by_adapter_debt: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeFulfillmentSessionProjection {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub projection_ref: String,
+    pub state: String,
+    pub session_id: String,
+    pub lifecycle_manifest_ref: String,
+    pub parent_intent_ref: String,
+    pub subject_ref: String,
+    pub contract_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub host_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner_ref: Option<String>,
+    #[serde(default)]
+    pub storage_availability_refs: Vec<String>,
+    #[serde(default)]
+    pub storage_refs: Vec<String>,
+    #[serde(default)]
+    pub executable_refs: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adapter_debt_state: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adapter_debt_ref: Option<String>,
+    pub query_keys: RuntimeFulfillmentSessionQueryKeys,
+    #[serde(default)]
+    pub current_posture: Value,
+    #[serde(default)]
+    pub evidence_refs: Vec<String>,
+    #[serde(default)]
+    pub blocked_reasons: Vec<String>,
+    #[serde(default)]
+    pub safe_facts: Value,
+    pub observed_at: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ControlInversionProof {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub role_ref: String,
+    pub state: String,
+    pub primary_control: String,
+    #[serde(default)]
+    pub primary_refs: Vec<String>,
+    #[serde(default)]
+    pub legacy_fallback_refs: Vec<String>,
+    pub legacy_path_state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub adapter_debt_state: Option<String>,
     #[serde(default)]
     pub blocked_reasons: Vec<String>,
     #[serde(default)]
@@ -5361,6 +6489,12 @@ pub fn validate_private_content_envelope(record: &PrivateContentEnvelopeRecord) 
         return Err(anyhow!(
             "private content envelope requires a content reference"
         ));
+    }
+    if let Some(storage_object_ref) = record.storage_object_ref.as_deref() {
+        validate_storage_object_ref(
+            storage_object_ref,
+            "private content envelope storageObjectRef",
+        )?;
     }
     validate_safe_facts(
         &record.summary_safe_facts,
@@ -7164,6 +8298,81 @@ pub fn validate_service_manager_operation_posture(
     Ok(())
 }
 
+pub fn validate_service_manager_control_request_posture(
+    record: &ServiceManagerControlRequestPostureRecord,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_SERVICE_MANAGER_CONTROL_REQUEST_POSTURE,
+        "service manager control request posture",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "service manager control request posture",
+    )?;
+    reject_adapter_residency_transport_fields(
+        &serde_json::to_value(record)?,
+        "service manager control request posture",
+    )?;
+    require_non_empty(
+        &record.request_id,
+        "service manager control request posture missing requestId",
+    )?;
+    validate_service_manager_operation_kind(&record.operation)?;
+    require_non_empty(
+        &record.subject_ref,
+        "service manager control request posture missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.service_manager_ref,
+        "service manager control request posture missing serviceManagerRef",
+    )?;
+    require_non_empty(
+        &record.requester_ref,
+        "service manager control request posture missing requesterRef",
+    )?;
+    validate_optional_ref(
+        record.fabric_control_role_ref.as_deref(),
+        "service manager control request posture missing fabricControlRoleRef",
+    )?;
+    validate_reference_list(
+        &record.service_refs,
+        "service manager control request posture missing serviceRefs",
+    )?;
+    validate_capability_names(&record.capability_refs)?;
+    validate_reference_list(
+        &record.authority_refs,
+        "service manager control request posture missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.grant_refs,
+        "service manager control request posture missing grantRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "service manager control request posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "service manager control request posture missing proofRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "service manager control request posture missing blockedReasons",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "service manager control request posture safeFacts",
+    )?;
+    validate_operation_timeline(
+        record.requested_at,
+        &[],
+        record.expires_at,
+        "service manager control request posture",
+    )?;
+    Ok(())
+}
+
 pub fn validate_service_manager_proof_digest(
     record: &ServiceManagerProofDigestRecord,
 ) -> Result<()> {
@@ -7588,6 +8797,7 @@ fn validate_surface_module_role(role: &str) -> Result<()> {
         SURFACE_MODULE_ROLE_RUNTIME_CLIENT
             | SURFACE_MODULE_ROLE_PROJECTION_MODEL
             | SURFACE_MODULE_ROLE_PLATFORM_ADAPTER
+            | SURFACE_MODULE_ROLE_RUNTIME_RUNNER_BRIDGE
             | SURFACE_MODULE_ROLE_SERVICE_SURFACE_ADAPTER
             | SURFACE_MODULE_ROLE_SERVICE_EDGE_ADAPTER
             | SURFACE_MODULE_ROLE_PRODUCT_VIEW
@@ -8244,7 +9454,7 @@ fn validate_surface_app_distribution_posture(
         &record.source_refs,
         &format!("{context} missing sourceRefs"),
     )?;
-    validate_reference_list(
+    validate_storage_object_ref_list(
         &record.storage_refs,
         &format!("{context} missing storageRefs"),
     )?;
@@ -8556,9 +9766,18 @@ pub fn validate_swarm_identity_graph(records: &[Value]) -> Result<()> {
                 | RECORD_SWARM_ACTIVATION
                 | RECORD_ROUTE_PROMISE
                 | RECORD_CONTRIBUTION_LIFECYCLE
+                | RECORD_OPERATION_INSTANCE_POSTURE
+                | RECORD_FULFILLMENT_SESSION
                 | RECORD_MEDIA_TRANSPORT_PATH
                 | RECORD_MEDIA_TRANSPORT_OBSERVATION
+                | RECORD_CARRIER_EDGE_REQUIREMENT
+                | RECORD_CARRIER_EDGE_SELECTION
+                | RECORD_CARRIER_EDGE_SESSION_EVIDENCE
                 | RECORD_SERVICE_EDGE_ADAPTER_POSTURE
+                | RECORD_LIFECYCLE_MANIFEST_SEED
+                | RECORD_MANIFEST_SELECTED_OPERATION_POSTURE
+                | RECORD_RUNTIME_FULFILLMENT_SESSION_PROJECTION
+                | RECORD_CONTROL_INVERSION_PROOF
                 | "stream.session.offer"
                 | "stream.session.answer"
                 | "stream.session.candidate"
@@ -8909,6 +10128,7 @@ pub fn validate_storage_pin_intent(intent: &StoragePinIntent) -> Result<()> {
     if intent.object_refs.is_empty() {
         return Err(anyhow!("storage pin intent missing objectRefs"));
     }
+    validate_storage_object_ref_list(&intent.object_refs, "storage pin intent objectRefs")?;
     require_non_empty(
         &intent.manifest_hash,
         "storage pin intent missing manifestHash",
@@ -8938,6 +10158,17 @@ pub fn validate_storage_pin_attestation(attestation: &StoragePinAttestation) -> 
         &attestation.storage_member_ref,
         "storage pin attestation missing storageMemberRef",
     )?;
+    validate_resolved_member_ref(
+        &attestation.storage_member_ref,
+        "storage pin attestation storageMemberRef",
+    )?;
+    if attestation.accepted_refs.is_empty() {
+        return Err(anyhow!("storage pin attestation missing acceptedRefs"));
+    }
+    validate_storage_object_ref_list(
+        &attestation.accepted_refs,
+        "storage pin attestation acceptedRefs",
+    )?;
     if attestation.issued_at == 0 {
         return Err(anyhow!("storage pin attestation missing issuedAt"));
     }
@@ -8956,9 +10187,14 @@ pub fn validate_storage_availability_ref(availability: &SwarmStorageAvailability
         &availability.object_ref,
         "storage availability missing objectRef",
     )?;
+    validate_storage_object_ref(&availability.object_ref, "storage availability objectRef")?;
     require_non_empty(
         &availability.storage_member_ref,
         "storage availability missing storageMemberRef",
+    )?;
+    validate_resolved_member_ref(
+        &availability.storage_member_ref,
+        "storage availability storageMemberRef",
     )?;
     Ok(())
 }
@@ -9040,6 +10276,10 @@ pub fn validate_stream_session_intent(intent: &StreamSessionIntent) -> Result<()
         &intent.session_id,
         "stream session intent missing sessionId",
     )?;
+    validate_optional_ref(
+        intent.fulfillment_session_id.as_deref(),
+        "stream session intent missing fulfillmentSessionId",
+    )?;
     validate_capability_name(&intent.capability_ref)?;
     validate_resolved_member_ref(
         &intent.requester_ref,
@@ -9065,6 +10305,10 @@ pub fn validate_stream_session_admission(admission: &StreamSessionAdmission) -> 
         &admission.session_id,
         "stream session admission missing sessionId",
     )?;
+    validate_optional_ref(
+        admission.fulfillment_session_id.as_deref(),
+        "stream session admission missing fulfillmentSessionId",
+    )?;
     validate_capability_name(&admission.capability_ref)?;
     validate_resolved_member_ref(
         &admission.admitted_by,
@@ -9079,6 +10323,10 @@ pub fn validate_stream_session_admission(admission: &StreamSessionAdmission) -> 
 pub fn validate_stream_session_offer(offer: &StreamSessionOffer) -> Result<()> {
     require_non_empty(&offer.offer_id, "stream session offer missing offerId")?;
     require_non_empty(&offer.session_id, "stream session offer missing sessionId")?;
+    validate_optional_ref(
+        offer.fulfillment_session_id.as_deref(),
+        "stream session offer missing fulfillmentSessionId",
+    )?;
     require_non_empty(&offer.transport, "stream session offer missing transport")?;
     if !offer.payload.is_object() {
         return Err(anyhow!("stream session offer payload must be an object"));
@@ -9095,6 +10343,10 @@ pub fn validate_stream_session_answer(answer: &StreamSessionAnswer) -> Result<()
     require_non_empty(
         &answer.session_id,
         "stream session answer missing sessionId",
+    )?;
+    validate_optional_ref(
+        answer.fulfillment_session_id.as_deref(),
+        "stream session answer missing fulfillmentSessionId",
     )?;
     require_non_empty(&answer.transport, "stream session answer missing transport")?;
     if !answer.payload.is_object() {
@@ -9115,6 +10367,10 @@ pub fn validate_stream_session_candidate(candidate: &StreamSessionCandidate) -> 
     require_non_empty(
         &candidate.session_id,
         "stream session candidate missing sessionId",
+    )?;
+    validate_optional_ref(
+        candidate.fulfillment_session_id.as_deref(),
+        "stream session candidate missing fulfillmentSessionId",
     )?;
     require_non_empty(
         &candidate.transport,
@@ -9207,6 +10463,10 @@ pub fn validate_stream_session_control(control: &StreamSessionControl) -> Result
         &control.session_id,
         "stream session control missing sessionId",
     )?;
+    validate_optional_ref(
+        control.fulfillment_session_id.as_deref(),
+        "stream session control missing fulfillmentSessionId",
+    )?;
     require_non_empty(&control.command, "stream session control missing command")?;
     if !control.params.is_null() && !control.params.is_object() {
         return Err(anyhow!("stream session control params must be an object"));
@@ -9221,6 +10481,10 @@ pub fn validate_stream_session_control(control: &StreamSessionControl) -> Result
 pub fn validate_stream_session_close(close: &StreamSessionClose) -> Result<()> {
     require_non_empty(&close.close_id, "stream session close missing closeId")?;
     require_non_empty(&close.session_id, "stream session close missing sessionId")?;
+    validate_optional_ref(
+        close.fulfillment_session_id.as_deref(),
+        "stream session close missing fulfillmentSessionId",
+    )?;
     require_non_empty(
         &close.reason_code,
         "stream session close missing reasonCode",
@@ -9236,6 +10500,10 @@ pub fn validate_stream_session_health(health: &StreamSessionHealth) -> Result<()
     require_non_empty(
         &health.session_id,
         "stream session health missing sessionId",
+    )?;
+    validate_optional_ref(
+        health.fulfillment_session_id.as_deref(),
+        "stream session health missing fulfillmentSessionId",
     )?;
     require_non_empty(&health.status, "stream session health missing status")?;
     if !health.recovery.is_null() && !health.recovery.is_object() {
@@ -9553,7 +10821,15 @@ pub fn validate_host_fabric_member_contribution(
         &record.member_ref,
         "host-fabric member contribution missing memberRef",
     )?;
+    require_non_empty(
+        &record.participant_ref,
+        "host-fabric member contribution missing participantRef",
+    )?;
     validate_fabric_member_role(&record.role)?;
+    require_non_empty(
+        &record.role_ref,
+        "host-fabric member contribution missing roleRef",
+    )?;
     validate_fabric_member_contribution_state(&record.state)?;
     require_non_empty(
         &record.contract_ref,
@@ -9562,6 +10838,14 @@ pub fn validate_host_fabric_member_contribution(
     require_non_empty(
         &record.subject_ref,
         "host-fabric member contribution missing subjectRef",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "host-fabric member contribution missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "host-fabric member contribution missing sourceRefs",
     )?;
     validate_reference_list(
         &record.capability_refs,
@@ -9665,6 +10949,30 @@ pub fn validate_host_fabric_fulfillment_plan(record: &HostFabricFulfillmentPlan)
         "host-fabric fulfillment plan missing materializationBudgetRefs",
     )?;
     validate_reference_list(
+        &record.action_authority_refs,
+        "host-fabric fulfillment plan missing actionAuthorityRefs",
+    )?;
+    validate_reference_list(
+        &record.delegated_role_refs,
+        "host-fabric fulfillment plan missing delegatedRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric fulfillment plan missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric fulfillment plan missing quarantineRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "host-fabric fulfillment plan missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_requirement_refs,
+        "host-fabric fulfillment plan missing evidenceRequirementRefs",
+    )?;
+    validate_reference_list(
         &record.evidence_refs,
         "host-fabric fulfillment plan missing evidenceRefs",
     )?;
@@ -9701,9 +11009,608 @@ pub fn validate_host_fabric_fulfillment_plan(record: &HostFabricFulfillmentPlan)
     )
 }
 
+pub fn validate_host_fabric_topology_role_posture(
+    record: &HostFabricTopologyRolePosture,
+) -> Result<()> {
+    require_non_empty(
+        &record.role_ref,
+        "host-fabric topology role posture missing roleRef",
+    )?;
+    validate_fabric_topology_role_state(&record.state)?;
+    validate_reference_list(
+        &record.contribution_refs,
+        "host-fabric topology role posture missing contributionRefs",
+    )?;
+    validate_reference_list(
+        &record.participant_refs,
+        "host-fabric topology role posture missing participantRefs",
+    )?;
+    validate_resolved_member_ref_list(
+        &record.member_refs,
+        "host-fabric topology role posture memberRefs",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "host-fabric topology role posture missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "host-fabric topology role posture missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "host-fabric topology role posture missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric topology role posture missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_TOPOLOGY_ROLE_BLOCKED | FABRIC_TOPOLOGY_ROLE_MISSING
+        ),
+        &record.blocked_reasons,
+        "host-fabric topology role posture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric topology role posture safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology role posture",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology role posture",
+    )
+}
+
+pub fn validate_host_fabric_topology_projection(
+    record: &HostFabricTopologyProjection,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION,
+        "host-fabric topology projection",
+    )?;
+    require_non_empty(
+        &record.projection_id,
+        "host-fabric topology projection missing projectionId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric topology projection missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric topology projection missing hostRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "host-fabric topology projection missing contractRef",
+    )?;
+    require_non_empty(
+        &record.source_plan_ref,
+        "host-fabric topology projection missing sourcePlanRef",
+    )?;
+    validate_fabric_fulfillment_plan_state(&record.state)?;
+    if record.role_postures.is_empty() {
+        return Err(anyhow!(
+            "host-fabric topology projection requires rolePostures"
+        ));
+    }
+    for role in &record.role_postures {
+        validate_host_fabric_topology_role_posture(role)?;
+    }
+    require_non_empty_vec(
+        &record.required_role_refs,
+        "host-fabric topology projection requires requiredRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.ready_role_refs,
+        "host-fabric topology projection missing readyRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.degraded_role_refs,
+        "host-fabric topology projection missing degradedRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_role_refs,
+        "host-fabric topology projection missing blockedRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.missing_role_refs,
+        "host-fabric topology projection missing missingRoleRefs",
+    )?;
+    validate_reference_list(
+        &record.member_contribution_refs,
+        "host-fabric topology projection missing memberContributionRefs",
+    )?;
+    validate_reference_list(
+        &record.participant_refs,
+        "host-fabric topology projection missing participantRefs",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "host-fabric topology projection missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "host-fabric topology projection missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "host-fabric topology projection missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.materialization_budget_refs,
+        "host-fabric topology projection missing materializationBudgetRefs",
+    )?;
+    validate_optional_ref(
+        record.association_handoff_ref.as_deref(),
+        "host-fabric topology projection missing associationHandoffRef",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric topology projection missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_FULFILLMENT_PLAN_BLOCKED | FABRIC_FULFILLMENT_PLAN_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "host-fabric topology projection",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric topology projection safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology projection",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric topology projection",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric topology projection",
+    )
+}
+
+pub fn validate_host_fabric_control_decision(record: &HostFabricControlDecision) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_CONTROL_DECISION,
+        "host-fabric control decision",
+    )?;
+    require_non_empty(
+        &record.decision_id,
+        "host-fabric control decision missing decisionId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric control decision missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric control decision missing hostRef",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "host-fabric control decision missing operationRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric control decision missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.control_owner_ref,
+        "host-fabric control decision missing controlOwnerRef",
+    )?;
+    validate_fabric_control_decision_state(&record.state)?;
+    validate_optional_ref(
+        record.delegated_role_ref.as_deref(),
+        "host-fabric control decision missing delegatedRoleRef",
+    )?;
+    validate_optional_ref(
+        record.source_plan_ref.as_deref(),
+        "host-fabric control decision missing sourcePlanRef",
+    )?;
+    if record.source_plan_ref.is_some() {
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "host-fabric control decision sourcePlanRef requires sourcePlanObservedAt"
+            ));
+        }
+        if let Some(source_plan_expires_at) = record.source_plan_expires_at {
+            if source_plan_expires_at <= record.source_plan_observed_at.unwrap_or_default() {
+                return Err(anyhow!(
+                    "host-fabric control decision sourcePlanExpiresAt must be after sourcePlanObservedAt"
+                ));
+            }
+        }
+    }
+    if let Some(plan_state) = record.plan_state.as_deref() {
+        validate_fabric_fulfillment_plan_state(plan_state)?;
+    }
+    validate_optional_ref(
+        record.execution_delegation_ref.as_deref(),
+        "host-fabric control decision missing executionDelegationRef",
+    )?;
+    validate_reference_list(
+        &record.authorization_refs,
+        "host-fabric control decision missing authorizationRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric control decision missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric control decision missing quarantineRefs",
+    )?;
+    validate_optional_ref(
+        record.rollback_ref.as_deref(),
+        "host-fabric control decision missing rollbackRef",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "host-fabric control decision missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric control decision missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTROL_DECISION_WAITING_PLAN
+                | FABRIC_CONTROL_DECISION_DEGRADED
+                | FABRIC_CONTROL_DECISION_BLOCKED
+                | FABRIC_CONTROL_DECISION_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "host-fabric control decision",
+    )?;
+    if record.state == FABRIC_CONTROL_DECISION_READY {
+        require_non_empty(
+            record.delegated_role_ref.as_deref().unwrap_or_default(),
+            "ready host-fabric control decision missing delegatedRoleRef",
+        )?;
+        require_non_empty(
+            record.source_plan_ref.as_deref().unwrap_or_default(),
+            "ready host-fabric control decision missing sourcePlanRef",
+        )?;
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "ready host-fabric control decision missing sourcePlanObservedAt"
+            ));
+        }
+        if record.source_plan_expires_at.unwrap_or_default() <= record.observed_at {
+            return Err(anyhow!(
+                "ready host-fabric control decision requires fresh sourcePlanExpiresAt"
+            ));
+        }
+        require_non_empty_vec(
+            &record.authorization_refs,
+            "ready host-fabric control decision requires authorizationRefs",
+        )?;
+        require_non_empty_vec(
+            &record.evidence_refs,
+            "ready host-fabric control decision requires evidenceRefs",
+        )?;
+    }
+    validate_safe_facts(&record.safe_facts, "host-fabric control decision safeFacts")?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric control decision",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric control decision",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric control decision",
+    )
+}
+
+pub fn validate_host_fabric_legacy_control_bridge(
+    record: &HostFabricLegacyControlBridge,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
+        "host-fabric legacy control bridge",
+    )?;
+    require_non_empty(
+        &record.bridge_id,
+        "host-fabric legacy control bridge missing bridgeId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric legacy control bridge missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric legacy control bridge missing hostRef",
+    )?;
+    require_non_empty(
+        &record.legacy_owner_ref,
+        "host-fabric legacy control bridge missing legacyOwnerRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric legacy control bridge missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "host-fabric legacy control bridge missing operationRef",
+    )?;
+    validate_fabric_legacy_control_state(&record.state)?;
+    validate_optional_ref(
+        record.source_decision_ref.as_deref(),
+        "host-fabric legacy control bridge missing sourceDecisionRef",
+    )?;
+    validate_optional_ref(
+        record.delegated_role_ref.as_deref(),
+        "host-fabric legacy control bridge missing delegatedRoleRef",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric legacy control bridge missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric legacy control bridge missing quarantineRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric legacy control bridge missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        record.state == FABRIC_LEGACY_CONTROL_BLOCKED,
+        &record.blocked_reasons,
+        "host-fabric legacy control bridge",
+    )?;
+    if record.state == FABRIC_LEGACY_CONTROL_LEGACY_DIRECT {
+        if record.source_decision_ref.is_some() {
+            anyhow::bail!(
+                "legacy-direct host-fabric legacy control bridge must not carry sourceDecisionRef"
+            );
+        }
+        if record.delegated_role_ref.is_some() {
+            anyhow::bail!(
+                "legacy-direct host-fabric legacy control bridge must not carry delegatedRoleRef"
+            );
+        }
+    }
+    if matches!(
+        record.state.as_str(),
+        FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE
+            | FABRIC_LEGACY_CONTROL_QUARANTINED
+            | FABRIC_LEGACY_CONTROL_BLOCKED
+    ) {
+        require_non_empty(
+            record.source_decision_ref.as_deref().unwrap_or_default(),
+            "controlled host-fabric legacy control bridge missing sourceDecisionRef",
+        )?;
+        require_non_empty(
+            record.delegated_role_ref.as_deref().unwrap_or_default(),
+            "controlled host-fabric legacy control bridge missing delegatedRoleRef",
+        )?;
+    }
+    if record.state == FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE {
+        require_non_empty_vec(
+            &record.fallback_refs,
+            "fallback host-fabric legacy control bridge requires fallbackRefs",
+        )?;
+    }
+    if record.state == FABRIC_LEGACY_CONTROL_QUARANTINED {
+        require_non_empty_vec(
+            &record.quarantine_refs,
+            "quarantined host-fabric legacy control bridge requires quarantineRefs",
+        )?;
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric legacy control bridge safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric legacy control bridge",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric legacy control bridge",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric legacy control bridge",
+    )
+}
+
+pub fn validate_host_fabric_adapter_execution_evidence(
+    record: &HostFabricAdapterExecutionEvidence,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE,
+        "host-fabric adapter execution evidence",
+    )?;
+    require_non_empty(
+        &record.evidence_id,
+        "host-fabric adapter execution evidence missing evidenceId",
+    )?;
+    require_non_empty(
+        &record.fabric_ref,
+        "host-fabric adapter execution evidence missing fabricRef",
+    )?;
+    require_non_empty(
+        &record.host_ref,
+        "host-fabric adapter execution evidence missing hostRef",
+    )?;
+    require_non_empty(
+        &record.adapter_ref,
+        "host-fabric adapter execution evidence missing adapterRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "host-fabric adapter execution evidence missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "host-fabric adapter execution evidence missing operationRef",
+    )?;
+    validate_fabric_adapter_execution_state(&record.state)?;
+    validate_optional_ref(
+        record.source_decision_ref.as_deref(),
+        "host-fabric adapter execution evidence missing sourceDecisionRef",
+    )?;
+    validate_optional_ref(
+        record.source_plan_ref.as_deref(),
+        "host-fabric adapter execution evidence missing sourcePlanRef",
+    )?;
+    if record.source_plan_ref.is_some() {
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "host-fabric adapter execution evidence sourcePlanRef requires sourcePlanObservedAt"
+            ));
+        }
+        if let Some(source_plan_expires_at) = record.source_plan_expires_at {
+            if source_plan_expires_at <= record.source_plan_observed_at.unwrap_or_default() {
+                return Err(anyhow!(
+                    "host-fabric adapter execution evidence sourcePlanExpiresAt must be after sourcePlanObservedAt"
+                ));
+            }
+        }
+    }
+    validate_optional_ref(
+        record.source_bridge_ref.as_deref(),
+        "host-fabric adapter execution evidence missing sourceBridgeRef",
+    )?;
+    validate_optional_ref(
+        record.delegated_role_ref.as_deref(),
+        "host-fabric adapter execution evidence missing delegatedRoleRef",
+    )?;
+    validate_reference_list(
+        &record.authorization_refs,
+        "host-fabric adapter execution evidence missing authorizationRefs",
+    )?;
+    validate_reference_list(
+        &record.action_authority_refs,
+        "host-fabric adapter execution evidence missing actionAuthorityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_requirement_refs,
+        "host-fabric adapter execution evidence missing evidenceRequirementRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "host-fabric adapter execution evidence missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "host-fabric adapter execution evidence missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "host-fabric adapter execution evidence missing fallbackRefs",
+    )?;
+    validate_reference_list(
+        &record.quarantine_refs,
+        "host-fabric adapter execution evidence missing quarantineRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "host-fabric adapter execution evidence missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "host-fabric adapter execution evidence missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.cleanup_refs,
+        "host-fabric adapter execution evidence missing cleanupRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "host-fabric adapter execution evidence missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_ADAPTER_EXECUTION_BLOCKED | FABRIC_ADAPTER_EXECUTION_FAILED
+        ),
+        &record.blocked_reasons,
+        "host-fabric adapter execution evidence",
+    )?;
+    if record.state == FABRIC_ADAPTER_EXECUTION_SUCCEEDED {
+        require_non_empty(
+            record.source_decision_ref.as_deref().unwrap_or_default(),
+            "succeeded host-fabric adapter execution evidence missing sourceDecisionRef",
+        )?;
+        require_non_empty(
+            record.source_plan_ref.as_deref().unwrap_or_default(),
+            "succeeded host-fabric adapter execution evidence missing sourcePlanRef",
+        )?;
+        if record.source_plan_observed_at.unwrap_or_default() == 0 {
+            return Err(anyhow!(
+                "succeeded host-fabric adapter execution evidence missing sourcePlanObservedAt"
+            ));
+        }
+        if record.source_plan_expires_at.unwrap_or_default() <= record.observed_at {
+            return Err(anyhow!(
+                "succeeded host-fabric adapter execution evidence requires fresh sourcePlanExpiresAt"
+            ));
+        }
+        require_non_empty_vec(
+            &record.authorization_refs,
+            "succeeded host-fabric adapter execution evidence requires authorizationRefs",
+        )?;
+        require_non_empty_vec(
+            &record.output_refs,
+            "succeeded host-fabric adapter execution evidence requires outputRefs",
+        )?;
+        require_non_empty_vec(
+            &record.evidence_refs,
+            "succeeded host-fabric adapter execution evidence requires evidenceRefs",
+        )?;
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "host-fabric adapter execution evidence safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric adapter execution evidence",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "host-fabric adapter execution evidence",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "host-fabric adapter execution evidence",
+    )
+}
+
 fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &str) -> Result<()> {
     validate_fabric_lifecycle_phase(&record.phase)?;
     validate_fabric_lifecycle_phase_state(&record.state)?;
+    validate_reference_list(
+        &record.dependency_refs,
+        &format!("{context} missing dependencyRefs"),
+    )?;
     validate_reference_list(
         &record.evidence_refs,
         &format!("{context} missing evidenceRefs"),
@@ -9721,6 +11628,63 @@ fn validate_lifecycle_phase_posture(record: &LifecyclePhasePosture, context: &st
         context,
     )?;
     validate_safe_facts(&record.safe_facts, &format!("{context} safeFacts"))
+}
+
+fn validate_lifecycle_dependency_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LIFECYCLE_DEPENDENCY_READY
+            | FABRIC_LIFECYCLE_DEPENDENCY_DEGRADED
+            | FABRIC_LIFECYCLE_DEPENDENCY_BLOCKED
+            | FABRIC_LIFECYCLE_DEPENDENCY_MISSING
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle dependency state"))
+    }
+}
+
+pub fn validate_lifecycle_dependency_edge(record: &LifecycleDependencyEdge) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_LIFECYCLE_DEPENDENCY_EDGE,
+        "lifecycle dependency edge",
+    )?;
+    require_non_empty(
+        &record.dependency_ref,
+        "lifecycle dependency edge missing dependencyRef",
+    )?;
+    require_non_empty(
+        &record.source_ref,
+        "lifecycle dependency edge missing sourceRef",
+    )?;
+    require_non_empty(
+        &record.target_ref,
+        "lifecycle dependency edge missing targetRef",
+    )?;
+    validate_lifecycle_dependency_state(&record.state)?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "lifecycle dependency edge missing evidenceRefs",
+    )?;
+    if record.state == FABRIC_LIFECYCLE_DEPENDENCY_READY && record.evidence_refs.is_empty() {
+        return Err(anyhow!(
+            "ready lifecycle dependency edge requires evidenceRefs"
+        ));
+    }
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_LIFECYCLE_DEPENDENCY_DEGRADED
+                | FABRIC_LIFECYCLE_DEPENDENCY_BLOCKED
+                | FABRIC_LIFECYCLE_DEPENDENCY_MISSING
+        ),
+        &record.blocked_reasons,
+        "lifecycle dependency edge",
+    )?;
+    validate_safe_facts(&record.safe_facts, "lifecycle dependency edge safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "lifecycle dependency edge")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "lifecycle dependency edge")
 }
 
 pub fn validate_lifecycle_plan_posture(record: &LifecyclePlanPosture) -> Result<()> {
@@ -9754,6 +11718,10 @@ pub fn validate_lifecycle_plan_posture(record: &LifecyclePlanPosture) -> Result<
             phase,
             &format!("lifecycle plan posture phasePostures {index}"),
         )?;
+    }
+    for (index, edge) in record.dependency_edges.iter().enumerate() {
+        validate_lifecycle_dependency_edge(edge)
+            .with_context(|| format!("lifecycle plan posture dependencyEdges {index}"))?;
     }
     validate_reference_list(
         &record.member_contribution_refs,
@@ -9850,6 +11818,184 @@ pub fn validate_content_index_ref_posture(record: &ContentIndexRefPosture) -> Re
         record.observed_at,
         record.expires_at,
         "content-index ref posture",
+    )
+}
+
+pub fn validate_content_index_resolution_entry(record: &ContentIndexResolutionEntry) -> Result<()> {
+    require_non_empty(
+        &record.resolution_ref,
+        "content-index resolution missing resolutionRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "content-index resolution missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.resolution_kind,
+        "content-index resolution missing resolutionKind",
+    )?;
+    require_non_empty(
+        &record.content_index_ref,
+        "content-index resolution missing contentIndexRef",
+    )?;
+    validate_fabric_content_index_state(&record.state)?;
+    validate_optional_ref(
+        record.source_snapshot_ref.as_deref(),
+        "content-index resolution missing sourceSnapshotRef",
+    )?;
+    validate_optional_ref(
+        record.tree_hash_ref.as_deref(),
+        "content-index resolution missing treeHashRef",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "content-index resolution missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.source_refs,
+        "content-index resolution missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.file_refs,
+        "content-index resolution missing fileRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "content-index resolution missing artifactRefs",
+    )?;
+    validate_storage_object_ref_list(&record.object_refs, "content-index resolution objectRefs")?;
+    validate_storage_chunk_ref_list(&record.chunk_refs, "content-index resolution chunkRefs")?;
+    validate_resolved_member_ref_list(
+        &record.storage_member_refs,
+        "content-index resolution storageMemberRefs",
+    )?;
+    validate_reference_list(
+        &record.availability_refs,
+        "content-index resolution missing availabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.materialized_projection_refs,
+        "content-index resolution missing materializedProjectionRefs",
+    )?;
+    validate_reference_list(
+        &record.adapter_refs,
+        "content-index resolution missing adapterRefs",
+    )?;
+    validate_reference_list(
+        &record.conflict_refs,
+        "content-index resolution missing conflictRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "content-index resolution missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTENT_INDEX_BLOCKED | FABRIC_CONTENT_INDEX_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "content-index resolution",
+    )?;
+    if record.state == FABRIC_CONTENT_INDEX_READY
+        && (!record.conflict_refs.is_empty() || !record.blocked_reasons.is_empty())
+    {
+        return Err(anyhow!(
+            "ready content-index resolution cannot carry conflictRefs or blockedReasons"
+        ));
+    }
+    if record.state == FABRIC_CONTENT_INDEX_READY
+        && record.source_refs.is_empty()
+        && record.file_refs.is_empty()
+        && record.artifact_refs.is_empty()
+        && record.object_refs.is_empty()
+        && record.chunk_refs.is_empty()
+        && record.availability_refs.is_empty()
+        && record.materialized_projection_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "ready content-index resolution requires a resolved output ref"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "content-index resolution safeFacts")
+}
+
+pub fn validate_content_index_resolver_posture(record: &ContentIndexResolverPosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CONTENT_INDEX_RESOLVER_POSTURE,
+        "content-index resolver posture",
+    )?;
+    require_non_empty(
+        &record.resolver_ref,
+        "content-index resolver posture missing resolverRef",
+    )?;
+    require_non_empty(
+        &record.content_index_ref,
+        "content-index resolver posture missing contentIndexRef",
+    )?;
+    validate_fabric_content_index_state(&record.state)?;
+    validate_optional_ref(
+        record.source_snapshot_ref.as_deref(),
+        "content-index resolver posture missing sourceSnapshotRef",
+    )?;
+    for (index, resolution) in record.resolutions.iter().enumerate() {
+        validate_content_index_resolution_entry(resolution)
+            .with_context(|| format!("content-index resolver posture resolutions {index}"))?;
+        if resolution.content_index_ref != record.content_index_ref {
+            return Err(anyhow!(
+                "content-index resolver posture resolution contentIndexRef must match resolver contentIndexRef"
+            ));
+        }
+    }
+    validate_reference_list(
+        &record.materialized_projection_refs,
+        "content-index resolver posture missing materializedProjectionRefs",
+    )?;
+    validate_reference_list(
+        &record.transition_conflict_refs,
+        "content-index resolver posture missing transitionConflictRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "content-index resolver posture missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_CONTENT_INDEX_BLOCKED | FABRIC_CONTENT_INDEX_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "content-index resolver posture",
+    )?;
+    if record.state == FABRIC_CONTENT_INDEX_READY && record.resolutions.is_empty() {
+        return Err(anyhow!(
+            "ready content-index resolver posture requires resolutions"
+        ));
+    }
+    if record.state == FABRIC_CONTENT_INDEX_READY
+        && (!record.transition_conflict_refs.is_empty() || !record.blocked_reasons.is_empty())
+    {
+        return Err(anyhow!(
+            "ready content-index resolver posture cannot carry transitionConflictRefs or blockedReasons"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "content-index resolver posture safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "content-index resolver posture",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "content-index resolver posture",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "content-index resolver posture",
     )
 }
 
@@ -9998,6 +12144,715 @@ pub fn validate_contract_intention_posture(record: &ContractIntentionPosture) ->
         record.observed_at,
         record.expires_at,
         "contract intention posture",
+    )
+}
+
+pub fn validate_lifecycle_manifest_seed(record: &LifecycleManifestSeed) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_LIFECYCLE_MANIFEST_SEED,
+        "lifecycle manifest seed",
+    )?;
+    require_non_empty(
+        &record.manifest_ref,
+        "lifecycle manifest seed missing manifestRef",
+    )?;
+    validate_fabric_lifecycle_manifest_state(&record.state)?;
+    validate_fabric_lifecycle_promotion_state(&record.promotion_state)?;
+    validate_optional_ref(
+        record.target_ref.as_deref(),
+        "lifecycle manifest seed missing targetRef",
+    )?;
+    validate_reference_list(
+        &record.candidate_refs,
+        "lifecycle manifest seed missing candidateRefs",
+    )?;
+    validate_reference_list(
+        &record.source_snapshot_refs,
+        "lifecycle manifest seed missing sourceSnapshotRefs",
+    )?;
+    validate_reference_list(
+        &record.content_index_refs,
+        "lifecycle manifest seed missing contentIndexRefs",
+    )?;
+    validate_reference_list(
+        &record.build_refs,
+        "lifecycle manifest seed missing buildRefs",
+    )?;
+    validate_reference_list(
+        &record.build_run_refs,
+        "lifecycle manifest seed missing buildRunRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "lifecycle manifest seed missing artifactRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "lifecycle manifest seed missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_refs,
+        "lifecycle manifest seed missing proofRefs",
+    )?;
+    validate_reference_list(&record.log_refs, "lifecycle manifest seed missing logRefs")?;
+    validate_reference_list(
+        &record.metric_refs,
+        "lifecycle manifest seed missing metricRefs",
+    )?;
+    validate_reference_list(
+        &record.release_candidate_refs,
+        "lifecycle manifest seed missing releaseCandidateRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "lifecycle manifest seed missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.cleanup_refs,
+        "lifecycle manifest seed missing cleanupRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_gate_refs,
+        "lifecycle manifest seed missing proofGateRefs",
+    )?;
+    validate_reference_list(
+        &record.governance_refs,
+        "lifecycle manifest seed missing governanceRefs",
+    )?;
+    validate_reference_list(
+        &record.conflict_refs,
+        "lifecycle manifest seed missing conflictRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "lifecycle manifest seed missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_LIFECYCLE_MANIFEST_BLOCKED | FABRIC_LIFECYCLE_MANIFEST_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "lifecycle manifest seed",
+    )?;
+    if record.promotion_state == FABRIC_LIFECYCLE_PROMOTION_BLOCKED
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked lifecycle manifest promotion requires blockedReasons"
+        ));
+    }
+    if record.state == FABRIC_LIFECYCLE_MANIFEST_READY {
+        require_non_empty(
+            record.target_ref.as_deref().unwrap_or_default(),
+            "ready lifecycle manifest seed requires targetRef",
+        )?;
+        require_non_empty_vec(
+            &record.candidate_refs,
+            "ready lifecycle manifest seed requires candidateRefs",
+        )?;
+        require_non_empty_vec(
+            &record.source_snapshot_refs,
+            "ready lifecycle manifest seed requires sourceSnapshotRefs",
+        )?;
+        require_non_empty_vec(
+            &record.content_index_refs,
+            "ready lifecycle manifest seed requires contentIndexRefs",
+        )?;
+        require_non_empty_vec(
+            &record.build_refs,
+            "ready lifecycle manifest seed requires buildRefs",
+        )?;
+    }
+    validate_safe_facts(&record.safe_facts, "lifecycle manifest seed safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "lifecycle manifest seed")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "lifecycle manifest seed")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "lifecycle manifest seed",
+    )
+}
+
+pub fn validate_adapter_debt_deletion_work_item(
+    record: &AdapterDebtDeletionWorkItem,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        "adapter.debt.deletion.work-item",
+        "adapter-debt deletion work item",
+    )?;
+    require_non_empty(
+        &record.deletion_slice_ref,
+        "adapter-debt deletion work item missing deletionSliceRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "adapter-debt deletion work item missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.adapter_ref,
+        "adapter-debt deletion work item missing adapterRef",
+    )?;
+    require_non_empty(
+        &record.current_shim,
+        "adapter-debt deletion work item missing currentShim",
+    )?;
+    require_non_empty(
+        &record.desired_primitive,
+        "adapter-debt deletion work item missing desiredPrimitive",
+    )?;
+    require_non_empty(
+        &record.proof_to_retire,
+        "adapter-debt deletion work item missing proofToRetire",
+    )?;
+    validate_fabric_adapter_debt_blocking_state(&record.blocking_state)?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "adapter-debt deletion work item missing blockedReasons",
+    )?;
+    if record.blocking_state == FABRIC_ADAPTER_DEBT_BLOCKING_BLOCKING
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "adapter-debt deletion work item blocking state requires blockedReasons"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_adapter_debt_deletion_worklist(record: &AdapterDebtDeletionWorklist) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_ADAPTER_DEBT_DELETION_WORKLIST,
+        "adapter-debt deletion worklist",
+    )?;
+    validate_fabric_adapter_debt_state(&record.state)?;
+    validate_reference_list(
+        &record.order_policy,
+        "adapter-debt deletion worklist missing orderPolicy",
+    )?;
+    validate_optional_ref(
+        record.blocker_policy.as_deref(),
+        "adapter-debt deletion worklist missing blockerPolicy",
+    )?;
+    for (index, owner) in record.owner_groups.iter().enumerate() {
+        require_non_empty(
+            &owner.subject_ref,
+            "adapter-debt deletion worklist owner missing subjectRef",
+        )?;
+        validate_fabric_adapter_debt_state(&owner.state)
+            .with_context(|| format!("adapter-debt deletion worklist ownerGroups {index}"))?;
+        validate_reference_list(
+            &owner.adapter_refs,
+            "adapter-debt deletion worklist owner missing adapterRefs",
+        )?;
+        validate_reference_list(
+            &owner.desired_primitive_refs,
+            "adapter-debt deletion worklist owner missing desiredPrimitiveRefs",
+        )?;
+        validate_reference_list(
+            &owner.deletion_slice_refs,
+            "adapter-debt deletion worklist owner missing deletionSliceRefs",
+        )?;
+        validate_reference_list(
+            &owner.blocked_reasons,
+            "adapter-debt deletion worklist owner missing blockedReasons",
+        )?;
+        for item in &owner.items {
+            validate_adapter_debt_deletion_work_item(item)?;
+        }
+    }
+    for item in &record.items {
+        validate_adapter_debt_deletion_work_item(item)?;
+    }
+    if record.item_count as usize != record.items.len() {
+        return Err(anyhow!(
+            "adapter-debt deletion worklist itemCount must match items"
+        ));
+    }
+    if record.owner_count as usize != record.owner_groups.len() {
+        return Err(anyhow!(
+            "adapter-debt deletion worklist ownerCount must match ownerGroups"
+        ));
+    }
+    validate_blocked_reasons(
+        record.state == FABRIC_ADAPTER_DEBT_BLOCKED,
+        &record.blocked_reasons,
+        "adapter-debt deletion worklist",
+    )
+}
+
+pub fn validate_adapter_debt_posture(record: &AdapterDebtPosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_ADAPTER_DEBT_POSTURE,
+        "adapter-debt posture",
+    )?;
+    validate_fabric_adapter_debt_state(&record.state)?;
+    validate_safe_facts(&record.family_counts, "adapter-debt posture familyCounts")?;
+    validate_reference_list(
+        &record.explicit_adapter_refs,
+        "adapter-debt posture missing explicitAdapterRefs",
+    )?;
+    validate_reference_list(
+        &record.desired_primitive_refs,
+        "adapter-debt posture missing desiredPrimitiveRefs",
+    )?;
+    validate_reference_list(
+        &record.deletion_slice_refs,
+        "adapter-debt posture missing deletionSliceRefs",
+    )?;
+    for retired in &record.retired_as_blockers {
+        require_non_empty(&retired.ref_, "adapter-debt posture retired ref missing")?;
+        require_non_empty(&retired.state, "adapter-debt posture retired state missing")?;
+        require_non_empty(
+            &retired.native_primitive,
+            "adapter-debt posture retired nativePrimitive missing",
+        )?;
+        require_non_empty(
+            &retired.evidence_ref,
+            "adapter-debt posture retired evidenceRef missing",
+        )?;
+    }
+    if let Some(worklist) = &record.deletion_worklist {
+        validate_adapter_debt_deletion_worklist(worklist)?;
+    }
+    for item in &record.debt_items {
+        require_non_empty(
+            &item.debt_ref,
+            "adapter-debt posture debt item missing debtRef",
+        )?;
+        validate_optional_ref(
+            item.conflict_ref.as_deref(),
+            "adapter-debt posture debt item missing conflictRef",
+        )?;
+        require_non_empty(
+            &item.subject_ref,
+            "adapter-debt posture debt item missing subjectRef",
+        )?;
+        require_non_empty(
+            &item.adapter_ref,
+            "adapter-debt posture debt item missing adapterRef",
+        )?;
+        require_non_empty(
+            &item.current_shim,
+            "adapter-debt posture debt item missing currentShim",
+        )?;
+        require_non_empty(
+            &item.desired_primitive,
+            "adapter-debt posture debt item missing desiredPrimitive",
+        )?;
+        validate_optional_ref(
+            item.state.as_deref(),
+            "adapter-debt posture debt item missing state",
+        )?;
+        require_non_empty(
+            &item.deletion_slice_ref,
+            "adapter-debt posture debt item missing deletionSliceRef",
+        )?;
+        require_non_empty(
+            &item.proof_to_retire,
+            "adapter-debt posture debt item missing proofToRetire",
+        )?;
+    }
+    if record.debt_item_count as usize != record.debt_items.len() {
+        return Err(anyhow!(
+            "adapter-debt posture debtItemCount must match debtItems"
+        ));
+    }
+    if record.state == FABRIC_ADAPTER_DEBT_CLEAR && !record.debt_items.is_empty() {
+        return Err(anyhow!("clear adapter-debt posture cannot carry debtItems"));
+    }
+    validate_blocked_reasons(
+        record.state == FABRIC_ADAPTER_DEBT_BLOCKED,
+        &record.blocked_reasons,
+        "adapter-debt posture",
+    )?;
+    validate_safe_facts(&record.safe_facts, "adapter-debt posture safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "adapter-debt posture")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "adapter-debt posture")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "adapter-debt posture",
+    )
+}
+
+pub fn validate_adapter_residency_posture(record: &AdapterResidencyPosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_ADAPTER_RESIDENCY_POSTURE,
+        "adapter-residency posture",
+    )?;
+    validate_fabric_adapter_residency_state(&record.state)?;
+    require_non_empty(
+        &record.adapter_ref,
+        "adapter-residency posture missing adapterRef",
+    )?;
+    require_non_empty(
+        &record.adapter_role,
+        "adapter-residency posture missing adapterRole",
+    )?;
+    validate_reference_list(
+        &record.residency_refs,
+        "adapter-residency posture missing residencyRefs",
+    )?;
+    validate_reference_list(
+        &record.subject_refs,
+        "adapter-residency posture missing subjectRefs",
+    )?;
+    validate_reference_list(
+        &record.native_dependency_refs,
+        "adapter-residency posture missing nativeDependencyRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_backed_input_refs,
+        "adapter-residency posture missing storageBackedInputRefs",
+    )?;
+    validate_reference_list(
+        &record.tool_materialization_refs,
+        "adapter-residency posture missing toolMaterializationRefs",
+    )?;
+    validate_reference_list(
+        &record.semantic_conflict_refs,
+        "adapter-residency posture missing semanticConflictRefs",
+    )?;
+    validate_reference_list(
+        &record.legacy_transition_conflict_refs,
+        "adapter-residency posture missing legacyTransitionConflictRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "adapter-residency posture missing evidenceRefs",
+    )?;
+    if record.residency_count as usize != record.residency_refs.len() {
+        return Err(anyhow!(
+            "adapter-residency posture residencyCount must match residencyRefs"
+        ));
+    }
+    if record.state == FABRIC_ADAPTER_RESIDENCY_READY {
+        if record.residency_refs.is_empty() {
+            return Err(anyhow!(
+                "ready adapter-residency posture requires residencyRefs"
+            ));
+        }
+        if !record.semantic_conflict_refs.is_empty() {
+            return Err(anyhow!(
+                "ready adapter-residency posture cannot carry semanticConflictRefs"
+            ));
+        }
+    }
+    if record.state == FABRIC_ADAPTER_RESIDENCY_CLEAR && record.residency_count != 0 {
+        return Err(anyhow!(
+            "clear adapter-residency posture cannot carry residency refs"
+        ));
+    }
+    validate_blocked_reasons(
+        record.state == FABRIC_ADAPTER_RESIDENCY_BLOCKED,
+        &record.blocked_reasons,
+        "adapter-residency posture",
+    )?;
+    validate_safe_facts(&record.safe_facts, "adapter-residency posture safeFacts")?;
+    let value = serde_json::to_value(record)?;
+    reject_adapter_residency_transport_fields(&value, "adapter-residency posture")?;
+    reject_private_content_fields(&value, "adapter-residency posture")?;
+    reject_media_byte_fields(&value, "adapter-residency posture")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "adapter-residency posture",
+    )
+}
+
+pub fn validate_manifest_selected_operation_posture(
+    record: &ManifestSelectedOperationPosture,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_MANIFEST_SELECTED_OPERATION_POSTURE,
+        "manifest-selected operation posture",
+    )?;
+    validate_fabric_manifest_selected_operation_state(&record.state)?;
+    require_non_empty(
+        &record.lifecycle_manifest_ref,
+        "manifest-selected operation posture missing lifecycleManifestRef",
+    )?;
+    require_non_empty(
+        &record.promotion_intent_ref,
+        "manifest-selected operation posture missing promotionIntentRef",
+    )?;
+    validate_reference_list(
+        &record.build_refs,
+        "manifest-selected operation posture missing buildRefs",
+    )?;
+    validate_reference_list(
+        &record.build_run_refs,
+        "manifest-selected operation posture missing buildRunRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "manifest-selected operation posture missing artifactRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "manifest-selected operation posture missing storageRefs",
+    )?;
+    validate_storage_object_ref_list(
+        &record.storage_object_refs,
+        "manifest-selected operation posture storageObjectRefs",
+    )?;
+    validate_reference_list(
+        &record.executable_refs,
+        "manifest-selected operation posture missing executableRefs",
+    )?;
+    validate_reference_list(
+        &record.executable_hash_refs,
+        "manifest-selected operation posture missing executableHashRefs",
+    )?;
+    require_non_empty(
+        &record.runner_operation_ref,
+        "manifest-selected operation posture missing runnerOperationRef",
+    )?;
+    require_non_empty(
+        &record.runner_contract_ref,
+        "manifest-selected operation posture missing runnerContractRef",
+    )?;
+    require_non_empty(
+        &record.host_posture_ref,
+        "manifest-selected operation posture missing hostPostureRef",
+    )?;
+    require_non_empty(
+        &record.fulfillment_session_ref,
+        "manifest-selected operation posture missing fulfillmentSessionRef",
+    )?;
+    require_non_empty(
+        &record.fulfillment_session_contract_ref,
+        "manifest-selected operation posture missing fulfillmentSessionContractRef",
+    )?;
+    require_non_empty(
+        &record.fulfillment_session_parent_intent_ref,
+        "manifest-selected operation posture missing fulfillmentSessionParentIntentRef",
+    )?;
+    validate_reference_list(
+        &record.transition_conflict_refs,
+        "manifest-selected operation posture missing transitionConflictRefs",
+    )?;
+    validate_blocked_reasons(
+        record.state == FABRIC_MANIFEST_SELECTED_OPERATION_BLOCKED,
+        &record.blocked_reasons,
+        "manifest-selected operation posture",
+    )?;
+    if record.runner_contract_ref != record.lifecycle_manifest_ref {
+        return Err(anyhow!(
+            "manifest-selected operation posture runnerContractRef must match lifecycleManifestRef"
+        ));
+    }
+    if record.fulfillment_session_contract_ref != record.lifecycle_manifest_ref {
+        return Err(anyhow!(
+            "manifest-selected operation posture fulfillmentSessionContractRef must match lifecycleManifestRef"
+        ));
+    }
+    if record.fulfillment_session_parent_intent_ref != record.promotion_intent_ref {
+        return Err(anyhow!(
+            "manifest-selected operation posture fulfillmentSessionParentIntentRef must match promotionIntentRef"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "manifest-selected operation posture safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "manifest-selected operation posture",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "manifest-selected operation posture",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "manifest-selected operation posture",
+    )
+}
+
+pub fn validate_runtime_fulfillment_session_projection(
+    record: &RuntimeFulfillmentSessionProjection,
+) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_RUNTIME_FULFILLMENT_SESSION_PROJECTION,
+        "runtime fulfillment-session projection",
+    )?;
+    require_non_empty(
+        &record.projection_ref,
+        "runtime fulfillment-session projection missing projectionRef",
+    )?;
+    validate_fabric_lifecycle_manifest_state(&record.state)?;
+    require_non_empty(
+        &record.session_id,
+        "runtime fulfillment-session projection missing sessionId",
+    )?;
+    require_non_empty(
+        &record.lifecycle_manifest_ref,
+        "runtime fulfillment-session projection missing lifecycleManifestRef",
+    )?;
+    require_non_empty(
+        &record.parent_intent_ref,
+        "runtime fulfillment-session projection missing parentIntentRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "runtime fulfillment-session projection missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "runtime fulfillment-session projection missing contractRef",
+    )?;
+    validate_optional_ref(
+        record.host_ref.as_deref(),
+        "runtime fulfillment-session projection missing hostRef",
+    )?;
+    validate_optional_ref(
+        record.runner_ref.as_deref(),
+        "runtime fulfillment-session projection missing runnerRef",
+    )?;
+    validate_reference_list(
+        &record.storage_availability_refs,
+        "runtime fulfillment-session projection missing storageAvailabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "runtime fulfillment-session projection missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.executable_refs,
+        "runtime fulfillment-session projection missing executableRefs",
+    )?;
+    if let Some(state) = &record.adapter_debt_state {
+        validate_fabric_adapter_debt_state(state)?;
+    }
+    validate_optional_ref(
+        record.adapter_debt_ref.as_deref(),
+        "runtime fulfillment-session projection missing adapterDebtRef",
+    )?;
+    require_non_empty(
+        &record.query_keys.by_session,
+        "runtime fulfillment-session projection missing queryKeys.bySession",
+    )?;
+    require_non_empty(
+        &record.query_keys.by_manifest,
+        "runtime fulfillment-session projection missing queryKeys.byManifest",
+    )?;
+    require_non_empty(
+        &record.query_keys.by_parent_intent,
+        "runtime fulfillment-session projection missing queryKeys.byParentIntent",
+    )?;
+    require_non_empty(
+        &record.query_keys.by_subject,
+        "runtime fulfillment-session projection missing queryKeys.bySubject",
+    )?;
+    validate_optional_ref(
+        record.query_keys.by_host.as_deref(),
+        "runtime fulfillment-session projection missing queryKeys.byHost",
+    )?;
+    validate_optional_ref(
+        record.query_keys.by_runner.as_deref(),
+        "runtime fulfillment-session projection missing queryKeys.byRunner",
+    )?;
+    validate_reference_list(
+        &record.query_keys.by_storage_availability,
+        "runtime fulfillment-session projection missing queryKeys.byStorageAvailability",
+    )?;
+    if let Some(state) = &record.query_keys.by_adapter_debt {
+        validate_fabric_adapter_debt_state(state)?;
+    }
+    validate_safe_facts(
+        &record.current_posture,
+        "runtime fulfillment-session projection currentPosture",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "runtime fulfillment-session projection missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FABRIC_LIFECYCLE_MANIFEST_BLOCKED | FABRIC_LIFECYCLE_MANIFEST_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "runtime fulfillment-session projection",
+    )?;
+    if record.contract_ref != record.lifecycle_manifest_ref {
+        return Err(anyhow!(
+            "runtime fulfillment-session projection contractRef must match lifecycleManifestRef"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "runtime fulfillment-session projection safeFacts",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "runtime fulfillment-session projection",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "runtime fulfillment-session projection",
+    )?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "runtime fulfillment-session projection",
+    )
+}
+
+pub fn validate_control_inversion_proof(record: &ControlInversionProof) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CONTROL_INVERSION_PROOF,
+        "control inversion proof",
+    )?;
+    require_non_empty(&record.role_ref, "control inversion proof missing roleRef")?;
+    validate_fabric_control_inversion_proof_state(&record.state)?;
+    require_non_empty(
+        &record.primary_control,
+        "control inversion proof missing primaryControl",
+    )?;
+    validate_reference_list(
+        &record.primary_refs,
+        "control inversion proof missing primaryRefs",
+    )?;
+    validate_reference_list(
+        &record.legacy_fallback_refs,
+        "control inversion proof missing legacyFallbackRefs",
+    )?;
+    require_non_empty(
+        &record.legacy_path_state,
+        "control inversion proof missing legacyPathState",
+    )?;
+    if let Some(state) = &record.adapter_debt_state {
+        validate_fabric_adapter_debt_state(state)?;
+    }
+    validate_blocked_reasons(
+        record.state == FABRIC_CONTROL_INVERSION_PROOF_BLOCKED,
+        &record.blocked_reasons,
+        "control inversion proof",
+    )?;
+    if record.state == FABRIC_CONTROL_INVERSION_PROOF_PROVED && record.primary_refs.is_empty() {
+        return Err(anyhow!(
+            "proved control inversion proof requires primaryRefs"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "control inversion proof safeFacts")?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "control inversion proof")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "control inversion proof")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "control inversion proof",
     )
 }
 
@@ -11046,6 +13901,70 @@ fn validate_fabric_fulfillment_plan_state(state: &str) -> Result<()> {
     }
 }
 
+fn validate_fabric_topology_role_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_TOPOLOGY_ROLE_READY
+            | FABRIC_TOPOLOGY_ROLE_DEGRADED
+            | FABRIC_TOPOLOGY_ROLE_BLOCKED
+            | FABRIC_TOPOLOGY_ROLE_MISSING
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric topology role state"))
+    }
+}
+
+fn validate_fabric_control_decision_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTROL_DECISION_NOT_REQUESTED
+            | FABRIC_CONTROL_DECISION_WAITING_PLAN
+            | FABRIC_CONTROL_DECISION_READY
+            | FABRIC_CONTROL_DECISION_DEGRADED
+            | FABRIC_CONTROL_DECISION_BLOCKED
+            | FABRIC_CONTROL_DECISION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported host-fabric control decision state"))
+    }
+}
+
+fn validate_fabric_legacy_control_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LEGACY_CONTROL_LEGACY_DIRECT
+            | FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE
+            | FABRIC_LEGACY_CONTROL_QUARANTINED
+            | FABRIC_LEGACY_CONTROL_BLOCKED
+            | FABRIC_LEGACY_CONTROL_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported host-fabric legacy control bridge state"
+        ))
+    }
+}
+
+fn validate_fabric_adapter_execution_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ADAPTER_EXECUTION_SUCCEEDED
+            | FABRIC_ADAPTER_EXECUTION_DEGRADED
+            | FABRIC_ADAPTER_EXECUTION_BLOCKED
+            | FABRIC_ADAPTER_EXECUTION_FAILED
+            | FABRIC_ADAPTER_EXECUTION_SKIPPED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "unsupported host-fabric adapter execution evidence state"
+        ))
+    }
+}
+
 fn validate_fabric_lifecycle_plan_state(state: &str) -> Result<()> {
     if matches!(
         state,
@@ -11129,6 +14048,100 @@ fn validate_fabric_contract_intention_state(state: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported contract intention state"))
+    }
+}
+
+fn validate_fabric_lifecycle_manifest_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LIFECYCLE_MANIFEST_READY
+            | FABRIC_LIFECYCLE_MANIFEST_DEGRADED
+            | FABRIC_LIFECYCLE_MANIFEST_BLOCKED
+            | FABRIC_LIFECYCLE_MANIFEST_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle manifest state"))
+    }
+}
+
+fn validate_fabric_lifecycle_promotion_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_LIFECYCLE_PROMOTION_CANDIDATE_READY
+            | FABRIC_LIFECYCLE_PROMOTION_ACCEPTED
+            | FABRIC_LIFECYCLE_PROMOTION_REJECTED
+            | FABRIC_LIFECYCLE_PROMOTION_BLOCKED
+            | FABRIC_LIFECYCLE_PROMOTION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported lifecycle promotion state"))
+    }
+}
+
+fn validate_fabric_adapter_debt_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ADAPTER_DEBT_CLEAR | FABRIC_ADAPTER_DEBT_TRACKING | FABRIC_ADAPTER_DEBT_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported adapter-debt state"))
+    }
+}
+
+fn validate_fabric_adapter_debt_blocking_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ADAPTER_DEBT_BLOCKING_TRACKED_NON_BLOCKING
+            | FABRIC_ADAPTER_DEBT_BLOCKING_BLOCKING
+            | FABRIC_ADAPTER_DEBT_BLOCKING_RETIRED
+            | FABRIC_ADAPTER_DEBT_BLOCKING_PLANNED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported adapter-debt blocking state"))
+    }
+}
+
+fn validate_fabric_adapter_residency_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_ADAPTER_RESIDENCY_CLEAR
+            | FABRIC_ADAPTER_RESIDENCY_READY
+            | FABRIC_ADAPTER_RESIDENCY_TRACKING
+            | FABRIC_ADAPTER_RESIDENCY_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported adapter-residency state"))
+    }
+}
+
+fn validate_fabric_manifest_selected_operation_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_MANIFEST_SELECTED_OPERATION_SUCCEEDED
+            | FABRIC_MANIFEST_SELECTED_OPERATION_DEGRADED
+            | FABRIC_MANIFEST_SELECTED_OPERATION_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported manifest-selected operation state"))
+    }
+}
+
+fn validate_fabric_control_inversion_proof_state(state: &str) -> Result<()> {
+    if matches!(
+        state,
+        FABRIC_CONTROL_INVERSION_PROOF_PROVED
+            | FABRIC_CONTROL_INVERSION_PROOF_DEGRADED
+            | FABRIC_CONTROL_INVERSION_PROOF_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported control inversion proof state"))
     }
 }
 
@@ -11863,6 +14876,79 @@ fn validate_media_fulfillment_state(value: &str) -> Result<()> {
     }
 }
 
+fn validate_fulfillment_session_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        FULFILLMENT_SESSION_PENDING
+            | FULFILLMENT_SESSION_ACTIONABLE
+            | FULFILLMENT_SESSION_RUNNING
+            | FULFILLMENT_SESSION_DEGRADED
+            | FULFILLMENT_SESSION_BLOCKED
+            | FULFILLMENT_SESSION_RELEASED
+            | FULFILLMENT_SESSION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported fulfillment session state"))
+    }
+}
+
+fn validate_operation_posture_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        OPERATION_POSTURE_PLANNED
+            | OPERATION_POSTURE_SELECTED
+            | OPERATION_POSTURE_READY
+            | OPERATION_POSTURE_ACTIONABLE
+            | OPERATION_POSTURE_RUNNING
+            | OPERATION_POSTURE_SUCCEEDED
+            | OPERATION_POSTURE_DEGRADED
+            | OPERATION_POSTURE_BLOCKED
+            | OPERATION_POSTURE_DEFERRED
+            | OPERATION_POSTURE_NOT_SELECTED
+            | OPERATION_POSTURE_RELEASED
+            | OPERATION_POSTURE_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported operation posture state"))
+    }
+}
+
+fn operation_posture_state_requires_evidence(value: &str) -> bool {
+    matches!(
+        value,
+        OPERATION_POSTURE_SELECTED
+            | OPERATION_POSTURE_READY
+            | OPERATION_POSTURE_ACTIONABLE
+            | OPERATION_POSTURE_RUNNING
+            | OPERATION_POSTURE_SUCCEEDED
+            | OPERATION_POSTURE_DEGRADED
+    )
+}
+
+fn validate_fulfillment_session_node_role(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        "source"
+            | "processor"
+            | "carrier"
+            | "router"
+            | "runtime"
+            | "render"
+            | "surface"
+            | "storage"
+            | "wallet"
+            | "service"
+            | "fabric"
+            | "adapter"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported fulfillment session node role"))
+    }
+}
+
 fn validate_media_transport_path_state(value: &str) -> Result<()> {
     if matches!(value, "pending" | "actionable" | "blocked" | "released") {
         Ok(())
@@ -11887,6 +14973,17 @@ fn validate_media_transport_rtp_state(value: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported media transport RTP state"))
+    }
+}
+
+fn validate_media_transport_track_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        "pending" | "live" | "muted" | "ended" | "blocked" | "released"
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported media transport track state"))
     }
 }
 
@@ -11925,6 +15022,105 @@ fn validate_media_transport_observation_state(value: &str) -> Result<()> {
         Ok(())
     } else {
         Err(anyhow!("unsupported media transport observation state"))
+    }
+}
+
+fn validate_carrier_edge_adapter_kind(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_ADAPTER_WEB_SOCKET
+            | CARRIER_EDGE_ADAPTER_QUIC
+            | CARRIER_EDGE_ADAPTER_IPC
+            | CARRIER_EDGE_ADAPTER_WORKER
+            | CARRIER_EDGE_ADAPTER_LOOPBACK
+            | CARRIER_EDGE_ADAPTER_RELAY
+            | CARRIER_EDGE_ADAPTER_NAMED_PIPE
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge adapter kind"))
+    }
+}
+
+fn validate_carrier_edge_requirement_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_REQUIREMENT_PENDING
+            | CARRIER_EDGE_REQUIREMENT_ACTIONABLE
+            | CARRIER_EDGE_REQUIREMENT_DEGRADED
+            | CARRIER_EDGE_REQUIREMENT_BLOCKED
+            | CARRIER_EDGE_REQUIREMENT_RELEASED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge requirement state"))
+    }
+}
+
+fn validate_carrier_edge_selection_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_SELECTION_PENDING
+            | CARRIER_EDGE_SELECTION_SELECTED
+            | CARRIER_EDGE_SELECTION_ACTIONABLE
+            | CARRIER_EDGE_SELECTION_DEGRADED
+            | CARRIER_EDGE_SELECTION_BLOCKED
+            | CARRIER_EDGE_SELECTION_RELEASED
+            | CARRIER_EDGE_SELECTION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge selection state"))
+    }
+}
+
+fn validate_carrier_edge_session_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_SESSION_OPENING
+            | CARRIER_EDGE_SESSION_OPEN
+            | CARRIER_EDGE_SESSION_DEGRADED
+            | CARRIER_EDGE_SESSION_BACKPRESSURE
+            | CARRIER_EDGE_SESSION_RECONNECTING
+            | CARRIER_EDGE_SESSION_BLOCKED
+            | CARRIER_EDGE_SESSION_CLOSING
+            | CARRIER_EDGE_SESSION_CLOSED
+            | CARRIER_EDGE_SESSION_RELEASED
+            | CARRIER_EDGE_SESSION_EXPIRED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge session state"))
+    }
+}
+
+fn validate_carrier_edge_backpressure_state(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_BACKPRESSURE_CLEAR
+            | CARRIER_EDGE_BACKPRESSURE_DEGRADED
+            | CARRIER_EDGE_BACKPRESSURE_SATURATED
+            | CARRIER_EDGE_BACKPRESSURE_BLOCKED
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge backpressure state"))
+    }
+}
+
+fn validate_carrier_edge_network_sensitivity(value: &str) -> Result<()> {
+    if matches!(
+        value,
+        CARRIER_EDGE_NETWORK_NONE
+            | CARRIER_EDGE_NETWORK_PROCESS_LOCAL
+            | CARRIER_EDGE_NETWORK_HOST_LOCAL
+            | CARRIER_EDGE_NETWORK_LOOPBACK
+            | CARRIER_EDGE_NETWORK_LOCAL_NETWORK
+            | CARRIER_EDGE_NETWORK_EXTERNAL_NETWORK
+    ) {
+        Ok(())
+    } else {
+        Err(anyhow!("unsupported carrier edge network sensitivity"))
     }
 }
 
@@ -12694,6 +15890,382 @@ fn validate_contribution_state(value: &str) -> Result<()> {
     }
 }
 
+fn validate_fulfillment_session_node_posture(record: &FulfillmentSessionNodePosture) -> Result<()> {
+    require_non_empty(&record.node_ref, "fulfillment session node missing nodeRef")?;
+    validate_fulfillment_session_node_role(&record.role)?;
+    validate_fulfillment_session_state(&record.state)?;
+    validate_optional_ref(
+        record.participant_ref.as_deref(),
+        "fulfillment session node missing participantRef",
+    )?;
+    validate_optional_ref(
+        record.member_ref.as_deref(),
+        "fulfillment session node missing memberRef",
+    )?;
+    validate_optional_ref(
+        record.contract_ref.as_deref(),
+        "fulfillment session node missing contractRef",
+    )?;
+    validate_reference_list(
+        &record.capability_refs,
+        "fulfillment session node missing capabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "fulfillment session node missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "fulfillment session node missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "fulfillment session node missing evidenceRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FULFILLMENT_SESSION_BLOCKED | FULFILLMENT_SESSION_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "fulfillment session node",
+    )?;
+    validate_safe_facts(&record.safe_facts, "fulfillment session node safeFacts")
+}
+
+pub fn validate_fulfillment_session(record: &FulfillmentSession) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_FULFILLMENT_SESSION,
+        "fulfillment session",
+    )?;
+    require_non_empty(&record.session_id, "fulfillment session missing sessionId")?;
+    require_non_empty(
+        &record.parent_intent_ref,
+        "fulfillment session missing parentIntentRef",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "fulfillment session missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "fulfillment session missing contractRef",
+    )?;
+    validate_fulfillment_session_state(&record.state)?;
+    if record.node_postures.is_empty() {
+        return Err(anyhow!("fulfillment session requires nodePostures"));
+    }
+    for node in &record.node_postures {
+        validate_fulfillment_session_node_posture(node)?;
+    }
+    validate_reference_list(
+        &record.dependency_refs,
+        "fulfillment session missing dependencyRefs",
+    )?;
+    validate_reference_list(
+        &record.router_binding_refs,
+        "fulfillment session missing routerBindingRefs",
+    )?;
+    validate_reference_list(
+        &record.carrier_edge_refs,
+        "fulfillment session missing carrierEdgeRefs",
+    )?;
+    validate_reference_list(
+        &record.media_path_refs,
+        "fulfillment session missing mediaPathRefs",
+    )?;
+    validate_reference_list(
+        &record.lifecycle_plan_refs,
+        "fulfillment session missing lifecyclePlanRefs",
+    )?;
+    validate_reference_list(
+        &record.availability_refs,
+        "fulfillment session missing availabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "fulfillment session missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "fulfillment session missing releaseRefs",
+    )?;
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            FULFILLMENT_SESSION_BLOCKED | FULFILLMENT_SESSION_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "fulfillment session",
+    )?;
+    validate_safe_facts(&record.safe_facts, "fulfillment session safeFacts")?;
+    if record.issued_at == 0 {
+        return Err(anyhow!("fulfillment session missing issuedAt"));
+    }
+    if record.observed_at == 0 {
+        return Err(anyhow!("fulfillment session missing observedAt"));
+    }
+    if record.expires_at.is_some_and(|expires_at| {
+        expires_at <= record.issued_at || expires_at <= record.observed_at
+    }) {
+        return Err(anyhow!(
+            "fulfillment session expiresAt must be after issuedAt and observedAt"
+        ));
+    }
+    reject_private_content_fields(&serde_json::to_value(record)?, "fulfillment session")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "fulfillment session")
+}
+
+fn validate_operation_role_contribution_posture(
+    record: &OperationRoleContributionPosture,
+) -> Result<()> {
+    require_non_empty(
+        &record.role_ref,
+        "operation role contribution missing roleRef",
+    )?;
+    require_non_empty(
+        &record.contribution_ref,
+        "operation role contribution missing contributionRef",
+    )?;
+    require_non_empty(
+        &record.contributor_ref,
+        "operation role contribution missing contributorRef",
+    )?;
+    validate_contribution_type(&record.contribution_type)?;
+    validate_operation_posture_state(&record.state)?;
+    validate_reference_list(
+        &record.authority_refs,
+        "operation role contribution missing authorityRefs",
+    )?;
+    validate_reference_list(
+        &record.primitive_refs,
+        "operation role contribution missing primitiveRefs",
+    )?;
+    validate_reference_list(
+        &record.capability_refs,
+        "operation role contribution missing capabilityRefs",
+    )?;
+    validate_reference_list(
+        &record.input_refs,
+        "operation role contribution missing inputRefs",
+    )?;
+    validate_reference_list(
+        &record.output_refs,
+        "operation role contribution missing outputRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "operation role contribution missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "operation role contribution missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.cleanup_refs,
+        "operation role contribution missing cleanupRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "operation role contribution missing blockedReasons",
+    )?;
+    validate_reference_list(
+        &record.deferred_reasons,
+        "operation role contribution missing deferredReasons",
+    )?;
+    if operation_posture_state_requires_evidence(&record.state) && record.evidence_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "operation role contribution selected state requires evidenceRefs"
+        ));
+    }
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            OPERATION_POSTURE_BLOCKED | OPERATION_POSTURE_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "operation role contribution",
+    )?;
+    if record.state == OPERATION_POSTURE_DEFERRED && record.deferred_reasons.is_empty() {
+        return Err(anyhow!(
+            "deferred operation role contribution requires deferredReasons"
+        ));
+    }
+    if record.state == OPERATION_POSTURE_NOT_SELECTED && record.required {
+        return Err(anyhow!(
+            "required operation role contribution cannot be notSelected"
+        ));
+    }
+    validate_safe_facts(
+        &record.safe_facts,
+        "operation role contribution safeFacts",
+    )?;
+    let value = serde_json::to_value(record)?;
+    reject_operation_owner_drift_fields(&value, "operation role contribution")?;
+    reject_private_content_fields(&value, "operation role contribution")?;
+    reject_media_byte_fields(&value, "operation role contribution")
+}
+
+pub fn validate_operation_instance_posture(record: &OperationInstancePosture) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_OPERATION_INSTANCE_POSTURE,
+        "operation instance posture",
+    )?;
+    require_non_empty(
+        &record.operation_ref,
+        "operation instance posture missing operationRef",
+    )?;
+    require_non_empty(
+        &record.operation_class_ref,
+        "operation instance posture missing operationClassRef",
+    )?;
+    require_non_empty(
+        &record.method_ref,
+        "operation instance posture missing methodRef",
+    )?;
+    validate_operation_posture_state(&record.state)?;
+    require_non_empty(
+        &record.subject_ref,
+        "operation instance posture missing subjectRef",
+    )?;
+    require_non_empty(
+        &record.contract_ref,
+        "operation instance posture missing contractRef",
+    )?;
+    validate_optional_ref(
+        record.parent_intent_ref.as_deref(),
+        "operation instance posture missing parentIntentRef",
+    )?;
+    validate_optional_ref(
+        record.fulfillment_session_ref.as_deref(),
+        "operation instance posture missing fulfillmentSessionRef",
+    )?;
+    if record.role_contributions.is_empty() {
+        return Err(anyhow!(
+            "operation instance posture requires roleContributions"
+        ));
+    }
+    for contribution in &record.role_contributions {
+        validate_operation_role_contribution_posture(contribution)?;
+    }
+    validate_reference_list(
+        &record.source_refs,
+        "operation instance posture missing sourceRefs",
+    )?;
+    validate_reference_list(
+        &record.content_index_refs,
+        "operation instance posture missing contentIndexRefs",
+    )?;
+    validate_reference_list(
+        &record.build_refs,
+        "operation instance posture missing buildRefs",
+    )?;
+    validate_reference_list(
+        &record.build_run_refs,
+        "operation instance posture missing buildRunRefs",
+    )?;
+    validate_reference_list(
+        &record.release_refs,
+        "operation instance posture missing releaseRefs",
+    )?;
+    validate_reference_list(
+        &record.rollback_refs,
+        "operation instance posture missing rollbackRefs",
+    )?;
+    validate_reference_list(
+        &record.module_refs,
+        "operation instance posture missing moduleRefs",
+    )?;
+    validate_reference_list(
+        &record.artifact_refs,
+        "operation instance posture missing artifactRefs",
+    )?;
+    validate_reference_list(
+        &record.executable_refs,
+        "operation instance posture missing executableRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_refs,
+        "operation instance posture missing storageRefs",
+    )?;
+    validate_reference_list(
+        &record.storage_object_refs,
+        "operation instance posture missing storageObjectRefs",
+    )?;
+    validate_reference_list(
+        &record.router_binding_refs,
+        "operation instance posture missing routerBindingRefs",
+    )?;
+    validate_reference_list(
+        &record.carrier_edge_refs,
+        "operation instance posture missing carrierEdgeRefs",
+    )?;
+    validate_reference_list(
+        &record.service_admission_refs,
+        "operation instance posture missing serviceAdmissionRefs",
+    )?;
+    validate_reference_list(
+        &record.runtime_projection_refs,
+        "operation instance posture missing runtimeProjectionRefs",
+    )?;
+    validate_reference_list(
+        &record.surface_binding_refs,
+        "operation instance posture missing surfaceBindingRefs",
+    )?;
+    validate_reference_list(
+        &record.fabric_plan_refs,
+        "operation instance posture missing fabricPlanRefs",
+    )?;
+    validate_reference_list(
+        &record.cleanup_refs,
+        "operation instance posture missing cleanupRefs",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "operation instance posture missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "operation instance posture missing blockedReasons",
+    )?;
+    validate_reference_list(
+        &record.deferred_reasons,
+        "operation instance posture missing deferredReasons",
+    )?;
+    if operation_posture_state_requires_evidence(&record.state) && record.evidence_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "operation instance posture selected state requires evidenceRefs"
+        ));
+    }
+    validate_blocked_reasons(
+        matches!(
+            record.state.as_str(),
+            OPERATION_POSTURE_BLOCKED | OPERATION_POSTURE_EXPIRED
+        ),
+        &record.blocked_reasons,
+        "operation instance posture",
+    )?;
+    if record.state == OPERATION_POSTURE_DEFERRED && record.deferred_reasons.is_empty() {
+        return Err(anyhow!(
+            "deferred operation instance posture requires deferredReasons"
+        ));
+    }
+    validate_safe_facts(&record.safe_facts, "operation instance posture safeFacts")?;
+    validate_fabric_observed_window(
+        record.observed_at,
+        record.expires_at,
+        "operation instance posture",
+    )?;
+    let value = serde_json::to_value(record)?;
+    reject_operation_owner_drift_fields(&value, "operation instance posture")?;
+    reject_private_content_fields(&value, "operation instance posture")?;
+    reject_media_byte_fields(&value, "operation instance posture")
+}
+
 pub fn validate_media_fulfillment_evidence(record: &MediaFulfillmentEvidence) -> Result<()> {
     validate_optional_kind(
         &record.kind,
@@ -12706,6 +16278,10 @@ pub fn validate_media_fulfillment_evidence(record: &MediaFulfillmentEvidence) ->
     )?;
     validate_media_fulfillment_evidence_kind(&record.evidence_kind)?;
     validate_media_fulfillment_state(&record.state)?;
+    validate_optional_ref(
+        record.fulfillment_session_id.as_deref(),
+        "media fulfillment evidence missing fulfillmentSessionId",
+    )?;
     let has_scope = [
         record.session_id.as_deref(),
         record.activation_id.as_deref(),
@@ -12776,8 +16352,20 @@ pub fn validate_media_transport_path(record: &MediaTransportPath) -> Result<()> 
     require_non_empty(&record.path_id, "media transport path missing pathId")?;
     require_non_empty(&record.session_id, "media transport path missing sessionId")?;
     require_non_empty(
+        &record.fulfillment_session_id,
+        "media transport path missing fulfillmentSessionId",
+    )?;
+    require_non_empty(
         &record.transport_profile_ref,
         "media transport path missing transportProfileRef",
+    )?;
+    validate_optional_ref(
+        record.browser_participant_ref.as_deref(),
+        "media transport path missing browserParticipantRef",
+    )?;
+    validate_optional_ref(
+        record.service_participant_ref.as_deref(),
+        "media transport path missing serviceParticipantRef",
     )?;
     if let Some(activation_id) = &record.activation_id {
         require_non_empty(activation_id, "media transport path missing activationId")?;
@@ -12791,6 +16379,7 @@ pub fn validate_media_transport_path(record: &MediaTransportPath) -> Result<()> 
     validate_media_transport_path_state(&record.state)?;
     validate_media_transport_selected_pair_state(&record.selected_pair_state)?;
     validate_media_transport_rtp_state(&record.inbound_rtp_state)?;
+    validate_media_transport_track_state(&record.track_state)?;
     validate_media_transport_render_state(&record.render_state)?;
     if record.state == "blocked"
         && record
@@ -12849,6 +16438,10 @@ pub fn validate_media_transport_observation(record: &MediaTransportObservation) 
         &record.session_id,
         "media transport observation missing sessionId",
     )?;
+    require_non_empty(
+        &record.fulfillment_session_id,
+        "media transport observation missing fulfillmentSessionId",
+    )?;
     if let Some(activation_id) = &record.activation_id {
         require_non_empty(
             activation_id,
@@ -12872,6 +16465,9 @@ pub fn validate_media_transport_observation(record: &MediaTransportObservation) 
     }
     if let Some(inbound_rtp_state) = &record.inbound_rtp_state {
         validate_media_transport_rtp_state(inbound_rtp_state)?;
+    }
+    if let Some(track_state) = &record.track_state {
+        validate_media_transport_track_state(track_state)?;
     }
     if let Some(render_state) = &record.render_state {
         validate_media_transport_render_state(render_state)?;
@@ -12910,6 +16506,322 @@ pub fn validate_media_transport_observation(record: &MediaTransportObservation) 
     Ok(())
 }
 
+pub fn validate_carrier_edge_requirement(record: &CarrierEdgeRequirement) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CARRIER_EDGE_REQUIREMENT,
+        "carrier edge requirement",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "carrier edge requirement")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "carrier edge requirement")?;
+    require_non_empty(
+        &record.requirement_id,
+        "carrier edge requirement missing requirementId",
+    )?;
+    require_non_empty(
+        &record.subject_ref,
+        "carrier edge requirement missing subjectRef",
+    )?;
+    for (value, field) in [
+        (&record.source_ref, "sourceRef"),
+        (&record.consumer_ref, "consumerRef"),
+        (&record.fabric_ref, "fabricRef"),
+        (&record.host_ref, "hostRef"),
+        (&record.route_association_ref, "routeAssociationRef"),
+        (&record.policy_ref, "policyRef"),
+        (&record.network_sensitivity, "networkSensitivity"),
+    ] {
+        if let Some(value) = value {
+            require_non_empty(value, &format!("carrier edge requirement missing {field}"))?;
+        }
+    }
+    if let Some(network_sensitivity) = &record.network_sensitivity {
+        validate_carrier_edge_network_sensitivity(network_sensitivity)?;
+    }
+    validate_capability_names(&record.required_capability_refs)?;
+    for adapter_kind in &record.allowed_adapter_kinds {
+        validate_carrier_edge_adapter_kind(adapter_kind)?;
+    }
+    validate_reference_list(
+        &record.candidate_adapter_refs,
+        "carrier edge requirement missing candidateAdapterRefs",
+    )?;
+    validate_carrier_edge_requirement_state(&record.state)?;
+    validate_safe_facts(&record.safe_facts, "carrier edge requirement safeFacts")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "carrier edge requirement missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_substrate_refs,
+        "carrier edge requirement missing proofSubstrateRefs",
+    )?;
+    validate_reference_list(
+        &record.resource_posture_refs,
+        "carrier edge requirement missing resourcePostureRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "carrier edge requirement missing blockedReasons",
+    )?;
+    if record.state == CARRIER_EDGE_REQUIREMENT_ACTIONABLE
+        && record.allowed_adapter_kinds.is_empty()
+        && record.candidate_adapter_refs.is_empty()
+    {
+        return Err(anyhow!(
+            "actionable carrier edge requirement requires allowedAdapterKinds or candidateAdapterRefs"
+        ));
+    }
+    if record.state == CARRIER_EDGE_REQUIREMENT_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "blocked carrier edge requirement requires blockedReasons"
+        ));
+    }
+    if record.issued_at == 0 {
+        return Err(anyhow!("carrier edge requirement missing issuedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.issued_at)
+    {
+        return Err(anyhow!(
+            "carrier edge requirement expiresAt must be after issuedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_carrier_edge_selection(record: &CarrierEdgeSelection) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CARRIER_EDGE_SELECTION,
+        "carrier edge selection",
+    )?;
+    reject_private_content_fields(&serde_json::to_value(record)?, "carrier edge selection")?;
+    reject_media_byte_fields(&serde_json::to_value(record)?, "carrier edge selection")?;
+    require_non_empty(
+        &record.selection_id,
+        "carrier edge selection missing selectionId",
+    )?;
+    require_non_empty(
+        &record.requirement_ref,
+        "carrier edge selection missing requirementRef",
+    )?;
+    for (value, field) in [
+        (&record.fabric_ref, "fabricRef"),
+        (&record.host_ref, "hostRef"),
+        (&record.selected_adapter_ref, "selectedAdapterRef"),
+        (&record.selector_ref, "selectorRef"),
+        (&record.session_binding_ref, "sessionBindingRef"),
+        (&record.network_sensitivity, "networkSensitivity"),
+    ] {
+        if let Some(value) = value {
+            require_non_empty(value, &format!("carrier edge selection missing {field}"))?;
+        }
+    }
+    if let Some(network_sensitivity) = &record.network_sensitivity {
+        validate_carrier_edge_network_sensitivity(network_sensitivity)?;
+    }
+    validate_carrier_edge_adapter_kind(&record.adapter_kind)?;
+    validate_reference_list(
+        &record.candidate_adapter_refs,
+        "carrier edge selection missing candidateAdapterRefs",
+    )?;
+    validate_reference_list(
+        &record.fallback_refs,
+        "carrier edge selection missing fallbackRefs",
+    )?;
+    validate_carrier_edge_selection_state(&record.state)?;
+    if let Some(backpressure_state) = &record.backpressure_state {
+        validate_carrier_edge_backpressure_state(backpressure_state)?;
+    }
+    validate_safe_facts(&record.safe_facts, "carrier edge selection safeFacts")?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "carrier edge selection missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_substrate_refs,
+        "carrier edge selection missing proofSubstrateRefs",
+    )?;
+    validate_reference_list(
+        &record.resource_posture_refs,
+        "carrier edge selection missing resourcePostureRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "carrier edge selection missing blockedReasons",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        CARRIER_EDGE_SELECTION_SELECTED
+            | CARRIER_EDGE_SELECTION_ACTIONABLE
+            | CARRIER_EDGE_SELECTION_DEGRADED
+    ) && record
+        .selected_adapter_ref
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_default()
+        .is_empty()
+    {
+        return Err(anyhow!(
+            "selected carrier edge selection requires selectedAdapterRef"
+        ));
+    }
+    if record.state == CARRIER_EDGE_SELECTION_BLOCKED && record.blocked_reasons.is_empty() {
+        return Err(anyhow!(
+            "blocked carrier edge selection requires blockedReasons"
+        ));
+    }
+    if record.backpressure_state.as_deref() == Some(CARRIER_EDGE_BACKPRESSURE_BLOCKED)
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked carrier edge backpressure requires blockedReasons"
+        ));
+    }
+    if record.observed_at == 0 {
+        return Err(anyhow!("carrier edge selection missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "carrier edge selection expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
+pub fn validate_carrier_edge_session_evidence(record: &CarrierEdgeSessionEvidence) -> Result<()> {
+    validate_optional_kind(
+        &record.kind,
+        RECORD_CARRIER_EDGE_SESSION_EVIDENCE,
+        "carrier edge session evidence",
+    )?;
+    reject_private_content_fields(
+        &serde_json::to_value(record)?,
+        "carrier edge session evidence",
+    )?;
+    reject_media_byte_fields(
+        &serde_json::to_value(record)?,
+        "carrier edge session evidence",
+    )?;
+    require_non_empty(
+        &record.evidence_id,
+        "carrier edge session evidence missing evidenceId",
+    )?;
+    require_non_empty(
+        &record.selection_ref,
+        "carrier edge session evidence missing selectionRef",
+    )?;
+    require_non_empty(
+        &record.edge_session_ref,
+        "carrier edge session evidence missing edgeSessionRef",
+    )?;
+    require_non_empty(
+        &record.adapter_ref,
+        "carrier edge session evidence missing adapterRef",
+    )?;
+    validate_carrier_edge_adapter_kind(&record.adapter_kind)?;
+    require_non_empty(
+        &record.participant_ref,
+        "carrier edge session evidence missing participantRef",
+    )?;
+    if let Some(peer_ref) = &record.peer_ref {
+        require_non_empty(peer_ref, "carrier edge session evidence missing peerRef")?;
+    }
+    for (value, field) in [
+        (&record.session_binding_ref, "sessionBindingRef"),
+        (&record.network_sensitivity, "networkSensitivity"),
+    ] {
+        if let Some(value) = value {
+            require_non_empty(
+                value,
+                &format!("carrier edge session evidence missing {field}"),
+            )?;
+        }
+    }
+    if let Some(network_sensitivity) = &record.network_sensitivity {
+        validate_carrier_edge_network_sensitivity(network_sensitivity)?;
+    }
+    validate_carrier_edge_session_state(&record.state)?;
+    if let Some(connection_state) = &record.connection_state {
+        require_non_empty(
+            connection_state,
+            "carrier edge session evidence missing connectionState",
+        )?;
+    }
+    if let Some(backpressure_state) = &record.backpressure_state {
+        validate_carrier_edge_backpressure_state(backpressure_state)?;
+    }
+    validate_safe_facts(
+        &record.retry_posture,
+        "carrier edge session evidence retryPosture",
+    )?;
+    validate_safe_facts(
+        &record.reconnect_posture,
+        "carrier edge session evidence reconnectPosture",
+    )?;
+    validate_safe_facts(
+        &record.close_posture,
+        "carrier edge session evidence closePosture",
+    )?;
+    validate_safe_facts(
+        &record.release_posture,
+        "carrier edge session evidence releasePosture",
+    )?;
+    validate_safe_facts(
+        &record.safe_facts,
+        "carrier edge session evidence safeFacts",
+    )?;
+    validate_reference_list(
+        &record.evidence_refs,
+        "carrier edge session evidence missing evidenceRefs",
+    )?;
+    validate_reference_list(
+        &record.proof_substrate_refs,
+        "carrier edge session evidence missing proofSubstrateRefs",
+    )?;
+    validate_reference_list(
+        &record.resource_posture_refs,
+        "carrier edge session evidence missing resourcePostureRefs",
+    )?;
+    validate_reference_list(
+        &record.blocked_reasons,
+        "carrier edge session evidence missing blockedReasons",
+    )?;
+    if matches!(
+        record.state.as_str(),
+        CARRIER_EDGE_SESSION_BLOCKED | CARRIER_EDGE_SESSION_EXPIRED
+    ) && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked carrier edge session evidence requires blockedReasons"
+        ));
+    }
+    if record.backpressure_state.as_deref() == Some(CARRIER_EDGE_BACKPRESSURE_BLOCKED)
+        && record.blocked_reasons.is_empty()
+    {
+        return Err(anyhow!(
+            "blocked carrier edge session backpressure requires blockedReasons"
+        ));
+    }
+    if record.observed_at == 0 {
+        return Err(anyhow!("carrier edge session evidence missing observedAt"));
+    }
+    if record
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= record.observed_at)
+    {
+        return Err(anyhow!(
+            "carrier edge session evidence expiresAt must be after observedAt"
+        ));
+    }
+    Ok(())
+}
+
 fn validate_safe_facts(value: &Value, context: &str) -> Result<()> {
     if value.is_null() {
         return Ok(());
@@ -12919,6 +16831,42 @@ fn validate_safe_facts(value: &Value, context: &str) -> Result<()> {
     }
     reject_media_byte_fields(value, context)?;
     reject_unsafe_safe_fact_fields(value, context)
+}
+
+fn is_operation_owner_drift_key(key: &str) -> bool {
+    matches!(
+        key,
+        "ownerRef"
+            | "semanticOwnerRef"
+            | "truthOwnerRef"
+            | "routeTruthOwnerRef"
+            | "associationTruthOwnerRef"
+            | "serviceTruthOwnerRef"
+            | "flowTruthOwnerRef"
+            | "streamPlumbingOwnerRef"
+            | "fabricExecutionOwnerRef"
+    )
+}
+
+fn reject_operation_owner_drift_fields(value: &Value, context: &str) -> Result<()> {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map {
+                if is_operation_owner_drift_key(key) {
+                    return Err(anyhow!("{context} contains owner drift field: {key}"));
+                }
+                reject_operation_owner_drift_fields(child, context)?;
+            }
+            Ok(())
+        }
+        Value::Array(items) => {
+            for item in items {
+                reject_operation_owner_drift_fields(item, context)?;
+            }
+            Ok(())
+        }
+        _ => Ok(()),
+    }
 }
 
 fn reject_unsafe_safe_fact_fields(value: &Value, context: &str) -> Result<()> {
@@ -12984,6 +16932,56 @@ fn is_private_content_field(key: &str) -> bool {
             | "token"
             | "privateKey"
             | "secretKey"
+    )
+}
+
+fn reject_adapter_residency_transport_fields(value: &Value, context: &str) -> Result<()> {
+    match value {
+        Value::Object(map) => {
+            for (key, child) in map {
+                if is_adapter_residency_transport_field(key) {
+                    return Err(anyhow!(
+                        "{context} contains forbidden adapter transport field: {key}"
+                    ));
+                }
+                reject_adapter_residency_transport_fields(child, context)?;
+            }
+            Ok(())
+        }
+        Value::Array(items) => {
+            for item in items {
+                reject_adapter_residency_transport_fields(item, context)?;
+            }
+            Ok(())
+        }
+        _ => Ok(()),
+    }
+}
+
+fn is_adapter_residency_transport_field(key: &str) -> bool {
+    matches!(
+        key,
+        "path"
+            | "paths"
+            | "localPath"
+            | "localPaths"
+            | "workspacePath"
+            | "workspacePaths"
+            | "folderPath"
+            | "mountPath"
+            | "manifestPath"
+            | "toolInputPath"
+            | "inputPath"
+            | "outputPath"
+            | "filesystemPath"
+            | "statePath"
+            | "adapterResidence"
+            | "argv"
+            | "args"
+            | "command"
+            | "commandLine"
+            | "env"
+            | "environment"
     )
 }
 
@@ -13271,6 +17269,48 @@ pub fn validate_resolved_member_ref(value: &str, message: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_storage_object_ref(value: &str, message: &str) -> Result<()> {
+    let text = value.trim();
+    require_non_empty(text, message)?;
+    let object_id = text
+        .strip_prefix("storage:object:")
+        .ok_or_else(|| anyhow!("{message} must be storage object ref"))?;
+    if object_id.len() != 64 || !object_id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(anyhow!(
+            "{message} must be content-addressed storage object ref"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_storage_object_ref_list(values: &[String], message: &str) -> Result<()> {
+    for value in values {
+        validate_storage_object_ref(value, message)?;
+    }
+    Ok(())
+}
+
+fn validate_storage_chunk_ref(value: &str, message: &str) -> Result<()> {
+    let text = value.trim();
+    require_non_empty(text, message)?;
+    let chunk_id = text
+        .strip_prefix("storage:chunk:")
+        .ok_or_else(|| anyhow!("{message} must be storage chunk ref"))?;
+    if chunk_id.len() != 64 || !chunk_id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(anyhow!(
+            "{message} must be content-addressed storage chunk ref"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_storage_chunk_ref_list(values: &[String], message: &str) -> Result<()> {
+    for value in values {
+        validate_storage_chunk_ref(value, message)?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -13283,6 +17323,12 @@ mod tests {
     const GATEWAY_SK: &str = "0000000000000000000000000000000000000000000000000000000000000002";
     const SERVICE_SK: &str = "0000000000000000000000000000000000000000000000000000000000000003";
     const BROWSER_SK: &str = "0000000000000000000000000000000000000000000000000000000000000004";
+    const TEST_ENCRYPTED_DETAIL_STORAGE_OBJECT_REF: &str =
+        "storage:object:2222222222222222222222222222222222222222222222222222222222222222";
+    const TEST_LOG_EVENT_STORAGE_OBJECT_REF: &str =
+        "storage:object:3333333333333333333333333333333333333333333333333333333333333333";
+    const TEST_SURFACE_APP_STORAGE_OBJECT_REF: &str =
+        "storage:object:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     fn zone_scope() -> ZoneScope {
         ZoneScope {
@@ -13465,9 +17511,14 @@ mod tests {
         let sorted = capability_entries_matching(&entries, &definition.capability);
         assert_eq!(sorted[0].channel_id, "channel-a");
 
+        let object_ref =
+            "storage:object:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let first_storage_member = pubkey_from_sk_hex(ISSUER_SK).expect("issuer pk");
+        let second_storage_member = pubkey_from_sk_hex(GATEWAY_SK).expect("gateway pk");
+        let expired_storage_member = pubkey_from_sk_hex(SERVICE_SK).expect("service pk");
         let pin = StoragePinIntent {
             intent_id: "pin-1".to_string(),
-            object_refs: vec!["object-raw-1".to_string()],
+            object_refs: vec![object_ref.to_string()],
             manifest_hash: "sha256:abc".to_string(),
             desired_replicas: 2,
             retention: "long".to_string(),
@@ -13481,14 +17532,14 @@ mod tests {
 
         let availability = SwarmStorageAvailabilityRef {
             availability_id: "availability-1".to_string(),
-            object_ref: "object-raw-1".to_string(),
-            storage_member_ref: "storage-member-raw-1".to_string(),
+            object_ref: object_ref.to_string(),
+            storage_member_ref: first_storage_member.clone(),
             expires_at: Some(1_700_010_000),
         };
         let attestation = StoragePinAttestation {
             attestation_id: "attestation-1".to_string(),
             intent_id: pin.intent_id.clone(),
-            storage_member_ref: "storage-member-raw-1".to_string(),
+            storage_member_ref: first_storage_member.clone(),
             accepted_refs: pin.object_refs.clone(),
             availability_refs: vec![availability],
             status: StoragePinStatus::Accepted,
@@ -13498,12 +17549,12 @@ mod tests {
         let second_attestation = StoragePinAttestation {
             attestation_id: "attestation-2".to_string(),
             intent_id: pin.intent_id.clone(),
-            storage_member_ref: "storage-member-raw-2".to_string(),
+            storage_member_ref: second_storage_member.clone(),
             accepted_refs: pin.object_refs.clone(),
             availability_refs: vec![SwarmStorageAvailabilityRef {
                 availability_id: "availability-2".to_string(),
-                object_ref: "object-raw-1".to_string(),
-                storage_member_ref: "storage-member-raw-2".to_string(),
+                object_ref: object_ref.to_string(),
+                storage_member_ref: second_storage_member.clone(),
                 expires_at: Some(1_700_010_000),
             }],
             status: StoragePinStatus::Pinned,
@@ -13513,12 +17564,12 @@ mod tests {
         let expired_attestation = StoragePinAttestation {
             attestation_id: "attestation-expired".to_string(),
             intent_id: pin.intent_id.clone(),
-            storage_member_ref: "storage-member-raw-3".to_string(),
+            storage_member_ref: expired_storage_member.clone(),
             accepted_refs: pin.object_refs.clone(),
             availability_refs: vec![SwarmStorageAvailabilityRef {
                 availability_id: "availability-expired".to_string(),
-                object_ref: "object-raw-1".to_string(),
-                storage_member_ref: "storage-member-raw-3".to_string(),
+                object_ref: object_ref.to_string(),
+                storage_member_ref: expired_storage_member.clone(),
                 expires_at: Some(2),
             }],
             status: StoragePinStatus::Pinned,
@@ -13536,14 +17587,11 @@ mod tests {
         assert_eq!(derived.pinned_count, 2);
         assert_eq!(derived.missing_replicas, 0);
         assert_eq!(derived.status, StoragePinProjectionStatus::Satisfied);
-        assert!(
-            !derived
-                .members
-                .contains(&"storage-member-raw-3".to_string())
-        );
+        assert!(!derived.members.contains(&expired_storage_member));
 
         let stream = StreamSessionIntent {
             session_id: "stream-1".to_string(),
+            fulfillment_session_id: Some("fulfillment:preview:front-door:1".to_string()),
             capability_ref: CAPABILITY_STREAM_SESSION_OFFER.to_string(),
             requester_ref: pubkey_from_sk_hex(BROWSER_SK).expect("browser pk"),
             channel_id: channel.channel_id,
@@ -13555,6 +17603,7 @@ mod tests {
         let offer = StreamSessionOffer {
             offer_id: "offer-1".to_string(),
             session_id: stream.session_id.clone(),
+            fulfillment_session_id: stream.fulfillment_session_id.clone(),
             transport: "webrtc".to_string(),
             payload: json!({ "sdp": "opaque-offer" }),
             issued_at: 1_700_000_001,
@@ -13566,6 +17615,7 @@ mod tests {
         let answer = StreamSessionAnswer {
             answer_id: "answer-1".to_string(),
             session_id: stream.session_id.clone(),
+            fulfillment_session_id: stream.fulfillment_session_id.clone(),
             transport: "webrtc".to_string(),
             payload: json!({ "sdpRef": "encrypted-answer-detail-ref" }),
             issued_at: 1_700_000_002,
@@ -13574,6 +17624,7 @@ mod tests {
         let candidate = StreamSessionCandidate {
             candidate_id: "candidate-1".to_string(),
             session_id: stream.session_id.clone(),
+            fulfillment_session_id: stream.fulfillment_session_id.clone(),
             transport: "webrtc".to_string(),
             candidate_role: STREAM_CANDIDATE_ROLE_BROWSER.to_string(),
             actionability: STREAM_CANDIDATE_ACTIONABILITY_USABLE.to_string(),
@@ -13601,6 +17652,7 @@ mod tests {
         let control = StreamSessionControl {
             control_id: "control-1".to_string(),
             session_id: stream.session_id.clone(),
+            fulfillment_session_id: stream.fulfillment_session_id.clone(),
             command: "pause".to_string(),
             params: json!({ "requestedBy": "operator" }),
             issued_at: 1_700_000_004,
@@ -13612,6 +17664,7 @@ mod tests {
         let health = StreamSessionHealth {
             health_id: "health-1".to_string(),
             session_id: stream.session_id.clone(),
+            fulfillment_session_id: stream.fulfillment_session_id.clone(),
             status: "ready".to_string(),
             recovery: json!({ "backoffMs": 0 }),
             issued_at: 1_700_000_004,
@@ -13623,6 +17676,7 @@ mod tests {
         let close = StreamSessionClose {
             close_id: "close-1".to_string(),
             session_id: stream.session_id.clone(),
+            fulfillment_session_id: stream.fulfillment_session_id.clone(),
             reason_code: "complete".to_string(),
             issued_at: 1_700_000_004,
         };
@@ -13870,10 +17924,14 @@ mod tests {
             fabric_ref: "fabric:lab-gateway".to_string(),
             host_ref: "host:lab-gateway".to_string(),
             member_ref: member_ref.clone(),
+            participant_ref: "participant:gateway-association:lab-gateway".to_string(),
             role: FABRIC_MEMBER_ROLE_GATEWAY_ASSOCIATION.to_string(),
+            role_ref: "role:gateway-association:lab-gateway".to_string(),
             state: FABRIC_MEMBER_CONTRIBUTION_RUNNING.to_string(),
             contract_ref: "contract:gateway-association@0.1.0".to_string(),
             subject_ref: "association:gateway:lab-gateway:ongoing".to_string(),
+            module_refs: vec!["module:gateway-association".to_string()],
+            source_refs: vec!["content-index:source:constitute-gateway".to_string()],
             capability_refs: vec!["gateway.association.fulfill".to_string()],
             grant_refs: vec!["grant:gateway-association:fulfill".to_string()],
             input_refs: vec![],
@@ -13902,6 +17960,7 @@ mod tests {
                 LifecyclePhasePosture {
                     phase: FABRIC_LIFECYCLE_PHASE_SOURCE.to_string(),
                     state: FABRIC_LIFECYCLE_PHASE_READY.to_string(),
+                    dependency_refs: vec![],
                     evidence_refs: vec!["evidence:source:indexed".to_string()],
                     output_refs: vec![],
                     blocked_reasons: vec![],
@@ -13910,12 +17969,27 @@ mod tests {
                 LifecyclePhasePosture {
                     phase: FABRIC_LIFECYCLE_PHASE_RUN.to_string(),
                     state: FABRIC_LIFECYCLE_PHASE_RUNNING.to_string(),
+                    dependency_refs: vec![
+                        "lifecycle-dependency:gateway-association:storage".to_string(),
+                    ],
                     evidence_refs: vec!["evidence:association:running".to_string()],
                     output_refs: vec![],
                     blocked_reasons: vec![],
                     safe_facts: Value::Null,
                 },
             ],
+            dependency_edges: vec![LifecycleDependencyEdge {
+                kind: Some(RECORD_LIFECYCLE_DEPENDENCY_EDGE.to_string()),
+                dependency_ref: "lifecycle-dependency:gateway-association:storage".to_string(),
+                source_ref: "role:gatewayAssociation".to_string(),
+                target_ref: "role:storageJournalCache".to_string(),
+                state: FABRIC_LIFECYCLE_DEPENDENCY_READY.to_string(),
+                required: true,
+                order: Some(10),
+                evidence_refs: vec!["evidence:dependency:storage-ready".to_string()],
+                blocked_reasons: vec![],
+                safe_facts: json!({ "dependency": "storage-before-gateway" }),
+            }],
             member_contribution_refs: vec![contribution.contribution_id.clone()],
             evidence_refs: vec!["evidence:lifecycle:reduced".to_string()],
             release_refs: vec![],
@@ -13940,6 +18014,19 @@ mod tests {
             materialization_budget_refs: vec![
                 "materialization-budget:gateway-association".to_string(),
             ],
+            action_authority_refs: vec![
+                "authority:ops-admin".to_string(),
+                "grant:gateway-association:fulfill".to_string(),
+            ],
+            delegated_role_refs: vec!["role:gatewayAssociation".to_string()],
+            fallback_refs: vec!["fallback:manual-service-manager".to_string()],
+            quarantine_refs: vec![
+                "quarantine:service-manager:legacy-control:role:gatewayAssociation".to_string(),
+            ],
+            rollback_refs: vec!["rollback:gateway-association@0.1.0".to_string()],
+            evidence_requirement_refs: vec![
+                "proof-requirement:gateway-association:health".to_string(),
+            ],
             association_handoff_ref: Some(handoff.handoff_id.clone()),
             evidence_refs: vec!["evidence:fabric:plan-ready".to_string()],
             blocked_reasons: vec![],
@@ -13948,6 +18035,189 @@ mod tests {
             expires_at: Some(observed_at + 600),
         };
         validate_host_fabric_fulfillment_plan(&plan).expect("valid fabric plan");
+
+        let topology = HostFabricTopologyProjection {
+            kind: Some(RECORD_HOST_FABRIC_TOPOLOGY_PROJECTION.to_string()),
+            projection_id: "host-fabric-topology:lab-gateway:association".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            contract_ref: "contract:gateway-association@0.1.0".to_string(),
+            source_plan_ref: plan.plan_id.clone(),
+            state: FABRIC_FULFILLMENT_PLAN_READY.to_string(),
+            role_postures: vec![HostFabricTopologyRolePosture {
+                role_ref: "role:gatewayAssociation".to_string(),
+                state: FABRIC_TOPOLOGY_ROLE_READY.to_string(),
+                contribution_refs: vec![contribution.contribution_id.clone()],
+                participant_refs: vec![contribution.participant_ref.clone()],
+                member_refs: vec![contribution.member_ref.clone()],
+                module_refs: contribution.module_refs.clone(),
+                source_refs: contribution.source_refs.clone(),
+                lifecycle_plan_refs: vec![lifecycle.lifecycle_plan_id.clone()],
+                evidence_refs: contribution.evidence_refs.clone(),
+                blocked_reasons: vec![],
+                safe_facts: json!({ "role": "gatewayAssociation" }),
+            }],
+            required_role_refs: plan.required_role_refs.clone(),
+            ready_role_refs: vec!["role:gatewayAssociation".to_string()],
+            degraded_role_refs: vec![],
+            blocked_role_refs: vec![],
+            missing_role_refs: vec![],
+            member_contribution_refs: plan.member_contribution_refs.clone(),
+            participant_refs: vec![contribution.participant_ref.clone()],
+            module_refs: contribution.module_refs.clone(),
+            source_refs: contribution.source_refs.clone(),
+            lifecycle_plan_refs: plan.lifecycle_plan_refs.clone(),
+            materialization_budget_refs: plan.materialization_budget_refs.clone(),
+            association_handoff_ref: plan.association_handoff_ref.clone(),
+            evidence_refs: vec!["evidence:fabric:topology-ready".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "reducer": "host-fabric" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_topology_projection(&topology)
+            .expect("valid fabric topology projection");
+
+        let control_decision = HostFabricControlDecision {
+            kind: Some(RECORD_HOST_FABRIC_CONTROL_DECISION.to_string()),
+            decision_id: "fabric-control:lab-gateway:health-check:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            operation_ref: "service-operation:nvr:health-check:1".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            control_owner_ref: "fabric:lab-gateway".to_string(),
+            delegated_role_ref: Some("role:gatewayAssociation".to_string()),
+            state: FABRIC_CONTROL_DECISION_READY.to_string(),
+            source_plan_ref: Some(plan.plan_id.clone()),
+            source_plan_observed_at: Some(plan.observed_at),
+            source_plan_expires_at: plan.expires_at,
+            plan_state: Some(plan.state.clone()),
+            execution_delegation_ref: Some("delegation:service-manager:health-check".to_string()),
+            authorization_refs: vec!["authorization:fabric-control:health-check".to_string()],
+            fallback_refs: vec!["fallback:manual-service-manager".to_string()],
+            quarantine_refs: vec![],
+            rollback_ref: Some("rollback:service-manager:nvr".to_string()),
+            release_refs: vec!["release:fabric-control:health-check".to_string()],
+            blocked_reasons: vec![],
+            evidence_refs: vec!["evidence:fabric-control:ready".to_string()],
+            safe_facts: json!({ "operation": "healthCheck" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_control_decision(&control_decision)
+            .expect("valid fabric control decision");
+
+        let legacy_bridge = HostFabricLegacyControlBridge {
+            kind: Some(RECORD_HOST_FABRIC_LEGACY_CONTROL_BRIDGE.to_string()),
+            bridge_id: "legacy-control-bridge:lab-gateway:health-check:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            legacy_owner_ref: "service-manager:lab-gateway".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            operation_ref: control_decision.operation_ref.clone(),
+            state: FABRIC_LEGACY_CONTROL_FALLBACK_AVAILABLE.to_string(),
+            source_decision_ref: Some(control_decision.decision_id.clone()),
+            delegated_role_ref: control_decision.delegated_role_ref.clone(),
+            fallback_refs: control_decision.fallback_refs.clone(),
+            quarantine_refs: control_decision.quarantine_refs.clone(),
+            blocked_reasons: vec![],
+            evidence_refs: vec!["evidence:legacy-control:fallback-available".to_string()],
+            safe_facts: json!({ "legacyBridge": "fallback-only" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_legacy_control_bridge(&legacy_bridge)
+            .expect("valid fabric legacy control bridge");
+
+        let adapter_execution = HostFabricAdapterExecutionEvidence {
+            kind: Some(RECORD_HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE.to_string()),
+            evidence_id: "host-adapter-execution:lab-gateway:health-check:1".to_string(),
+            fabric_ref: "fabric:lab-gateway".to_string(),
+            host_ref: "host:lab-gateway".to_string(),
+            adapter_ref: "adapter:host-service:systemd".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            operation_ref: control_decision.operation_ref.clone(),
+            state: FABRIC_ADAPTER_EXECUTION_SUCCEEDED.to_string(),
+            source_decision_ref: Some(control_decision.decision_id.clone()),
+            source_plan_ref: Some(plan.plan_id.clone()),
+            source_plan_observed_at: Some(plan.observed_at),
+            source_plan_expires_at: plan.expires_at,
+            source_bridge_ref: Some(legacy_bridge.bridge_id.clone()),
+            delegated_role_ref: control_decision.delegated_role_ref.clone(),
+            authorization_refs: control_decision.authorization_refs.clone(),
+            action_authority_refs: plan.action_authority_refs.clone(),
+            evidence_requirement_refs: plan.evidence_requirement_refs.clone(),
+            input_refs: vec![control_decision.operation_ref.clone(), plan.plan_id.clone()],
+            output_refs: vec!["evidence:host-adapter:health-check:ok".to_string()],
+            fallback_refs: control_decision.fallback_refs.clone(),
+            quarantine_refs: control_decision.quarantine_refs.clone(),
+            rollback_refs: plan.rollback_refs.clone(),
+            release_refs: control_decision.release_refs.clone(),
+            cleanup_refs: vec!["cleanup:host-adapter:health-check".to_string()],
+            blocked_reasons: vec![],
+            evidence_refs: vec!["evidence:host-adapter:health-check:ok".to_string()],
+            safe_facts: json!({ "operation": "healthCheck", "dryRun": true }),
+            observed_at: observed_at + 1,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_host_fabric_adapter_execution_evidence(&adapter_execution)
+            .expect("valid fabric adapter execution evidence");
+
+        let mut bad_bridge = legacy_bridge.clone();
+        bad_bridge.bridge_id = "legacy-control-bridge:bad:no-fallback".to_string();
+        bad_bridge.fallback_refs.clear();
+        assert!(validate_host_fabric_legacy_control_bridge(&bad_bridge).is_err());
+
+        let mut sourced_direct_bridge = legacy_bridge.clone();
+        sourced_direct_bridge.bridge_id = "legacy-control-bridge:bad:direct-sourced".to_string();
+        sourced_direct_bridge.state = FABRIC_LEGACY_CONTROL_LEGACY_DIRECT.to_string();
+        assert!(validate_host_fabric_legacy_control_bridge(&sourced_direct_bridge).is_err());
+
+        let mut unsourced_blocked_bridge = legacy_bridge.clone();
+        unsourced_blocked_bridge.bridge_id =
+            "legacy-control-bridge:bad:blocked-unsourced".to_string();
+        unsourced_blocked_bridge.state = FABRIC_LEGACY_CONTROL_BLOCKED.to_string();
+        unsourced_blocked_bridge.source_decision_ref = None;
+        unsourced_blocked_bridge.blocked_reasons =
+            vec!["hostFabric:controlBlocked:role:gatewayAssociation".to_string()];
+        assert!(validate_host_fabric_legacy_control_bridge(&unsourced_blocked_bridge).is_err());
+
+        let mut bad_execution = adapter_execution.clone();
+        bad_execution.evidence_id = "host-adapter-execution:bad:no-output".to_string();
+        bad_execution.output_refs.clear();
+        assert!(validate_host_fabric_adapter_execution_evidence(&bad_execution).is_err());
+
+        let mut missing_execution_authorization = adapter_execution.clone();
+        missing_execution_authorization.evidence_id =
+            "host-adapter-execution:bad:no-authorization".to_string();
+        missing_execution_authorization.authorization_refs.clear();
+        assert!(
+            validate_host_fabric_adapter_execution_evidence(&missing_execution_authorization)
+                .is_err()
+        );
+
+        let mut missing_decision_authorization = control_decision.clone();
+        missing_decision_authorization.decision_id =
+            "fabric-control:bad:no-authorization".to_string();
+        missing_decision_authorization.authorization_refs.clear();
+        assert!(validate_host_fabric_control_decision(&missing_decision_authorization).is_err());
+
+        let mut stale_ready_decision = control_decision.clone();
+        stale_ready_decision.decision_id = "fabric-control:bad:stale-plan".to_string();
+        stale_ready_decision.source_plan_expires_at = Some(observed_at);
+        assert!(validate_host_fabric_control_decision(&stale_ready_decision).is_err());
+
+        let mut stale_adapter_execution = adapter_execution.clone();
+        stale_adapter_execution.evidence_id = "host-adapter-execution:bad:stale-plan".to_string();
+        stale_adapter_execution.source_plan_expires_at = Some(observed_at);
+        assert!(validate_host_fabric_adapter_execution_evidence(&stale_adapter_execution).is_err());
+
+        let mut missing_plan_decision = control_decision.clone();
+        missing_plan_decision.decision_id = "fabric-control:bad:waiting-no-reason".to_string();
+        missing_plan_decision.state = FABRIC_CONTROL_DECISION_WAITING_PLAN.to_string();
+        missing_plan_decision.source_plan_ref = None;
+        missing_plan_decision.blocked_reasons.clear();
+        assert!(validate_host_fabric_control_decision(&missing_plan_decision).is_err());
 
         let association_boundary = AssociationBoundaryProof {
             kind: Some(RECORD_ASSOCIATION_BOUNDARY_PROOF.to_string()),
@@ -13990,6 +18260,56 @@ mod tests {
         };
         validate_content_index_ref_posture(&content_index).expect("valid content-index posture");
 
+        let content_index_resolver = ContentIndexResolverPosture {
+            kind: Some(RECORD_CONTENT_INDEX_RESOLVER_POSTURE.to_string()),
+            resolver_ref: "content-index-resolver:gateway-association".to_string(),
+            content_index_ref: content_index.content_index_ref.clone(),
+            state: FABRIC_CONTENT_INDEX_READY.to_string(),
+            source_snapshot_ref: Some("source:snapshot:gateway-association:head".to_string()),
+            resolutions: vec![ContentIndexResolutionEntry {
+                resolution_ref: "content-index-resolution:gateway-association:module".to_string(),
+                subject_ref: "module:gateway-association".to_string(),
+                resolution_kind: "module".to_string(),
+                content_index_ref: content_index.content_index_ref.clone(),
+                state: FABRIC_CONTENT_INDEX_READY.to_string(),
+                source_snapshot_ref: Some("source:snapshot:gateway-association:head".to_string()),
+                tree_hash_ref: Some(
+                    "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                        .to_string(),
+                ),
+                input_refs: vec!["module:gateway-association".to_string()],
+                source_refs: vec!["source:gateway-association:contract".to_string()],
+                file_refs: vec!["file:gateway-association:contract".to_string()],
+                artifact_refs: vec!["artifact:gateway-association:protocol-proof".to_string()],
+                object_refs: vec![TEST_SURFACE_APP_STORAGE_OBJECT_REF.to_string()],
+                chunk_refs: vec![
+                    "storage:chunk:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                        .to_string(),
+                ],
+                storage_member_refs: vec![pubkey_from_sk_hex(SERVICE_SK).expect("service pk")],
+                availability_refs: vec![
+                    "storage:availability:gateway-association:contract".to_string(),
+                ],
+                materialized_projection_refs: vec![
+                    "projection:gateway-association:hot".to_string(),
+                ],
+                adapter_refs: vec!["adapter:workspace-fs".to_string()],
+                conflict_refs: vec![],
+                evidence_refs: vec!["evidence:content-index:resolver".to_string()],
+                blocked_reasons: vec![],
+                safe_facts: json!({ "inputKind": "module-label" }),
+            }],
+            materialized_projection_refs: content_index.materialized_projection_refs.clone(),
+            transition_conflict_refs: vec![],
+            evidence_refs: vec!["evidence:content-index:resolver".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "operatorState": "ready" }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_content_index_resolver_posture(&content_index_resolver)
+            .expect("valid content-index resolver posture");
+
         let intention = ContractIntentionPosture {
             kind: Some(RECORD_CONTRACT_INTENTION_POSTURE.to_string()),
             posture_id: "contract-intention-posture:gateway-association".to_string(),
@@ -14025,6 +18345,264 @@ mod tests {
             expires_at: Some(observed_at + 600),
         };
         validate_contract_intention_posture(&intention).expect("valid contract intention");
+
+        let lifecycle_manifest = LifecycleManifestSeed {
+            kind: Some(RECORD_LIFECYCLE_MANIFEST_SEED.to_string()),
+            manifest_ref: "lifecycle:manifest:gateway-association@0.1.0".to_string(),
+            state: FABRIC_LIFECYCLE_MANIFEST_READY.to_string(),
+            promotion_state: FABRIC_LIFECYCLE_PROMOTION_CANDIDATE_READY.to_string(),
+            target_ref: Some("lifecycle-target:gateway-association:main".to_string()),
+            candidate_refs: vec!["release-candidate:gateway-association@0.1.0".to_string()],
+            source_snapshot_refs: intention.source_snapshot_refs.clone(),
+            content_index_refs: intention.content_index_refs.clone(),
+            build_refs: intention.build_refs.clone(),
+            build_run_refs: vec!["build-run:gateway-association:protocol-proof".to_string()],
+            artifact_refs: vec!["artifact:gateway-association:protocol-proof".to_string()],
+            storage_refs: content_index.storage_refs.clone(),
+            proof_refs: vec!["proof:gateway-association:protocol".to_string()],
+            log_refs: vec![],
+            metric_refs: vec![],
+            release_candidate_refs: vec!["release-candidate:gateway-association@0.1.0".to_string()],
+            rollback_refs: intention.rollback_refs.clone(),
+            cleanup_refs: intention.cleanup_refs.clone(),
+            proof_gate_refs: intention.proof_gate_refs.clone(),
+            governance_refs: vec!["governance:gateway-association:maintainers".to_string()],
+            conflict_refs: vec!["transition-conflict:adapter:git".to_string()],
+            evidence_refs: vec!["evidence:lifecycle-manifest:seeded".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "acceptedAsMain": false }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_lifecycle_manifest_seed(&lifecycle_manifest)
+            .expect("valid lifecycle manifest seed");
+
+        let deletion_item = AdapterDebtDeletionWorkItem {
+            kind: Some("adapter.debt.deletion.work-item".to_string()),
+            order: 10,
+            deletion_slice_ref:
+                "deletion-slice:adapter-debt:git:source.snapshot.ref:repo:gateway-association"
+                    .to_string(),
+            subject_ref: "repo:gateway-association".to_string(),
+            adapter_ref: "git".to_string(),
+            current_shim: "repo:dirty".to_string(),
+            desired_primitive: "source.snapshot.ref".to_string(),
+            proof_to_retire:
+                "source snapshot emits signed candidate refs without git status authority"
+                    .to_string(),
+            blocking_state: FABRIC_ADAPTER_DEBT_BLOCKING_TRACKED_NON_BLOCKING.to_string(),
+            blocked_reasons: vec![],
+        };
+        let deletion_worklist = AdapterDebtDeletionWorklist {
+            kind: Some(RECORD_ADAPTER_DEBT_DELETION_WORKLIST.to_string()),
+            state: FABRIC_ADAPTER_DEBT_TRACKING.to_string(),
+            item_count: 1,
+            owner_count: 1,
+            retired_as_blocker_count: 1,
+            order_policy: vec!["source.snapshot.ref".to_string()],
+            blocker_policy: Some(
+                "tracked adapter shims block only when they corrupt active primitive proof"
+                    .to_string(),
+            ),
+            owner_groups: vec![AdapterDebtOwnerGroup {
+                subject_ref: "repo:gateway-association".to_string(),
+                state: FABRIC_ADAPTER_DEBT_TRACKING.to_string(),
+                adapter_refs: vec!["git".to_string()],
+                desired_primitive_refs: vec!["source.snapshot.ref".to_string()],
+                deletion_slice_refs: vec![deletion_item.deletion_slice_ref.clone()],
+                blocked_reasons: vec![],
+                items: vec![],
+            }],
+            items: vec![deletion_item.clone()],
+            blocked_reasons: vec![],
+        };
+        validate_adapter_debt_deletion_worklist(&deletion_worklist)
+            .expect("valid adapter-debt deletion worklist");
+
+        let adapter_debt = AdapterDebtPosture {
+            kind: Some(RECORD_ADAPTER_DEBT_POSTURE.to_string()),
+            state: FABRIC_ADAPTER_DEBT_TRACKING.to_string(),
+            debt_item_count: 1,
+            family_counts: json!({ "git": 1 }),
+            explicit_adapter_refs: vec!["git".to_string()],
+            desired_primitive_refs: vec!["source.snapshot.ref".to_string()],
+            deletion_slice_refs: vec![deletion_item.deletion_slice_ref.clone()],
+            retired_as_blockers: vec![AdapterDebtRetiredAsBlocker {
+                ref_: "adapter-retirement:false-blocker:git-status".to_string(),
+                state: "retiredAsBlocker".to_string(),
+                native_primitive: "source.snapshot.ref".to_string(),
+                evidence_ref: "source:snapshot:gateway-association:head".to_string(),
+            }],
+            deletion_worklist: Some(deletion_worklist.clone()),
+            debt_items: vec![AdapterDebtItem {
+                kind: Some("adapter.debt.item".to_string()),
+                debt_ref: "adapter-debt:git:gateway-association".to_string(),
+                conflict_ref: None,
+                subject_ref: "repo:gateway-association".to_string(),
+                adapter_ref: "git".to_string(),
+                current_shim: "repo:dirty".to_string(),
+                desired_primitive: "source.snapshot.ref".to_string(),
+                state: Some("tracked".to_string()),
+                deletion_slice_ref: deletion_item.deletion_slice_ref.clone(),
+                proof_to_retire:
+                    "source snapshot emits signed candidate refs without git status authority"
+                        .to_string(),
+            }],
+            blocked_reasons: vec![],
+            safe_facts: Value::Null,
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_adapter_debt_posture(&adapter_debt).expect("valid adapter-debt posture");
+
+        let adapter_residency = AdapterResidencyPosture {
+            kind: Some(RECORD_ADAPTER_RESIDENCY_POSTURE.to_string()),
+            state: FABRIC_ADAPTER_RESIDENCY_READY.to_string(),
+            adapter_ref: "cargo:path".to_string(),
+            adapter_role: "toolMaterialization".to_string(),
+            residency_count: 1,
+            residency_refs: vec![
+                "adapter-residency:cargo-path:gateway-association:constitute-protocol".to_string(),
+            ],
+            subject_refs: vec!["repo:gateway-association".to_string()],
+            native_dependency_refs: vec!["module:native-dev:constitute-protocol".to_string()],
+            storage_backed_input_refs: vec![
+                "build-input:storage-source-pack:native-dev:constitute-protocol:abc123".to_string(),
+            ],
+            tool_materialization_refs: vec![
+                "materialized:folder-projection:workspace-dev:constitute-protocol".to_string(),
+            ],
+            semantic_conflict_refs: vec![],
+            legacy_transition_conflict_refs: vec![
+                "transition-conflict:gateway-association:cargo-path:constitute-protocol"
+                    .to_string(),
+            ],
+            evidence_refs: vec![
+                "evidence:adapter-residency:gateway-association:constitute-protocol".to_string(),
+            ],
+            blocked_reasons: vec![],
+            safe_facts: json!({
+                "dependencySelectionDoesNotUseCargoPath": true,
+                "transitionConflictVocabularyRetiredForResidency": true
+            }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_adapter_residency_posture(&adapter_residency)
+            .expect("valid adapter-residency posture");
+
+        let mut adapter_residency_with_path = adapter_residency.clone();
+        adapter_residency_with_path.safe_facts = json!({ "localPath": "../constitute-protocol" });
+        assert!(validate_adapter_residency_posture(&adapter_residency_with_path).is_err());
+
+        let manifest_selected = ManifestSelectedOperationPosture {
+            kind: Some(RECORD_MANIFEST_SELECTED_OPERATION_POSTURE.to_string()),
+            state: FABRIC_MANIFEST_SELECTED_OPERATION_DEGRADED.to_string(),
+            lifecycle_manifest_ref: lifecycle_manifest.manifest_ref.clone(),
+            promotion_intent_ref: intention.intention_ref.clone(),
+            build_refs: lifecycle_manifest.build_refs.clone(),
+            build_run_refs: lifecycle_manifest.build_run_refs.clone(),
+            artifact_refs: lifecycle_manifest.artifact_refs.clone(),
+            storage_refs: lifecycle_manifest.storage_refs.clone(),
+            storage_object_refs: vec![TEST_SURFACE_APP_STORAGE_OBJECT_REF.to_string()],
+            executable_refs: vec!["executable:module:gateway-association".to_string()],
+            executable_hash_refs: vec![
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    .to_string(),
+            ],
+            runner_operation_ref: "runner-operation:gateway-association:module-load".to_string(),
+            runner_contract_ref: lifecycle_manifest.manifest_ref.clone(),
+            host_posture_ref: "runner-host-posture:gateway-association".to_string(),
+            fulfillment_session_ref: "fulfillment-session:gateway-association:module-load"
+                .to_string(),
+            fulfillment_session_contract_ref: lifecycle_manifest.manifest_ref.clone(),
+            fulfillment_session_parent_intent_ref: intention.intention_ref.clone(),
+            transition_conflict_refs: lifecycle_manifest.conflict_refs.clone(),
+            blocked_reasons: vec![],
+            safe_facts: json!({ "sameLifecycleRefFamily": true }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_manifest_selected_operation_posture(&manifest_selected)
+            .expect("valid manifest-selected operation posture");
+
+        let session_projection = RuntimeFulfillmentSessionProjection {
+            kind: Some(RECORD_RUNTIME_FULFILLMENT_SESSION_PROJECTION.to_string()),
+            projection_ref: "runtime:fulfillment-session:projection:gateway-association"
+                .to_string(),
+            state: FABRIC_LIFECYCLE_MANIFEST_DEGRADED.to_string(),
+            session_id: manifest_selected.fulfillment_session_ref.clone(),
+            lifecycle_manifest_ref: lifecycle_manifest.manifest_ref.clone(),
+            parent_intent_ref: intention.intention_ref.clone(),
+            subject_ref: "module:gateway-association".to_string(),
+            contract_ref: lifecycle_manifest.manifest_ref.clone(),
+            host_ref: Some("host:lab-gateway".to_string()),
+            runner_ref: Some(format!(
+                "member:{}",
+                pubkey_from_sk_hex(SERVICE_SK).expect("pk")
+            )),
+            storage_availability_refs: vec![
+                "storage:availability:gateway-association:contract".to_string(),
+            ],
+            storage_refs: lifecycle_manifest.storage_refs.clone(),
+            executable_refs: manifest_selected.executable_refs.clone(),
+            adapter_debt_state: Some(adapter_debt.state.clone()),
+            adapter_debt_ref: Some(RECORD_ADAPTER_DEBT_POSTURE.to_string()),
+            query_keys: RuntimeFulfillmentSessionQueryKeys {
+                by_session: manifest_selected.fulfillment_session_ref.clone(),
+                by_manifest: lifecycle_manifest.manifest_ref.clone(),
+                by_parent_intent: intention.intention_ref.clone(),
+                by_subject: "module:gateway-association".to_string(),
+                by_host: Some("host:lab-gateway".to_string()),
+                by_runner: Some(format!(
+                    "member:{}",
+                    pubkey_from_sk_hex(SERVICE_SK).expect("pk")
+                )),
+                by_storage_availability: vec![
+                    "storage:availability:gateway-association:contract".to_string(),
+                ],
+                by_adapter_debt: Some(adapter_debt.state.clone()),
+            },
+            current_posture: json!({
+                "sessionState": FULFILLMENT_SESSION_RUNNING,
+                "runnerOperationState": "succeeded",
+                "hostFulfillmentState": "succeeded",
+                "nodeCount": 3
+            }),
+            evidence_refs: vec!["evidence:runtime:fulfillment-session-projection".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "lateConsumerQueryable": true }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_runtime_fulfillment_session_projection(&session_projection)
+            .expect("valid runtime fulfillment-session projection");
+
+        let control_proof = ControlInversionProof {
+            kind: Some(RECORD_CONTROL_INVERSION_PROOF.to_string()),
+            role_ref: "role:executionFulfillment".to_string(),
+            state: FABRIC_CONTROL_INVERSION_PROOF_DEGRADED.to_string(),
+            primary_control: "manifestSession".to_string(),
+            primary_refs: vec![
+                manifest_selected.lifecycle_manifest_ref.clone(),
+                manifest_selected.promotion_intent_ref.clone(),
+                manifest_selected.runner_operation_ref.clone(),
+                session_projection.session_id.clone(),
+                session_projection.projection_ref.clone(),
+            ],
+            legacy_fallback_refs: vec!["fallback:runner-runtime-dispatch-bridge".to_string()],
+            legacy_path_state: "fallbackOnly".to_string(),
+            adapter_debt_state: Some(adapter_debt.state.clone()),
+            blocked_reasons: vec![],
+            safe_facts: json!({
+                "manifestSessionIsPrimary": true,
+                "legacyPathIsPrimary": false,
+                "narrowRoleOnly": true
+            }),
+            observed_at,
+            expires_at: Some(observed_at + 600),
+        };
+        validate_control_inversion_proof(&control_proof).expect("valid control inversion proof");
 
         let unique_edge = UniqueEdgeClassification {
             kind: Some(RECORD_UNIQUE_EDGE_CLASSIFICATION.to_string()),
@@ -14081,9 +18659,30 @@ mod tests {
         let mut bad_content_index = content_index.clone();
         bad_content_index.source_refs.clear();
         assert!(validate_content_index_ref_posture(&bad_content_index).is_err());
+        let mut bad_resolver = content_index_resolver.clone();
+        bad_resolver.resolver_ref = "content-index-resolver:bad:symbolic-object".to_string();
+        bad_resolver.resolutions[0].object_refs = vec!["storage:object:gateway-ui@dev".to_string()];
+        assert!(validate_content_index_resolver_posture(&bad_resolver).is_err());
         let mut bad_intention = intention.clone();
         bad_intention.canonical_hash_ref = Some(String::new());
         assert!(validate_contract_intention_posture(&bad_intention).is_err());
+        let mut bad_lifecycle_manifest = lifecycle_manifest.clone();
+        bad_lifecycle_manifest.state = FABRIC_LIFECYCLE_MANIFEST_BLOCKED.to_string();
+        bad_lifecycle_manifest.blocked_reasons.clear();
+        assert!(validate_lifecycle_manifest_seed(&bad_lifecycle_manifest).is_err());
+        let mut bad_worklist = deletion_worklist.clone();
+        bad_worklist.item_count = 2;
+        assert!(validate_adapter_debt_deletion_worklist(&bad_worklist).is_err());
+        let mut bad_manifest_selected = manifest_selected.clone();
+        bad_manifest_selected.runner_contract_ref = "lifecycle:manifest:other".to_string();
+        assert!(validate_manifest_selected_operation_posture(&bad_manifest_selected).is_err());
+        let mut bad_projection = session_projection.clone();
+        bad_projection.contract_ref = "lifecycle:manifest:other".to_string();
+        assert!(validate_runtime_fulfillment_session_projection(&bad_projection).is_err());
+        let mut bad_control = control_proof.clone();
+        bad_control.state = FABRIC_CONTROL_INVERSION_PROOF_PROVED.to_string();
+        bad_control.primary_refs.clear();
+        assert!(validate_control_inversion_proof(&bad_control).is_err());
         let mut bad_unique_edge = unique_edge.clone();
         bad_unique_edge.external_reality_ref = Some(String::new());
         assert!(validate_unique_edge_classification(&bad_unique_edge).is_err());
@@ -14769,7 +19368,7 @@ mod tests {
             cardinality: Value::Null,
             schema: None,
             consumer_floor: None,
-            reference_refs: vec!["storage:object:encrypted-detail-1".to_string()],
+            reference_refs: vec![TEST_ENCRYPTED_DETAIL_STORAGE_OBJECT_REF.to_string()],
             blocked_reasons: vec![],
             evidence_refs: vec![],
             retention_class: None,
@@ -15181,7 +19780,7 @@ mod tests {
             subject_ref: "event:runtime:1".to_string(),
             issuer_ref: service_member.clone(),
             ciphertext_ref: None,
-            storage_object_ref: Some("storage-object:log-event-1".to_string()),
+            storage_object_ref: Some(TEST_LOG_EVENT_STORAGE_OBJECT_REF.to_string()),
             detail_ref: None,
             media_object_ref: None,
             caac_envelope_ref: Some("caac:log-event-1".to_string()),
@@ -15815,6 +20414,31 @@ mod tests {
         validate_service_manager_operation_posture(&operation)
             .expect("valid service manager operation posture");
 
+        let control_request = ServiceManagerControlRequestPostureRecord {
+            kind: Some(RECORD_SERVICE_MANAGER_CONTROL_REQUEST_POSTURE.to_string()),
+            request_id: "service-manager-control-request:gateway:health".to_string(),
+            operation: SERVICE_MANAGER_OPERATION_HEALTH_CHECK.to_string(),
+            subject_ref: "service:gateway".to_string(),
+            service_manager_ref: "service-manager:lab".to_string(),
+            requester_ref: "identity:operator".to_string(),
+            fabric_control_role_ref: Some("role:hostServiceAdapter".to_string()),
+            service_refs: vec!["service:gateway".to_string()],
+            capability_refs: vec!["service.manage".to_string()],
+            authority_refs: vec!["authority:host-fabric:operator".to_string()],
+            grant_refs: vec!["grant:host-fabric:operator".to_string()],
+            evidence_refs: vec!["proof-event:operator:service-manager-control".to_string()],
+            proof_refs: vec![],
+            safe_facts: json!({
+                "serviceManagerControlInputIsTypedPosture": true,
+                "commandLineIsAdapterTransport": true
+            }),
+            blocked_reasons: vec![],
+            requested_at: 1_700_000_010,
+            expires_at: Some(1_700_000_610),
+        };
+        validate_service_manager_control_request_posture(&control_request)
+            .expect("valid service manager control request posture");
+
         let proof_digest = ServiceManagerProofDigestRecord {
             kind: Some(RECORD_SERVICE_MANAGER_PROOF_DIGEST.to_string()),
             digest_id: "proof-digest:gateway:2026-05-18".to_string(),
@@ -15997,7 +20621,7 @@ mod tests {
             state: SURFACE_APP_DISTRIBUTION_RETAINED.to_string(),
             source_mode: Some(SURFACE_FULFILLMENT_MODE_STORAGE_OBJECT.to_string()),
             source_refs: vec!["surface-app-source:nvr-ui@0.2.0".to_string()],
-            storage_refs: vec!["storage:object:surface-app:nvr-ui@0.2.0".to_string()],
+            storage_refs: vec![TEST_SURFACE_APP_STORAGE_OBJECT_REF.to_string()],
             pin_intent_refs: vec!["storage.pin.intent:surface-app:nvr-ui@0.2.0".to_string()],
             pin_projection_refs: vec![
                 "storage.pin.projection:surface-app:nvr-ui@0.2.0".to_string(),
@@ -16302,12 +20926,177 @@ mod tests {
     }
 
     #[test]
+    fn validates_operation_instance_posture() {
+        let base_role = OperationRoleContributionPosture {
+            role_ref: "role:runtime-operation-binding".to_string(),
+            contribution_ref: "operation-contribution:nvr-preview:runtime".to_string(),
+            contributor_ref: "runtime:browser:shared-worker".to_string(),
+            contribution_type: "fulfillment".to_string(),
+            state: OPERATION_POSTURE_READY.to_string(),
+            required: true,
+            authority_refs: vec!["grant:runtime:stream-open".to_string()],
+            primitive_refs: vec!["primitive:runtime.intent".to_string()],
+            capability_refs: vec![CAPABILITY_STREAM_SESSION_OFFER.to_string()],
+            input_refs: vec!["stream.session.intent:nvr-preview".to_string()],
+            output_refs: vec!["fulfillment:preview:nvr-preview-media-flow".to_string()],
+            evidence_refs: vec!["evidence:runtime:stream-open".to_string()],
+            release_refs: vec![],
+            cleanup_refs: vec![],
+            blocked_reasons: vec![],
+            deferred_reasons: vec![],
+            safe_facts: json!({ "surfaceSuppliesFlowTruth": false }),
+        };
+        let posture = OperationInstancePosture {
+            kind: Some(RECORD_OPERATION_INSTANCE_POSTURE.to_string()),
+            operation_ref: "operation:nvr-preview:runtime-stream-open".to_string(),
+            operation_class_ref: "operation-class:stream-open".to_string(),
+            method_ref: "runtime.stream.open".to_string(),
+            state: OPERATION_POSTURE_READY.to_string(),
+            subject_ref: "flow:nvr-preview-media:candidate".to_string(),
+            contract_ref: "contract:nvr-preview@selected".to_string(),
+            parent_intent_ref: Some("stream.session.intent:nvr-preview".to_string()),
+            fulfillment_session_ref: Some("fulfillment:preview:nvr-preview-media-flow".to_string()),
+            role_contributions: vec![base_role.clone()],
+            source_refs: vec!["source:snapshot:constitute-nvr:selected".to_string()],
+            content_index_refs: vec!["content-index:constitute-nvr:selected".to_string()],
+            build_refs: vec!["build:nvr:selected".to_string()],
+            build_run_refs: vec![],
+            release_refs: vec!["release:nvr:selected".to_string()],
+            rollback_refs: vec![],
+            module_refs: vec!["module:flow:nvr-preview-media".to_string()],
+            artifact_refs: vec!["artifact:nvr:selected".to_string()],
+            executable_refs: vec!["executable:nvr:selected".to_string()],
+            storage_refs: vec!["storage:availability:nvr-preview".to_string()],
+            storage_object_refs: vec!["storage:object:nvr-preview-index".to_string()],
+            router_binding_refs: vec!["router-binding:nvr-preview:selected-path".to_string()],
+            carrier_edge_refs: vec!["carrier-edge-selection:nvr-preview:websocket".to_string()],
+            service_admission_refs: vec!["service:nvr-preview:admission-response".to_string()],
+            runtime_projection_refs: vec!["runtime:fulfillment-session:projection:nvr-preview".to_string()],
+            surface_binding_refs: vec!["surface-binding:nvr-preview:media-element".to_string()],
+            fabric_plan_refs: vec!["hostFabric.fulfillment.plan:nvr-preview".to_string()],
+            cleanup_refs: vec!["cleanup:nvr-preview:release-media-path".to_string()],
+            evidence_refs: vec!["evidence:operation:nvr-preview".to_string()],
+            blocked_reasons: vec![],
+            deferred_reasons: vec![],
+            safe_facts: json!({
+                "surfaceDoesNotSupplyFlowTruth": true,
+                "fabricComposesRolePlanDoesNotExecute": true
+            }),
+            observed_at: 1_700_000_005,
+            expires_at: Some(1_700_000_065),
+        };
+
+        validate_operation_instance_posture(&posture).expect("valid operation instance posture");
+
+        let mut missing_role_evidence = posture.clone();
+        missing_role_evidence.role_contributions[0].evidence_refs.clear();
+        assert!(validate_operation_instance_posture(&missing_role_evidence).is_err());
+
+        let mut owner_drift = posture.clone();
+        owner_drift.safe_facts = json!({ "ownerRef": "service-manager" });
+        assert!(validate_operation_instance_posture(&owner_drift).is_err());
+
+        let mut impossible_not_selected = posture;
+        impossible_not_selected.role_contributions[0].state =
+            OPERATION_POSTURE_NOT_SELECTED.to_string();
+        impossible_not_selected.role_contributions[0].evidence_refs.clear();
+        assert!(validate_operation_instance_posture(&impossible_not_selected).is_err());
+    }
+
+    #[test]
+    fn validates_fulfillment_session() {
+        let session = FulfillmentSession {
+            kind: Some(RECORD_FULFILLMENT_SESSION.to_string()),
+            session_id: "fulfillment:preview:front-door:1".to_string(),
+            parent_intent_ref: "stream.intent:front-door:preview".to_string(),
+            subject_ref: "camera:front-door".to_string(),
+            contract_ref: "contract:nvr-preview@0.1.0".to_string(),
+            state: FULFILLMENT_SESSION_RUNNING.to_string(),
+            node_postures: vec![
+                FulfillmentSessionNodePosture {
+                    node_ref: "node:source:camera:front-door".to_string(),
+                    role: "source".to_string(),
+                    state: FULFILLMENT_SESSION_RUNNING.to_string(),
+                    required: true,
+                    participant_ref: Some("service:nvr:lab".to_string()),
+                    member_ref: None,
+                    contract_ref: None,
+                    capability_refs: vec![CAPABILITY_MEDIA_STREAM_PREVIEW.to_string()],
+                    input_refs: vec![],
+                    output_refs: vec!["media.source:front-door".to_string()],
+                    evidence_refs: vec!["evidence:source:rtsp-flowing".to_string()],
+                    blocked_reasons: vec![],
+                    safe_facts: json!({ "sourceKind": "rtsp" }),
+                },
+                FulfillmentSessionNodePosture {
+                    node_ref: "node:carrier:browser-webrtc".to_string(),
+                    role: "carrier".to_string(),
+                    state: FULFILLMENT_SESSION_ACTIONABLE.to_string(),
+                    required: true,
+                    participant_ref: Some("adapter:media-webrtc:browser".to_string()),
+                    member_ref: None,
+                    contract_ref: None,
+                    capability_refs: vec![CAPABILITY_STREAM_SESSION_OFFER.to_string()],
+                    input_refs: vec!["stream.session.answer:front-door".to_string()],
+                    output_refs: vec![RECORD_MEDIA_TRANSPORT_PATH.to_string()],
+                    evidence_refs: vec!["carrier.edge.session:browser-webrtc:1".to_string()],
+                    blocked_reasons: vec![],
+                    safe_facts: Value::Null,
+                },
+                FulfillmentSessionNodePosture {
+                    node_ref: "node:render:preview-slot".to_string(),
+                    role: "render".to_string(),
+                    state: FULFILLMENT_SESSION_DEGRADED.to_string(),
+                    required: true,
+                    participant_ref: Some("surface:nvr".to_string()),
+                    member_ref: None,
+                    contract_ref: None,
+                    capability_refs: vec![],
+                    input_refs: vec![RECORD_MEDIA_TRANSPORT_PATH.to_string()],
+                    output_refs: vec![],
+                    evidence_refs: vec![
+                        "media.transport.observation:browser:pending-render".to_string(),
+                    ],
+                    blocked_reasons: vec![],
+                    safe_facts: json!({ "visibleFrame": false, "readinessState": "waitingRender" }),
+                },
+            ],
+            dependency_refs: vec!["lifecycle.dependency:source-before-render".to_string()],
+            router_binding_refs: vec!["router.binding:browser-nvr-preview".to_string()],
+            carrier_edge_refs: vec!["carrier.edge.selection:browser-webrtc".to_string()],
+            media_path_refs: vec!["media.transport.path:front-door".to_string()],
+            lifecycle_plan_refs: vec!["lifecycle.plan:nvr-preview".to_string()],
+            availability_refs: vec!["availability:camera:front-door".to_string()],
+            evidence_refs: vec![
+                "service.admission:front-door".to_string(),
+                "stream.session.answer:front-door".to_string(),
+            ],
+            release_refs: vec!["stream.session.close:front-door".to_string()],
+            blocked_reasons: vec![],
+            safe_facts: json!({ "profile": "browser-webrtc-preview", "nodeCount": 3 }),
+            issued_at: 1_700_000_002,
+            observed_at: 1_700_000_004,
+            expires_at: Some(1_700_000_064),
+        };
+        validate_fulfillment_session(&session).expect("valid fulfillment session");
+
+        let mut blocked_without_reason = session.clone();
+        blocked_without_reason.state = FULFILLMENT_SESSION_BLOCKED.to_string();
+        assert!(validate_fulfillment_session(&blocked_without_reason).is_err());
+
+        let mut unsafe_session = session;
+        unsafe_session.node_postures[0].safe_facts = json!({ "mediaBytes": "not allowed" });
+        assert!(validate_fulfillment_session(&unsafe_session).is_err());
+    }
+
+    #[test]
     fn validates_media_fulfillment_evidence() {
         let render = MediaFulfillmentEvidence {
             kind: Some(RECORD_MEDIA_FULFILLMENT_EVIDENCE.to_string()),
             evidence_id: "media-proof-1".to_string(),
             evidence_kind: "renderState".to_string(),
             state: "usable".to_string(),
+            fulfillment_session_id: Some("fulfillment:preview:front-door:1".to_string()),
             session_id: Some("stream-1".to_string()),
             activation_id: None,
             interaction_id: None,
@@ -16360,9 +21149,12 @@ mod tests {
             kind: Some(RECORD_MEDIA_TRANSPORT_PATH.to_string()),
             path_id: "media-path-1".to_string(),
             session_id: "stream-1".to_string(),
+            fulfillment_session_id: "fulfillment:preview:front-door:1".to_string(),
             activation_id: Some("activation-1".to_string()),
             route_promise_id: Some("route-1".to_string()),
             transport_profile_ref: "runtime.media.browser-webrtc.default".to_string(),
+            browser_participant_ref: Some("adapter:media-webrtc:browser".to_string()),
+            service_participant_ref: Some("service:nvr:lab".to_string()),
             browser_candidate_refs: vec!["candidate:browser:1".to_string()],
             service_candidate_refs: vec!["candidate:service:1".to_string()],
             relay_participant_refs: vec!["member:relay:1".to_string()],
@@ -16370,6 +21162,7 @@ mod tests {
             state: "blocked".to_string(),
             selected_pair_state: "failed".to_string(),
             inbound_rtp_state: "blocked".to_string(),
+            track_state: "blocked".to_string(),
             render_state: "blocked".to_string(),
             blocked_reason: Some("transportResourceExhausted".to_string()),
             safe_facts: json!({
@@ -16381,6 +21174,10 @@ mod tests {
             expires_at: Some(1_700_000_066),
         };
         validate_media_transport_path(&path).expect("valid media transport path");
+
+        let mut missing_fulfillment = path.clone();
+        missing_fulfillment.fulfillment_session_id = String::new();
+        assert!(validate_media_transport_path(&missing_fulfillment).is_err());
 
         let mut missing_reason = path.clone();
         missing_reason.blocked_reason = None;
@@ -16407,6 +21204,7 @@ mod tests {
             observation_id: "media-observation-1".to_string(),
             path_id: "media-path-1".to_string(),
             session_id: "stream-1".to_string(),
+            fulfillment_session_id: "fulfillment:preview:front-door:1".to_string(),
             activation_id: Some("activation-1".to_string()),
             route_promise_id: Some("route-1".to_string()),
             participant_ref: "service:abc".to_string(),
@@ -16416,6 +21214,7 @@ mod tests {
             ice_connection_state: None,
             selected_pair_state: Some("selected".to_string()),
             inbound_rtp_state: Some("stalled".to_string()),
+            track_state: Some("live".to_string()),
             render_state: Some("pending".to_string()),
             blocked_reason: None,
             reason: Some("peerConnectionDisconnected".to_string()),
@@ -16429,6 +21228,10 @@ mod tests {
         };
         validate_media_transport_observation(&observation).expect("valid media observation");
 
+        let mut missing_fulfillment = observation.clone();
+        missing_fulfillment.fulfillment_session_id = String::new();
+        assert!(validate_media_transport_observation(&missing_fulfillment).is_err());
+
         let mut missing_reason = observation.clone();
         missing_reason.state = "blocked".to_string();
         missing_reason.blocked_reason = None;
@@ -16441,6 +21244,110 @@ mod tests {
         let live_graph = vec![json!({
             "kind": RECORD_MEDIA_TRANSPORT_OBSERVATION,
             "observationId": "media-observation-1"
+        })];
+        assert!(validate_swarm_identity_graph(&live_graph).is_err());
+    }
+
+    #[test]
+    fn validates_carrier_edge_records() {
+        let requirement = CarrierEdgeRequirement {
+            kind: Some(RECORD_CARRIER_EDGE_REQUIREMENT.to_string()),
+            requirement_id: "carrier-req:gateway-edge:nvr".to_string(),
+            subject_ref: "service:nvr".to_string(),
+            source_ref: Some("service:nvr".to_string()),
+            consumer_ref: Some("fabric:lab-host".to_string()),
+            fabric_ref: Some("fabric:lab-host".to_string()),
+            host_ref: Some("host:lab".to_string()),
+            route_association_ref: Some("association:gateway:lab".to_string()),
+            required_capability_refs: vec![CAPABILITY_SWARM_EDGE_ATTACH.to_string()],
+            allowed_adapter_kinds: vec![
+                CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
+                CARRIER_EDGE_ADAPTER_QUIC.to_string(),
+            ],
+            candidate_adapter_refs: vec!["adapter:gateway:websocket".to_string()],
+            policy_ref: Some("policy:carrier:default".to_string()),
+            network_sensitivity: Some(CARRIER_EDGE_NETWORK_LOCAL_NETWORK.to_string()),
+            state: CARRIER_EDGE_REQUIREMENT_ACTIONABLE.to_string(),
+            safe_facts: json!({ "preferredKind": "webSocket" }),
+            evidence_refs: vec!["association:gateway:lab".to_string()],
+            proof_substrate_refs: vec!["proof-substrate:windows-firewall:lab".to_string()],
+            resource_posture_refs: vec!["resource:network:lab".to_string()],
+            blocked_reasons: vec![],
+            issued_at: 1_700_000_000,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_carrier_edge_requirement(&requirement).expect("valid carrier requirement");
+
+        let selection = CarrierEdgeSelection {
+            kind: Some(RECORD_CARRIER_EDGE_SELECTION.to_string()),
+            selection_id: "carrier-select:gateway-edge:nvr".to_string(),
+            requirement_ref: requirement.requirement_id.clone(),
+            fabric_ref: Some("fabric:lab-host".to_string()),
+            host_ref: Some("host:lab".to_string()),
+            adapter_kind: CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
+            selected_adapter_ref: Some("adapter:gateway:websocket".to_string()),
+            candidate_adapter_refs: vec!["adapter:gateway:websocket".to_string()],
+            fallback_refs: vec!["adapter:gateway:quic".to_string()],
+            selector_ref: Some("selector:carrier:default".to_string()),
+            session_binding_ref: Some("binding:gateway-edge:nvr".to_string()),
+            network_sensitivity: Some(CARRIER_EDGE_NETWORK_LOCAL_NETWORK.to_string()),
+            state: CARRIER_EDGE_SELECTION_ACTIONABLE.to_string(),
+            backpressure_state: Some(CARRIER_EDGE_BACKPRESSURE_CLEAR.to_string()),
+            safe_facts: json!({ "selectedBecause": "lowestLatency" }),
+            evidence_refs: vec![requirement.requirement_id.clone()],
+            proof_substrate_refs: vec!["proof-substrate:windows-firewall:lab".to_string()],
+            resource_posture_refs: vec!["resource:network:lab".to_string()],
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_001,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_carrier_edge_selection(&selection).expect("valid carrier selection");
+
+        let evidence = CarrierEdgeSessionEvidence {
+            kind: Some(RECORD_CARRIER_EDGE_SESSION_EVIDENCE.to_string()),
+            evidence_id: "carrier-evidence:edge-session-1".to_string(),
+            selection_ref: selection.selection_id.clone(),
+            edge_session_ref: "edge-session-1".to_string(),
+            adapter_ref: "adapter:gateway:websocket".to_string(),
+            adapter_kind: CARRIER_EDGE_ADAPTER_WEB_SOCKET.to_string(),
+            participant_ref: "gateway:lab".to_string(),
+            peer_ref: Some("service:nvr".to_string()),
+            session_binding_ref: selection.session_binding_ref.clone(),
+            network_sensitivity: Some(CARRIER_EDGE_NETWORK_LOCAL_NETWORK.to_string()),
+            state: CARRIER_EDGE_SESSION_OPEN.to_string(),
+            connection_state: Some("connected".to_string()),
+            backpressure_state: Some(CARRIER_EDGE_BACKPRESSURE_CLEAR.to_string()),
+            retry_posture: json!({ "attempts": 0 }),
+            reconnect_posture: json!({ "state": "idle", "nextAttemptAt": 0 }),
+            close_posture: json!({ "state": "held" }),
+            release_posture: json!({ "state": "held" }),
+            safe_facts: json!({ "pendingFrames": 0 }),
+            evidence_refs: vec![selection.selection_id.clone()],
+            proof_substrate_refs: vec!["proof-substrate:windows-firewall:lab".to_string()],
+            resource_posture_refs: vec!["resource:network:lab".to_string()],
+            blocked_reasons: vec![],
+            observed_at: 1_700_000_002,
+            expires_at: Some(1_700_000_090),
+        };
+        validate_carrier_edge_session_evidence(&evidence).expect("valid carrier evidence");
+
+        let mut blocked_requirement = requirement.clone();
+        blocked_requirement.state = CARRIER_EDGE_REQUIREMENT_BLOCKED.to_string();
+        blocked_requirement.blocked_reasons.clear();
+        assert!(validate_carrier_edge_requirement(&blocked_requirement).is_err());
+
+        let mut missing_selection = selection.clone();
+        missing_selection.state = CARRIER_EDGE_SELECTION_ACTIONABLE.to_string();
+        missing_selection.selected_adapter_ref = None;
+        assert!(validate_carrier_edge_selection(&missing_selection).is_err());
+
+        let mut unsafe_evidence = evidence;
+        unsafe_evidence.safe_facts = json!({ "token": "secret" });
+        assert!(validate_carrier_edge_session_evidence(&unsafe_evidence).is_err());
+
+        let live_graph = vec![json!({
+            "kind": RECORD_CARRIER_EDGE_SESSION_EVIDENCE,
+            "evidenceId": "carrier-evidence:edge-session-1"
         })];
         assert!(validate_swarm_identity_graph(&live_graph).is_err());
     }

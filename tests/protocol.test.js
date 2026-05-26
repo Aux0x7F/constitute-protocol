@@ -10,6 +10,7 @@ import {
   FABRIC,
   PROJECTION,
   RUNNER,
+  SOURCE,
   ReplayCache,
   SERVICE_SURFACE,
   SERVICE_REGISTRY,
@@ -25,10 +26,23 @@ import {
   assertContractTarget,
   assertContractTargetRegistryPosture,
   assertContentIndexRefPosture,
+  assertContentIndexResolverPosture,
   assertContractIntentionPosture,
+  assertLifecycleManifestSeed,
+  assertAdapterDebtPosture,
+  assertAdapterDebtDeletionWorklist,
+  assertAdapterResidencyPosture,
+  assertManifestSelectedOperationPosture,
+  assertRuntimeFulfillmentSessionProjection,
+  assertControlInversionProof,
   assertAssociationBoundaryProof,
   assertHostFabricFulfillmentPlan,
+  assertHostFabricTopologyProjection,
+  assertHostFabricControlDecision,
+  assertHostFabricLegacyControlBridge,
+  assertHostFabricAdapterExecutionEvidence,
   assertHostFabricMemberContribution,
+  assertLifecycleDependencyEdge,
   assertLifecyclePlanPosture,
   assertRunnerHostFulfillmentPosture,
   assertRunnerOperation,
@@ -55,6 +69,7 @@ import {
   assertRetentionReleasePosture,
   assertSubscriptionContract,
   assertStorageChunkRef,
+  assertStorageModuleExecutableInstantiationPosture,
   assertStorageObjectManifest,
   assertStorageIndexShard,
   assertStoragePinAttestation,
@@ -95,9 +110,13 @@ import {
   streamSessionLifecycleRecordFromCarrier,
   streamSessionLifecyclePhase,
   streamSessionLifecycleRecordKind,
+  assertFulfillmentSession,
   assertMediaFulfillmentEvidence,
   assertMediaTransportPath,
   assertMediaTransportObservation,
+  assertCarrierEdgeRequirement,
+  assertCarrierEdgeSelection,
+  assertCarrierEdgeSessionEvidence,
   assertAppActivity,
   assertAppContract,
   assertAppModuleRole,
@@ -112,7 +131,20 @@ import {
   assertServiceManagerLabProof,
   assertServiceManagerTrainDigest,
   assertServiceManagerOperationPosture,
+  assertServiceManagerControlRequestPosture,
   assertServiceManagerProofDigest,
+  assertSourceSnapshot,
+  assertSourceVersionIndexProjection,
+  assertSourceRefTransitionPosture,
+  assertSourceVersionIndexDeltaPosture,
+  assertSourcePromotionRollbackPosture,
+  assertSourcePromotionWitnessPosture,
+  assertSourceAppliedRefProjection,
+  assertSourceRefUpdate,
+  assertSourceRefStoreJournal,
+  assertSourceRefStoreReplayPosture,
+  assertAuthoringWorkspaceProjection,
+  assertAuthoringCandidateSnapshotPosture,
   assertSurfaceAppManifest,
   assertSurfaceAppManifestSelection,
   assertSurfaceAppSourceCandidatePosture,
@@ -141,6 +173,7 @@ import {
   assertAuthorityRootOperation,
   assertConsumerFloor,
   assertContributionLifecycle,
+  assertOperationInstancePosture,
   assertEventFabricAccessClass,
   assertEventFabricProcessorContract,
   assertEventFabricProcessorReport,
@@ -202,6 +235,16 @@ const BROWSER_SK = "000000000000000000000000000000000000000000000000000000000000
 const GATEWAY_PK = pubkeyFromSecretKey(GATEWAY_SK);
 const SERVICE_PK = pubkeyFromSecretKey(SERVICE_SK);
 const BROWSER_PK = pubkeyFromSecretKey(BROWSER_SK);
+const COMMUNITY_APP_STORAGE_OBJECT_REF =
+  "storage:object:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const SURFACE_APP_STORAGE_OBJECT_REF =
+  "storage:object:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const LOGGING_UI_STORAGE_OBJECT_REF =
+  "storage:object:1111111111111111111111111111111111111111111111111111111111111111";
+const ENCRYPTED_DETAIL_STORAGE_OBJECT_REF =
+  "storage:object:2222222222222222222222222222222222222222222222222222222222222222";
+const LOG_EVENT_STORAGE_OBJECT_REF =
+  "storage:object:3333333333333333333333333333333333333333333333333333333333333333";
 
 test("bootstrap nostr carrier sign/verify roundtrip matches the shared id vector", () => {
   const pk = pubkeyFromSecretKey(ISSUER_SK);
@@ -772,7 +815,7 @@ test("app contracts validate activity release and resolution records", () => {
     artifactRefs: ["build:artifact:community-launcher-runtime", "build:artifact:community-launcher-view"],
     proofRefs: ["build:proof:community-launcher@0.1.0"],
     moduleRoleRefs: contract.moduleRoleRefs,
-    storageRefs: ["storage:object:community-launcher@0.1.0"],
+    storageRefs: [COMMUNITY_APP_STORAGE_OBJECT_REF],
     compatibilityRefs: contract.compatibilityRefs,
     evidenceRefs: ["evidence:release:community-launcher"],
     issuedAt: 1_779_266_010,
@@ -804,7 +847,7 @@ test("app contracts validate activity release and resolution records", () => {
 
   assert.equal(contract.appContractRef, "app:contract:community-launcher@0.1.0");
   assert.equal(activity.launchMode, APP.ACTIVITY_LAUNCH.EMBEDDED);
-  assert.deepEqual(resolution.selectedStorageRefs, ["storage:object:community-launcher@0.1.0"]);
+  assert.deepEqual(resolution.selectedStorageRefs, [COMMUNITY_APP_STORAGE_OBJECT_REF]);
   assert.throws(() => assertAppActivity({
     ...activity,
     moduleRoleRefs: [],
@@ -952,6 +995,128 @@ test("service edge adapter posture validates service-owned admission and backpre
     ...posture,
     queue: { pending: -1 },
   }), /queue pending must be non-negative/);
+});
+
+test("carrier edge records separate connectivity requirement selection and session evidence", () => {
+  const issuedAt = 1700000000;
+  assert.equal(SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT, "carrier.edge.requirement");
+  assert.equal(SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET, "webSocket");
+
+  const requirement = assertCarrierEdgeRequirement({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT,
+    requirementId: "carrier-req:gateway-edge:nvr",
+    subjectRef: "service:nvr",
+    sourceRef: `service:${SERVICE_PK}`,
+    consumerRef: "fabric:lab-host",
+    fabricRef: "fabric:lab-host",
+    hostRef: "host:lab",
+    routeAssociationRef: "association:gateway:lab",
+    requiredCapabilityRefs: [SWARM.CORE_CAPABILITY.SWARM_EDGE_ATTACH],
+    allowedAdapterKinds: [
+      SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+      SWARM.CARRIER_EDGE_ADAPTER_KIND.QUIC,
+    ],
+    candidateAdapterRefs: ["adapter:gateway:websocket", "adapter:gateway:quic"],
+    policyRef: "policy:carrier:default",
+    networkSensitivity: SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK,
+    state: SWARM.CARRIER_EDGE_REQUIREMENT_STATE.ACTIONABLE,
+    safeFacts: { preferredKind: "webSocket" },
+    evidenceRefs: ["association:gateway:lab"],
+    proofSubstrateRefs: ["proof-substrate:windows-firewall:lab"],
+    resourcePostureRefs: ["resource:network:lab"],
+    issuedAt,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(requirement.state, SWARM.CARRIER_EDGE_REQUIREMENT_STATE.ACTIONABLE);
+
+  const selection = assertCarrierEdgeSelection({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION,
+    selectionId: "carrier-select:gateway-edge:nvr",
+    requirementRef: requirement.requirementId,
+    fabricRef: "fabric:lab-host",
+    hostRef: "host:lab",
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    selectedAdapterRef: "adapter:gateway:websocket",
+    candidateAdapterRefs: ["adapter:gateway:websocket", "adapter:gateway:quic"],
+    fallbackRefs: ["adapter:gateway:quic"],
+    selectorRef: "selector:carrier:default",
+    sessionBindingRef: "binding:gateway-edge:nvr",
+    networkSensitivity: SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK,
+    state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    backpressureState: SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.CLEAR,
+    safeFacts: { selectedBecause: "lowestLatency" },
+    evidenceRefs: [requirement.requirementId],
+    proofSubstrateRefs: ["proof-substrate:windows-firewall:lab"],
+    resourcePostureRefs: ["resource:network:lab"],
+    observedAt: issuedAt + 1,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(selection.selectedAdapterRef, "adapter:gateway:websocket");
+
+  assertCarrierEdgeSessionEvidence({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SESSION_EVIDENCE,
+    evidenceId: "carrier-evidence:edge-session-1",
+    selectionRef: selection.selectionId,
+    edgeSessionRef: "edge-session-1",
+    adapterRef: "adapter:gateway:websocket",
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    participantRef: `gateway:${GATEWAY_PK}`,
+    peerRef: `service:${SERVICE_PK}`,
+    sessionBindingRef: selection.sessionBindingRef,
+    networkSensitivity: SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK,
+    state: SWARM.CARRIER_EDGE_SESSION_STATE.OPEN,
+    connectionState: "connected",
+    backpressureState: SWARM.CARRIER_EDGE_BACKPRESSURE_STATE.CLEAR,
+    retryPosture: { attempts: 0 },
+    reconnectPosture: { state: "idle", nextAttemptAt: 0 },
+    closePosture: { state: "held" },
+    releasePosture: { state: "held" },
+    safeFacts: { pendingFrames: 0 },
+    evidenceRefs: [selection.selectionId],
+    proofSubstrateRefs: ["proof-substrate:windows-firewall:lab"],
+    resourcePostureRefs: ["resource:network:lab"],
+    observedAt: issuedAt + 2,
+    expiresAt: issuedAt + 90_000,
+  });
+  assert.equal(selection.networkSensitivity, SWARM.CARRIER_EDGE_NETWORK_SENSITIVITY.LOCAL_NETWORK);
+
+  assert.throws(() => assertCarrierEdgeRequirement({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_REQUIREMENT,
+    requirementId: "carrier-req:blocked",
+    subjectRef: "service:nvr",
+    state: SWARM.CARRIER_EDGE_REQUIREMENT_STATE.BLOCKED,
+    issuedAt,
+  }), /blockedReasons/);
+  assert.throws(() => assertCarrierEdgeSelection({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION,
+    selectionId: "carrier-select:missing-adapter",
+    requirementRef: requirement.requirementId,
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    observedAt: issuedAt,
+  }), /selectedAdapterRef/);
+  assert.throws(() => assertCarrierEdgeSessionEvidence({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SESSION_EVIDENCE,
+    evidenceId: "carrier-evidence:unsafe",
+    selectionRef: selection.selectionId,
+    edgeSessionRef: "edge-session-1",
+    adapterRef: "adapter:gateway:websocket",
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    participantRef: `gateway:${GATEWAY_PK}`,
+    state: SWARM.CARRIER_EDGE_SESSION_STATE.OPEN,
+    safeFacts: { token: "secret" },
+    observedAt: issuedAt,
+  }), /unsafe safe fact/);
+  assert.throws(() => assertCarrierEdgeSelection({
+    kind: SWARM.RECORD_KIND.CARRIER_EDGE_SELECTION,
+    selectionId: "carrier-select:bad-network",
+    requirementRef: requirement.requirementId,
+    adapterKind: SWARM.CARRIER_EDGE_ADAPTER_KIND.WEB_SOCKET,
+    selectedAdapterRef: "adapter:gateway:websocket",
+    state: SWARM.CARRIER_EDGE_SELECTION_STATE.ACTIONABLE,
+    networkSensitivity: "internetish",
+    observedAt: issuedAt,
+  }), /unsupported carrier edge network sensitivity/);
 });
 
 test("surface app fulfillment identity posture separates contract, service, host, route, and runner identity", () => {
@@ -1232,7 +1397,7 @@ test("surface app manifests pin versioned app contracts and block unproven remot
     state: SURFACE_APP.DISTRIBUTION_POSTURE.RETAINED,
     sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
     sourceRefs: ["surface-app-source:nvr-ui@0.2.0"],
-    storageRefs: ["storage:object:surface-app:nvr-ui@0.2.0"],
+    storageRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
     pinIntentRefs: ["storage.pin.intent:surface-app:nvr-ui@0.2.0"],
     pinProjectionRefs: ["storage.pin.projection:surface-app:nvr-ui@0.2.0"],
     releaseContractRefs: ["service.manager.release:nvr-ui@0.2.0"],
@@ -1402,8 +1567,8 @@ test("surface app instance grammar validates clean selection and runner posture 
     state: "blocked",
     sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
     sourceClass: "storagePinned",
-    candidateRefs: ["storage-object:logging-ui@0.2.0"],
-    storageObjectRefs: ["storage-object:logging-ui@0.2.0"],
+    candidateRefs: [LOGGING_UI_STORAGE_OBJECT_REF],
+    storageObjectRefs: [LOGGING_UI_STORAGE_OBJECT_REF],
     releaseContractRef: "release:logging-ui@0.2.0",
     compatibilityRefs: ["protocol:surface-app:v1"],
     proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
@@ -1419,7 +1584,7 @@ test("surface app instance grammar validates clean selection and runner posture 
       state: "ready",
       sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
       sourceClass: "storagePinned",
-      candidateRefs: ["storage-object:logging-ui@0.2.0"],
+      candidateRefs: [LOGGING_UI_STORAGE_OBJECT_REF],
       releaseContractRef: "release:logging-ui@0.2.0",
       digestRefs: ["sha256:logging-ui@0.2.0"],
       signatureRefs: ["sig:logging-ui@0.2.0"],
@@ -1437,7 +1602,7 @@ test("surface app instance grammar validates clean selection and runner posture 
       state: "ready",
       sourceMode: SURFACE_APP.FULFILLMENT_MODE.STORAGE_OBJECT,
       sourceClass: "storagePinned",
-      candidateRefs: ["storage-object:logging-ui@0.2.0"],
+      candidateRefs: [LOGGING_UI_STORAGE_OBJECT_REF],
       releaseContractRef: "release:logging-ui@0.2.0",
       signatureRefs: ["sig:logging-ui@0.2.0"],
       proofDigestRefs: ["proof-digest:logging-ui@0.2.0"],
@@ -1646,6 +1811,32 @@ test("service manager operations and proof digests validate release train eviden
     releaseWitnessRefs: ["witness:operator:released"],
   });
   assert.equal(releaseOperation.operation, SURFACE_APP.SERVICE_MANAGER_OPERATION.RELEASE);
+
+  const controlRequest = assertServiceManagerControlRequestPosture({
+    kind: SWARM.RECORD_KIND.SERVICE_MANAGER_CONTROL_REQUEST_POSTURE,
+    requestId: "service-manager-control-request:gateway:health",
+    operation: SURFACE_APP.SERVICE_MANAGER_OPERATION.HEALTH_CHECK,
+    subjectRef: "service:gateway",
+    serviceManagerRef: "service-manager:lab",
+    requesterRef: "identity:operator",
+    fabricControlRoleRef: "role:hostServiceAdapter",
+    serviceRefs: ["service:gateway"],
+    capabilityRefs: ["service.manage"],
+    authorityRefs: ["authority:host-fabric:operator"],
+    grantRefs: ["grant:host-fabric:operator"],
+    evidenceRefs: ["proof-event:operator:service-manager-control"],
+    requestedAt,
+    expiresAt: requestedAt + 600,
+    safeFacts: {
+      serviceManagerControlInputIsTypedPosture: true,
+      commandLineIsAdapterTransport: true,
+    },
+  });
+  assert.equal(controlRequest.operation, SURFACE_APP.SERVICE_MANAGER_OPERATION.HEALTH_CHECK);
+  assert.throws(() => assertServiceManagerControlRequestPosture({
+    ...controlRequest,
+    adapterResidence: { statePath: "C:\\tmp\\state.json" },
+  }), /forbidden protocol field: adapterResidence/);
 
   const digest = assertServiceManagerProofDigest({
     kind: SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST,
@@ -1907,10 +2098,14 @@ test("host fabric records separate association, composition, lifecycle, source t
     fabricRef: "fabric:lab-gateway",
     hostRef: "host:lab-gateway",
     memberRef: BROWSER_PK,
+    participantRef: "participant:gateway-association:lab-gateway",
     role: FABRIC.MEMBER_ROLE.GATEWAY_ASSOCIATION,
+    roleRef: "role:gateway-association:lab-gateway",
     state: FABRIC.MEMBER_CONTRIBUTION_STATE.RUNNING,
     contractRef: "contract:gateway-association@0.1.0",
     subjectRef: "association:gateway:lab-gateway:ongoing",
+    moduleRefs: ["module:gateway-association"],
+    sourceRefs: ["content-index:source:constitute-gateway"],
     capabilityRefs: ["gateway.association.fulfill"],
     grantRefs: ["grant:gateway-association:fulfill"],
     evidenceRefs: ["evidence:gateway-association:presence"],
@@ -1930,15 +2125,28 @@ test("host fabric records separate association, composition, lifecycle, source t
     lifecycleContractRefs: ["contract:lifecycle.gateway-association@0.1.0"],
     phasePostures: [
       { phase: FABRIC.LIFECYCLE_PHASE.SOURCE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:source:indexed"] },
-      { phase: FABRIC.LIFECYCLE_PHASE.RUN, state: FABRIC.LIFECYCLE_PHASE_STATE.RUNNING, evidenceRefs: ["evidence:association:running"] },
+      { phase: FABRIC.LIFECYCLE_PHASE.RUN, state: FABRIC.LIFECYCLE_PHASE_STATE.RUNNING, dependencyRefs: ["lifecycle-dependency:gateway-association:storage"], evidenceRefs: ["evidence:association:running"] },
       { phase: FABRIC.LIFECYCLE_PHASE.OBSERVE, state: FABRIC.LIFECYCLE_PHASE_STATE.READY, evidenceRefs: ["evidence:association:observed"] },
     ],
+    dependencyEdges: [{
+      kind: SWARM.RECORD_KIND.LIFECYCLE_DEPENDENCY_EDGE,
+      dependencyRef: "lifecycle-dependency:gateway-association:storage",
+      sourceRef: "role:gatewayAssociation",
+      targetRef: "role:storageJournalCache",
+      state: FABRIC.LIFECYCLE_DEPENDENCY_STATE.READY,
+      required: true,
+      order: 10,
+      evidenceRefs: ["evidence:dependency:storage-ready"],
+      safeFacts: { dependency: "storage-before-gateway" },
+    }],
     memberContributionRefs: [memberContribution.contributionId],
     evidenceRefs: ["evidence:lifecycle:reduced"],
     observedAt,
     expiresAt: observedAt + 600,
   });
   assert.equal(lifecycle.phasePostures.length, 3);
+  assert.equal(lifecycle.dependencyEdges[0].targetRef, "role:storageJournalCache");
+  assertLifecycleDependencyEdge(lifecycle.dependencyEdges[0]);
 
   const plan = assertHostFabricFulfillmentPlan({
     kind: SWARM.RECORD_KIND.HOST_FABRIC_FULFILLMENT_PLAN,
@@ -1951,12 +2159,182 @@ test("host fabric records separate association, composition, lifecycle, source t
     memberContributionRefs: [memberContribution.contributionId],
     lifecyclePlanRefs: [lifecycle.lifecyclePlanId],
     materializationBudgetRefs: ["materialization-budget:gateway-association"],
+    actionAuthorityRefs: ["authority:ops-admin", "grant:gateway-association:fulfill"],
+    delegatedRoleRefs: ["role:gatewayAssociation"],
+    fallbackRefs: ["fallback:manual-service-manager"],
+    quarantineRefs: ["quarantine:service-manager:legacy-control:role:gatewayAssociation"],
+    rollbackRefs: ["rollback:gateway-association@0.1.0"],
+    evidenceRequirementRefs: ["proof-requirement:gateway-association:health"],
     associationHandoffRef: handoff.handoffId,
     evidenceRefs: ["evidence:fabric:plan-ready"],
     observedAt,
     expiresAt: observedAt + 600,
   });
   assert.equal(plan.memberContributionRefs[0], memberContribution.contributionId);
+
+  const topology = assertHostFabricTopologyProjection({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_TOPOLOGY_PROJECTION,
+    projectionId: "host-fabric-topology:lab-gateway:association",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    contractRef: "contract:gateway-association@0.1.0",
+    sourcePlanRef: plan.planId,
+    state: FABRIC.FULFILLMENT_PLAN_STATE.READY,
+    rolePostures: [{
+      roleRef: "role:gatewayAssociation",
+      state: FABRIC.TOPOLOGY_ROLE_STATE.READY,
+      contributionRefs: [memberContribution.contributionId],
+      participantRefs: [memberContribution.participantRef],
+      memberRefs: [memberContribution.memberRef],
+      moduleRefs: memberContribution.moduleRefs,
+      sourceRefs: memberContribution.sourceRefs,
+      lifecyclePlanRefs: [lifecycle.lifecyclePlanId],
+      evidenceRefs: memberContribution.evidenceRefs,
+      safeFacts: { role: "gatewayAssociation" },
+    }],
+    requiredRoleRefs: plan.requiredRoleRefs,
+    readyRoleRefs: ["role:gatewayAssociation"],
+    memberContributionRefs: plan.memberContributionRefs,
+    participantRefs: [memberContribution.participantRef],
+    moduleRefs: memberContribution.moduleRefs,
+    sourceRefs: memberContribution.sourceRefs,
+    lifecyclePlanRefs: plan.lifecyclePlanRefs,
+    materializationBudgetRefs: plan.materializationBudgetRefs,
+    associationHandoffRef: plan.associationHandoffRef,
+    evidenceRefs: ["evidence:fabric:topology-ready"],
+    safeFacts: { reducer: "host-fabric" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(topology.sourcePlanRef, plan.planId);
+
+  const controlDecision = assertHostFabricControlDecision({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_CONTROL_DECISION,
+    decisionId: "fabric-control:lab-gateway:health-check:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    operationRef: "service-operation:nvr:health-check:1",
+    subjectRef: "service:nvr",
+    controlOwnerRef: "fabric:lab-gateway",
+    delegatedRoleRef: "role:gatewayAssociation",
+    state: FABRIC.CONTROL_DECISION_STATE.READY,
+    sourcePlanRef: plan.planId,
+    sourcePlanObservedAt: plan.observedAt,
+    sourcePlanExpiresAt: plan.expiresAt,
+    planState: plan.state,
+    executionDelegationRef: "delegation:service-manager:health-check",
+    authorizationRefs: ["authorization:fabric-control:health-check"],
+    fallbackRefs: ["fallback:manual-service-manager"],
+    quarantineRefs: [],
+    rollbackRef: "rollback:service-manager:nvr",
+    releaseRefs: ["release:fabric-control:health-check"],
+    evidenceRefs: ["evidence:fabric-control:ready"],
+    safeFacts: { operation: "healthCheck" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(controlDecision.sourcePlanRef, plan.planId);
+  const legacyBridge = assertHostFabricLegacyControlBridge({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
+    bridgeId: "legacy-control-bridge:lab-gateway:health-check:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    legacyOwnerRef: "service-manager:lab-gateway",
+    subjectRef: "service:nvr",
+    operationRef: controlDecision.operationRef,
+    state: FABRIC.LEGACY_CONTROL_STATE.FALLBACK_AVAILABLE,
+    sourceDecisionRef: controlDecision.decisionId,
+    delegatedRoleRef: controlDecision.delegatedRoleRef,
+    fallbackRefs: controlDecision.fallbackRefs,
+    quarantineRefs: controlDecision.quarantineRefs,
+    evidenceRefs: ["evidence:legacy-control:fallback-available"],
+    safeFacts: { legacyBridge: "fallback-only" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(legacyBridge.sourceDecisionRef, controlDecision.decisionId);
+  const adapterExecution = assertHostFabricAdapterExecutionEvidence({
+    kind: SWARM.RECORD_KIND.HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE,
+    evidenceId: "host-adapter-execution:lab-gateway:health-check:1",
+    fabricRef: "fabric:lab-gateway",
+    hostRef: "host:lab-gateway",
+    adapterRef: "adapter:host-service:systemd",
+    subjectRef: "service:nvr",
+    operationRef: controlDecision.operationRef,
+    state: FABRIC.ADAPTER_EXECUTION_STATE.SUCCEEDED,
+    sourceDecisionRef: controlDecision.decisionId,
+    sourcePlanRef: plan.planId,
+    sourcePlanObservedAt: plan.observedAt,
+    sourcePlanExpiresAt: plan.expiresAt,
+    sourceBridgeRef: legacyBridge.bridgeId,
+    delegatedRoleRef: controlDecision.delegatedRoleRef,
+    authorizationRefs: controlDecision.authorizationRefs,
+    actionAuthorityRefs: plan.actionAuthorityRefs,
+    evidenceRequirementRefs: plan.evidenceRequirementRefs,
+    inputRefs: [controlDecision.operationRef, plan.planId],
+    outputRefs: ["evidence:host-adapter:health-check:ok"],
+    fallbackRefs: controlDecision.fallbackRefs,
+    quarantineRefs: controlDecision.quarantineRefs,
+    rollbackRefs: plan.rollbackRefs,
+    releaseRefs: controlDecision.releaseRefs,
+    cleanupRefs: ["cleanup:host-adapter:health-check"],
+    evidenceRefs: ["evidence:host-adapter:health-check:ok"],
+    safeFacts: { operation: "healthCheck", dryRun: true },
+    observedAt: observedAt + 1,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(adapterExecution.sourcePlanRef, plan.planId);
+  assert.throws(() => assertHostFabricLegacyControlBridge({
+    ...legacyBridge,
+    bridgeId: "legacy-control-bridge:bad:no-fallback",
+    fallbackRefs: [],
+  }), /requires fallbackRefs/);
+  assert.throws(() => assertHostFabricLegacyControlBridge({
+    ...legacyBridge,
+    bridgeId: "legacy-control-bridge:bad:direct-sourced",
+    state: FABRIC.LEGACY_CONTROL_STATE.LEGACY_DIRECT,
+  }), /legacy-direct.*sourceDecisionRef/);
+  assert.throws(() => assertHostFabricLegacyControlBridge({
+    ...legacyBridge,
+    bridgeId: "legacy-control-bridge:bad:blocked-unsourced",
+    state: FABRIC.LEGACY_CONTROL_STATE.BLOCKED,
+    sourceDecisionRef: undefined,
+    blockedReasons: ["hostFabric:controlBlocked:role:gatewayAssociation"],
+  }), /sourceDecisionRef/);
+  assert.throws(() => assertHostFabricAdapterExecutionEvidence({
+    ...adapterExecution,
+    evidenceId: "host-adapter-execution:bad:no-output",
+    outputRefs: [],
+  }), /requires outputRefs/);
+  assert.throws(() => assertHostFabricAdapterExecutionEvidence({
+    ...adapterExecution,
+    evidenceId: "host-adapter-execution:bad:no-authorization",
+    authorizationRefs: [],
+  }), /requires authorizationRefs/);
+  assert.throws(() => assertHostFabricControlDecision({
+    ...controlDecision,
+    decisionId: "fabric-control:bad:no-authorization",
+    authorizationRefs: [],
+  }), /requires authorizationRefs/);
+  assert.throws(() => assertHostFabricControlDecision({
+    ...controlDecision,
+    decisionId: "fabric-control:bad:stale-source-plan",
+    sourcePlanObservedAt: observedAt - 10,
+    sourcePlanExpiresAt: observedAt - 1,
+  }), /requires fresh sourcePlanExpiresAt/);
+  assert.throws(() => assertHostFabricAdapterExecutionEvidence({
+    ...adapterExecution,
+    evidenceId: "host-adapter-execution:bad:stale-source-plan",
+    sourcePlanObservedAt: observedAt - 10,
+    sourcePlanExpiresAt: observedAt,
+  }), /requires fresh sourcePlanExpiresAt/);
+  assert.throws(() => assertHostFabricControlDecision({
+    ...controlDecision,
+    decisionId: "fabric-control:bad:waiting-no-reason",
+    state: FABRIC.CONTROL_DECISION_STATE.WAITING_PLAN,
+    sourcePlanRef: undefined,
+    blockedReasons: [],
+  }), /requires blockedReasons/);
 
   const associationBoundary = assertAssociationBoundaryProof({
     kind: SWARM.RECORD_KIND.ASSOCIATION_BOUNDARY_PROOF,
@@ -1994,6 +2372,41 @@ test("host fabric records separate association, composition, lifecycle, source t
   });
   assert.equal(contentIndex.sourceRefs[0], "source:gateway-association:contract");
 
+  const contentIndexResolver = assertContentIndexResolverPosture({
+    kind: SWARM.RECORD_KIND.CONTENT_INDEX_RESOLVER_POSTURE,
+    resolverRef: "content-index-resolver:gateway-association",
+    contentIndexRef: contentIndex.contentIndexRef,
+    state: FABRIC.CONTENT_INDEX_STATE.READY,
+    sourceSnapshotRef: "source:snapshot:gateway-association:head",
+    resolutions: [{
+      resolutionRef: "content-index-resolution:gateway-association:module",
+      subjectRef: "module:gateway-association",
+      resolutionKind: "module",
+      contentIndexRef: contentIndex.contentIndexRef,
+      state: FABRIC.CONTENT_INDEX_STATE.READY,
+      sourceSnapshotRef: "source:snapshot:gateway-association:head",
+      treeHashRef: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      inputRefs: ["module:gateway-association"],
+      sourceRefs: ["source:gateway-association:contract"],
+      fileRefs: ["file:gateway-association:contract"],
+      artifactRefs: ["artifact:gateway-association:protocol-proof"],
+      objectRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+      chunkRefs: ["storage:chunk:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"],
+      storageMemberRefs: [SERVICE_PK],
+      availabilityRefs: ["storage:availability:gateway-association:contract"],
+      materializedProjectionRefs: ["projection:gateway-association:hot"],
+      adapterRefs: ["adapter:workspace-fs"],
+      evidenceRefs: ["evidence:content-index:resolver"],
+      safeFacts: { inputKind: "module-label" },
+    }],
+    materializedProjectionRefs: contentIndex.materializedProjectionRefs,
+    evidenceRefs: ["evidence:content-index:resolver"],
+    safeFacts: { operatorState: "ready" },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(contentIndexResolver.resolutions[0].objectRefs[0], SURFACE_APP_STORAGE_OBJECT_REF);
+
   const intention = assertContractIntentionPosture({
     kind: SWARM.RECORD_KIND.CONTRACT_INTENTION_POSTURE,
     postureId: "contract-intention-posture:gateway-association",
@@ -2025,6 +2438,220 @@ test("host fabric records separate association, composition, lifecycle, source t
     expiresAt: observedAt + 600,
   });
   assert.equal(intention.contentIndexRefs[0], contentIndex.contentIndexRef);
+
+  const lifecycleManifest = assertLifecycleManifestSeed({
+    kind: SWARM.RECORD_KIND.LIFECYCLE_MANIFEST_SEED,
+    manifestRef: "lifecycle:manifest:gateway-association@0.1.0",
+    state: FABRIC.LIFECYCLE_MANIFEST_STATE.READY,
+    promotionState: FABRIC.LIFECYCLE_PROMOTION_STATE.CANDIDATE_READY,
+    targetRef: "lifecycle-target:gateway-association:main",
+    candidateRefs: ["release-candidate:gateway-association@0.1.0"],
+    sourceSnapshotRefs: intention.sourceSnapshotRefs,
+    contentIndexRefs: intention.contentIndexRefs,
+    buildRefs: intention.buildRefs,
+    buildRunRefs: ["build-run:gateway-association:protocol-proof"],
+    artifactRefs: ["artifact:gateway-association:protocol-proof"],
+    storageRefs: contentIndex.storageRefs,
+    proofRefs: ["proof:gateway-association:protocol"],
+    releaseCandidateRefs: ["release-candidate:gateway-association@0.1.0"],
+    rollbackRefs: intention.rollbackRefs,
+    cleanupRefs: intention.cleanupRefs,
+    proofGateRefs: intention.proofGateRefs,
+    governanceRefs: ["governance:gateway-association:maintainers"],
+    conflictRefs: ["transition-conflict:adapter:git"],
+    evidenceRefs: ["evidence:lifecycle-manifest:seeded"],
+    safeFacts: { acceptedAsMain: false },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(lifecycleManifest.manifestRef, "lifecycle:manifest:gateway-association@0.1.0");
+
+  const deletionWorklist = assertAdapterDebtDeletionWorklist({
+    kind: SWARM.RECORD_KIND.ADAPTER_DEBT_DELETION_WORKLIST,
+    state: FABRIC.ADAPTER_DEBT_STATE.TRACKING,
+    itemCount: 1,
+    ownerCount: 1,
+    retiredAsBlockerCount: 1,
+    orderPolicy: ["source.snapshot.ref"],
+    blockerPolicy: "tracked adapter shims block only when they corrupt active primitive proof",
+    ownerGroups: [{
+      subjectRef: "repo:gateway-association",
+      state: FABRIC.ADAPTER_DEBT_STATE.TRACKING,
+      adapterRefs: ["git"],
+      desiredPrimitiveRefs: ["source.snapshot.ref"],
+      deletionSliceRefs: ["deletion-slice:adapter-debt:git:source.snapshot.ref:repo:gateway-association"],
+      blockedReasons: [],
+    }],
+    items: [{
+      kind: "adapter.debt.deletion.work-item",
+      order: 10,
+      deletionSliceRef: "deletion-slice:adapter-debt:git:source.snapshot.ref:repo:gateway-association",
+      subjectRef: "repo:gateway-association",
+      adapterRef: "git",
+      currentShim: "repo:dirty",
+      desiredPrimitive: "source.snapshot.ref",
+      proofToRetire: "source snapshot emits signed candidate refs without git status authority",
+      blockingState: FABRIC.ADAPTER_DEBT_BLOCKING_STATE.TRACKED_NON_BLOCKING,
+      blockedReasons: [],
+    }],
+    blockedReasons: [],
+  });
+  assert.equal(deletionWorklist.itemCount, 1);
+
+  const adapterDebt = assertAdapterDebtPosture({
+    kind: SWARM.RECORD_KIND.ADAPTER_DEBT_POSTURE,
+    state: FABRIC.ADAPTER_DEBT_STATE.TRACKING,
+    debtItemCount: 1,
+    familyCounts: { git: 1 },
+    explicitAdapterRefs: ["git"],
+    desiredPrimitiveRefs: ["source.snapshot.ref"],
+    deletionSliceRefs: deletionWorklist.items.map((item) => item.deletionSliceRef),
+    retiredAsBlockers: [{
+      ref: "adapter-retirement:false-blocker:git-status",
+      state: "retiredAsBlocker",
+      nativePrimitive: "source.snapshot.ref",
+      evidenceRef: "source:snapshot:gateway-association:head",
+    }],
+    deletionWorklist,
+    debtItems: [{
+      kind: "adapter.debt.item",
+      debtRef: "adapter-debt:git:gateway-association",
+      subjectRef: "repo:gateway-association",
+      adapterRef: "git",
+      currentShim: "repo:dirty",
+      desiredPrimitive: "source.snapshot.ref",
+      deletionSliceRef: deletionWorklist.items[0].deletionSliceRef,
+      proofToRetire: "source snapshot emits signed candidate refs without git status authority",
+    }],
+    blockedReasons: [],
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(adapterDebt.debtItemCount, 1);
+
+  const adapterResidency = assertAdapterResidencyPosture({
+    kind: SWARM.RECORD_KIND.ADAPTER_RESIDENCY_POSTURE,
+    state: FABRIC.ADAPTER_RESIDENCY_STATE.READY,
+    adapterRef: "cargo:path",
+    adapterRole: "toolMaterialization",
+    residencyCount: 1,
+    residencyRefs: ["adapter-residency:cargo-path:gateway-association:constitute-protocol"],
+    subjectRefs: ["repo:gateway-association"],
+    nativeDependencyRefs: ["module:native-dev:constitute-protocol"],
+    storageBackedInputRefs: ["build-input:storage-source-pack:native-dev:constitute-protocol:abc123"],
+    toolMaterializationRefs: ["materialized:folder-projection:workspace-dev:constitute-protocol"],
+    semanticConflictRefs: [],
+    legacyTransitionConflictRefs: ["transition-conflict:gateway-association:cargo-path:constitute-protocol"],
+    evidenceRefs: ["evidence:adapter-residency:gateway-association:constitute-protocol"],
+    blockedReasons: [],
+    safeFacts: {
+      dependencySelectionDoesNotUseCargoPath: true,
+      transitionConflictVocabularyRetiredForResidency: true,
+    },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(adapterResidency.residencyCount, 1);
+  assert.throws(() => assertAdapterResidencyPosture({
+    ...adapterResidency,
+    localPath: "../constitute-protocol",
+  }), /forbidden protocol field: localPath/);
+  assert.throws(() => assertAdapterResidencyPosture({
+    ...adapterResidency,
+    commandLine: "cargo check --manifest-path Cargo.toml",
+  }), /forbidden protocol field: commandLine/);
+
+  const manifestSelected = assertManifestSelectedOperationPosture({
+    kind: SWARM.RECORD_KIND.MANIFEST_SELECTED_OPERATION_POSTURE,
+    state: FABRIC.MANIFEST_SELECTED_OPERATION_STATE.DEGRADED,
+    lifecycleManifestRef: lifecycleManifest.manifestRef,
+    promotionIntentRef: intention.intentionRef,
+    buildRefs: lifecycleManifest.buildRefs,
+    buildRunRefs: lifecycleManifest.buildRunRefs,
+    artifactRefs: lifecycleManifest.artifactRefs,
+    storageRefs: lifecycleManifest.storageRefs,
+    storageObjectRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+    executableRefs: ["executable:module:gateway-association"],
+    executableHashRefs: ["sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+    runnerOperationRef: "runner-operation:gateway-association:module-load",
+    runnerContractRef: lifecycleManifest.manifestRef,
+    hostPostureRef: "runner-host-posture:gateway-association",
+    fulfillmentSessionRef: "fulfillment-session:gateway-association:module-load",
+    fulfillmentSessionContractRef: lifecycleManifest.manifestRef,
+    fulfillmentSessionParentIntentRef: intention.intentionRef,
+    transitionConflictRefs: lifecycleManifest.conflictRefs,
+    blockedReasons: [],
+    safeFacts: { sameLifecycleRefFamily: true },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(manifestSelected.fulfillmentSessionContractRef, lifecycleManifest.manifestRef);
+
+  const sessionProjection = assertRuntimeFulfillmentSessionProjection({
+    kind: SWARM.RECORD_KIND.RUNTIME_FULFILLMENT_SESSION_PROJECTION,
+    projectionRef: "runtime:fulfillment-session:projection:gateway-association",
+    state: FABRIC.LIFECYCLE_MANIFEST_STATE.DEGRADED,
+    sessionId: manifestSelected.fulfillmentSessionRef,
+    lifecycleManifestRef: lifecycleManifest.manifestRef,
+    parentIntentRef: intention.intentionRef,
+    subjectRef: "module:gateway-association",
+    contractRef: lifecycleManifest.manifestRef,
+    hostRef: "host:lab-gateway",
+    runnerRef: `member:${SERVICE_PK}`,
+    storageAvailabilityRefs: ["storage:availability:gateway-association:contract"],
+    storageRefs: lifecycleManifest.storageRefs,
+    executableRefs: manifestSelected.executableRefs,
+    adapterDebtState: adapterDebt.state,
+    adapterDebtRef: adapterDebt.kind,
+    queryKeys: {
+      bySession: manifestSelected.fulfillmentSessionRef,
+      byManifest: lifecycleManifest.manifestRef,
+      byParentIntent: intention.intentionRef,
+      bySubject: "module:gateway-association",
+      byHost: "host:lab-gateway",
+      byRunner: `member:${SERVICE_PK}`,
+      byStorageAvailability: ["storage:availability:gateway-association:contract"],
+      byAdapterDebt: adapterDebt.state,
+    },
+    currentPosture: {
+      sessionState: SWARM.FULFILLMENT_SESSION_STATE.RUNNING,
+      runnerOperationState: RUNNER.OPERATION_STATE.SUCCEEDED,
+      hostFulfillmentState: RUNNER.HOST_FULFILLMENT_STATE.SUCCEEDED,
+      nodeCount: 3,
+    },
+    evidenceRefs: ["evidence:runtime:fulfillment-session-projection"],
+    blockedReasons: [],
+    safeFacts: { lateConsumerQueryable: true },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(sessionProjection.queryKeys.byManifest, lifecycleManifest.manifestRef);
+
+  const controlProof = assertControlInversionProof({
+    kind: SWARM.RECORD_KIND.CONTROL_INVERSION_PROOF,
+    roleRef: "role:executionFulfillment",
+    state: FABRIC.CONTROL_INVERSION_PROOF_STATE.DEGRADED,
+    primaryControl: "manifestSession",
+    primaryRefs: [
+      manifestSelected.lifecycleManifestRef,
+      manifestSelected.promotionIntentRef,
+      manifestSelected.runnerOperationRef,
+      sessionProjection.sessionId,
+      sessionProjection.projectionRef,
+    ],
+    legacyFallbackRefs: ["fallback:runner-runtime-dispatch-bridge"],
+    legacyPathState: "fallbackOnly",
+    adapterDebtState: adapterDebt.state,
+    blockedReasons: [],
+    safeFacts: {
+      manifestSessionIsPrimary: true,
+      legacyPathIsPrimary: false,
+      narrowRoleOnly: true,
+    },
+    observedAt,
+    expiresAt: observedAt + 600,
+  });
+  assert.equal(controlProof.primaryControl, "manifestSession");
 
   const uniqueEdge = assertUniqueEdgeClassification({
     kind: SWARM.RECORD_KIND.UNIQUE_EDGE_CLASSIFICATION,
@@ -2071,16 +2698,57 @@ test("host fabric records separate association, composition, lifecycle, source t
     state: FABRIC.LIFECYCLE_PLAN_STATE.BLOCKED,
     blockedReasons: [],
   }), /requires blockedReasons/);
+  assert.throws(() => assertLifecyclePlanPosture({
+    ...lifecycle,
+    lifecyclePlanId: "lifecycle-plan:bad:missing-dependency-reason",
+    dependencyEdges: [{
+      ...lifecycle.dependencyEdges[0],
+      dependencyRef: "lifecycle-dependency:bad:missing",
+      state: FABRIC.LIFECYCLE_DEPENDENCY_STATE.MISSING,
+      blockedReasons: [],
+    }],
+  }), /lifecycle dependency edge requires blockedReasons/);
   assert.throws(() => assertContentIndexRefPosture({
     ...contentIndex,
     postureId: "content-index-posture:bad:storage-only",
     sourceRefs: [],
   }), /requires sourceRefs/);
+  assert.throws(() => assertContentIndexResolverPosture({
+    ...contentIndexResolver,
+    resolverRef: "content-index-resolver:bad:symbolic-object",
+    resolutions: [{
+      ...contentIndexResolver.resolutions[0],
+      objectRefs: ["storage:object:gateway-ui@dev"],
+    }],
+  }), /content-addressed storage object ref/);
   assert.throws(() => assertContractIntentionPosture({
     ...intention,
     postureId: "contract-intention-posture:bad:no-hash",
     canonicalHashRef: "",
   }), /canonicalHashRef/);
+  assert.throws(() => assertLifecycleManifestSeed({
+    ...lifecycleManifest,
+    manifestRef: "lifecycle:manifest:bad:blocked",
+    state: FABRIC.LIFECYCLE_MANIFEST_STATE.BLOCKED,
+    blockedReasons: [],
+  }), /blockedReasons/);
+  assert.throws(() => assertAdapterDebtDeletionWorklist({
+    ...deletionWorklist,
+    itemCount: 2,
+  }), /itemCount/);
+  assert.throws(() => assertManifestSelectedOperationPosture({
+    ...manifestSelected,
+    runnerContractRef: "lifecycle:manifest:other",
+  }), /runnerContractRef/);
+  assert.throws(() => assertRuntimeFulfillmentSessionProjection({
+    ...sessionProjection,
+    contractRef: "lifecycle:manifest:other",
+  }), /contractRef/);
+  assert.throws(() => assertControlInversionProof({
+    ...controlProof,
+    state: FABRIC.CONTROL_INVERSION_PROOF_STATE.PROVED,
+    primaryRefs: [],
+  }), /primaryRefs/);
   assert.throws(() => assertUniqueEdgeClassification({
     ...uniqueEdge,
     classificationId: "unique-edge:bad:no-external",
@@ -2091,6 +2759,402 @@ test("host fabric records separate association, composition, lifecycle, source t
     contributionId: "fabric-contribution:bad:secret",
     safeFacts: { token: "nope" },
   }), /unsafe safe fact key|forbidden protocol field/);
+});
+
+test("source snapshots expose file-level authority posture in the JS protocol surface", () => {
+  const issuedAt = 1700000045;
+  const snapshot = assertSourceSnapshot({
+    kind: SOURCE.RECORD_KIND.SNAPSHOT,
+    sourceGraphRef: "source:graph:native-dev:constitute-build",
+    snapshotRef: "source:snapshot:native-dev:constitute-build:head",
+    commitRef: "source:commit:native-dev:constitute-build:head",
+    treeRef: "source:tree:native-dev:constitute-build:head",
+    treeHashRef: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    fileEntries: [{
+      fileRef: "source:file:native-dev:constitute-build:index",
+      pathRef: "source:path:native-dev:constitute-build:src-index",
+      virtualPath: "src/index.js",
+      hashRef: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      byteLength: 128,
+      storageObjectRef: SURFACE_APP_STORAGE_OBJECT_REF,
+      evidenceRefs: ["evidence:source-file:index"],
+    }],
+    storageObjectRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+    authorRef: `member:${SERVICE_PK}`,
+    signaturePosture: SOURCE.SIGNATURE_POSTURE.DEV_UNSIGNED,
+    messageDigestRef: "digest:source-snapshot:native-dev:constitute-build",
+    branchRefs: ["branch:native-dev"],
+    candidateRefs: ["candidate:source:native-dev:constitute-build"],
+    writerGrantRefs: ["source-writer-grant:native-dev:constitute-build"],
+    authorityRefs: ["authority:device:dev"],
+    materializedProjectionRefs: ["projection:source:native-dev:constitute-build"],
+    dirtyProjectionRefs: ["projection:dirty:native-dev:constitute-build"],
+    evidenceRefs: ["evidence:dev-unsigned-source-snapshot"],
+    issuedAt,
+  });
+  assert.equal(snapshot.fileEntries[0].virtualPath, "src/index.js");
+
+  assert.throws(() => assertSourceSnapshot({
+    ...snapshot,
+    snapshotRef: "source:snapshot:bad:dirty-no-candidate",
+    candidateRefs: [],
+  }), /dirty source snapshot projection needs candidateRefs/);
+  assert.throws(() => assertSourceSnapshot({
+    ...snapshot,
+    snapshotRef: "source:snapshot:bad:raw-path",
+    fileEntries: [{
+      ...snapshot.fileEntries[0],
+      virtualPath: "C:\\dev\\src\\index.js",
+    }],
+  }), /logical relative path/);
+  assert.throws(() => assertSourceSnapshot({
+    ...snapshot,
+    snapshotRef: "source:snapshot:bad:signed-no-signature",
+    signaturePosture: SOURCE.SIGNATURE_POSTURE.SIGNED,
+    signatureRefs: [],
+  }), /signed source snapshot needs signatureRefs/);
+});
+
+test("source version-index and authoring projections have protocol-owned JS assertions", () => {
+  const versionIndex = assertSourceVersionIndexProjection({
+    kind: SOURCE.RECORD_KIND.VERSION_INDEX_PROJECTION,
+    state: "ready",
+    versionIndexRef: "version-index:native-dev:abc",
+    sourceSnapshotRef: "source:snapshot:native-dev:abc",
+    contentIndexRef: "content-index:native-dev:abc",
+    entries: [{
+      kind: SOURCE.RECORD_KIND.VERSION_INDEX_ENTRY,
+      entryRef: "version-index-entry:native-dev:constitute-cli",
+      repoRef: "repo:constitute-cli",
+      moduleRef: "module:native-dev:constitute-cli",
+      selectedVersionRef: "version-selection:native-dev:constitute-cli:abc",
+      contractVersionRef: "contract-version:constitute-cli:0.1.0",
+      sourceSnapshotRef: "source:snapshot:native-dev:constitute-cli:abc",
+      contentIndexRef: "content-index:native-dev:constitute-cli:abc",
+    }],
+    selectedVersionRefs: ["version-selection:native-dev:constitute-cli:abc"],
+    contractVersionRefs: ["contract-version:constitute-cli:0.1.0"],
+    moduleRefs: ["module:native-dev:constitute-cli"],
+    evidenceRefs: ["evidence:native-source:version-index"],
+  });
+  assert.equal(versionIndex.entries[0].moduleRef, "module:native-dev:constitute-cli");
+
+  const workspace = assertAuthoringWorkspaceProjection({
+    kind: SOURCE.RECORD_KIND.AUTHORING_WORKSPACE_PROJECTION,
+    state: "ready",
+    workspaceRef: "swarm-workspace:authoring:native-dev:abc",
+    sourceSnapshotRef: "source:snapshot:native-dev:abc",
+    versionIndexRef: "version-index:native-dev:abc",
+    authoringEntries: [{
+      kind: SOURCE.RECORD_KIND.AUTHORING_WORKSPACE_ENTRY,
+      entryRef: "swarm-workspace:authoring-entry:native-dev:constitute-cli",
+      state: "candidateAuthoring",
+      repoRef: "repo:constitute-cli",
+      moduleRef: "module:native-dev:constitute-cli",
+      selectedVersionRef: "version-selection:native-dev:constitute-cli:abc",
+      sourceSnapshotRef: "source:snapshot:native-dev:constitute-cli:abc",
+      contentIndexRef: "content-index:native-dev:constitute-cli:abc",
+      candidateRefs: ["source:candidate:native-dev:constitute-cli:abc"],
+      dirtyProjectionRefs: ["materialized:source-index:native-dev:constitute-cli:dirty"],
+      candidateFeedback: {
+        kind: SOURCE.RECORD_KIND.AUTHORING_CANDIDATE_FEEDBACK_POSTURE,
+        state: "ready",
+        candidateSnapshotRefs: ["source:snapshot:candidate:abc"],
+        candidateRefs: ["source:candidate:native-dev:constitute-cli:abc"],
+        sourceRefUpdateRefs: ["source:update:native-dev:constitute-cli:abc"],
+        storageObjectRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+        availabilityRefs: ["storage-availability:abc"],
+        proofEventRefs: ["proof-event:operator:authoring-candidate-fixture"],
+        promotionIntentRefs: ["promotion:intent:source-candidate:constitute-cli:abc"],
+        lifecycleRequestRefs: ["lifecycle-request:promote:source:snapshot:candidate:abc"],
+        reportRefs: ["operator-report:authoring-candidate-fixture:abc"],
+      },
+      proofTargetRefs: ["proof-target:build:native-dev:constitute-cli"],
+    }],
+    selectedVersionRefs: ["version-selection:native-dev:constitute-cli:abc"],
+    candidateRefs: ["source:candidate:native-dev:constitute-cli:abc"],
+    dirtyProjectionRefs: ["materialized:source-index:native-dev:constitute-cli:dirty"],
+    proofTargetRefs: ["proof-target:build:native-dev:constitute-cli"],
+  });
+  assert.equal(workspace.authoringEntries[0].state, "candidateAuthoring");
+  assert.deepEqual(workspace.authoringEntries[0].candidateFeedback.sourceRefUpdateRefs, ["source:update:native-dev:constitute-cli:abc"]);
+
+  const candidate = assertAuthoringCandidateSnapshotPosture({
+    kind: SOURCE.RECORD_KIND.AUTHORING_CANDIDATE_SNAPSHOT_POSTURE,
+    state: "ready",
+    candidateSnapshotRef: "source:snapshot:candidate:abc",
+    candidateRef: "source:candidate:native-dev:constitute-cli:abc",
+    workspaceRef: "swarm-workspace:authoring:native-dev:abc",
+    repoRef: "repo:constitute-cli",
+    selectedVersionRef: "version-selection:native-dev:constitute-cli:abc",
+    parentSourceSnapshotRef: "source:snapshot:native-dev:constitute-cli:abc",
+    fulfilledStorageObjectRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+    availabilityRefs: ["storage-availability:abc"],
+    proofTargetRefs: ["proof-target:build:native-dev:constitute-cli"],
+  });
+  assert.equal(candidate.fulfilledStorageObjectRefs[0], SURFACE_APP_STORAGE_OBJECT_REF);
+
+  assert.throws(() => assertSourceVersionIndexProjection({
+    ...versionIndex,
+    versionIndexRef: "file://bad",
+  }), /contract\/storage ref/);
+  assert.throws(() => assertAuthoringCandidateSnapshotPosture({
+    ...candidate,
+    blockedReasons: ["candidate:blocker"],
+  }), /ready authoring candidate snapshot posture cannot carry blockedReasons/);
+});
+
+test("source transition apply records have protocol-owned JS assertions", () => {
+  const update = assertSourceRefUpdate({
+    kind: SOURCE.RECORD_KIND.REF_UPDATE,
+    updateRef: "source:update:constitute-cli-main:abc",
+    sourceGraphRef: "source:graph:constitute-cli",
+    refName: "refs/heads/main",
+    refKind: "branch",
+    fromSnapshotRef: "source:snapshot:native-dev:constitute-cli:old",
+    toSnapshotRef: "source:snapshot:candidate:new",
+    writerRef: "identity:device:agent",
+    state: "applied",
+    grantRefs: ["source:grant:writer"],
+    evidenceRefs: ["source:evidence:fast-forward"],
+    witnessRefs: ["source:witness:runtime"],
+    policy: {
+      fastForwardOnly: true,
+      reviewRequired: true,
+      signedUpdatesRequired: true,
+      allowedOperations: ["import", "fetch", "push", "refUpdate", "status"],
+    },
+    signedAt: 3,
+    validUntil: 20,
+  });
+  assert.equal(update.refName, "refs/heads/main");
+
+  assert.throws(() => assertSourceRefUpdate({
+    ...update,
+    fromSnapshotRef: undefined,
+  }), /fast-forward source ref update needs fromSnapshotRef/);
+  assert.throws(() => assertSourceRefUpdate({
+    ...update,
+    statePath: "C:\\tmp\\source-ref-update.json",
+  }), /forbidden protocol field: statePath/);
+
+  const transition = assertSourceRefTransitionPosture({
+    kind: SOURCE.RECORD_KIND.REF_TRANSITION_POSTURE,
+    transitionRef: "source-ref-transition:native-dev:constitute-cli:abc",
+    state: "applied",
+    targetRef: "source:ref:native-dev:constitute-cli:main",
+    repoRef: "repo:constitute-cli",
+    fromSourceSnapshotRef: "source:snapshot:native-dev:constitute-cli:old",
+    toSourceSnapshotRef: "source:snapshot:candidate:new",
+    fromContentIndexRef: "content-index:native-dev:constitute-cli:old",
+    toContentIndexRef: "content-index:candidate:constitute-cli:new",
+    fromSelectedVersionRef: "version-selection:native-dev:constitute-cli:old",
+    toSelectedVersionRef: "version-selection:native-dev:constitute-cli:new",
+    lifecycleManifestRef: "lifecycle:manifest:source-candidate:constitute-cli:abc",
+    promotionIntentRef: "promotion:intent:source-candidate:constitute-cli:abc",
+    authorityRefs: ["authority:source-promotion:operator-dev"],
+    grantRefs: ["grant:source-promotion:operator-dev"],
+    witnessRefs: ["witness:source-promotion-apply:constitute-cli:abc"],
+    rollbackRefs: ["rollback:source-snapshot:constitute-cli:abc"],
+  });
+  assert.equal(transition.state, "applied");
+
+  const delta = assertSourceVersionIndexDeltaPosture({
+    kind: SOURCE.RECORD_KIND.VERSION_INDEX_DELTA_POSTURE,
+    deltaRef: "version-index-delta:native-dev:constitute-cli:abc",
+    state: "applied",
+    versionIndexRef: "version-index:native-dev:abc",
+    repoRef: "repo:constitute-cli",
+    targetRef: transition.targetRef,
+    fromEntry: {
+      selectedVersionRef: transition.fromSelectedVersionRef,
+      sourceSnapshotRef: transition.fromSourceSnapshotRef,
+      contentIndexRef: transition.fromContentIndexRef,
+    },
+    toEntry: {
+      entryRef: "version-index-entry:native-dev:constitute-cli:new",
+      contractRef: "contract:module:constitute-cli",
+      contractVersionRef: "contract-version:constitute-cli:0.1.0",
+      selectedVersionRef: transition.toSelectedVersionRef,
+      moduleRef: "module:native-dev:constitute-cli",
+      repoRef: "repo:constitute-cli",
+      sourceSnapshotRef: transition.toSourceSnapshotRef,
+      contentIndexRef: transition.toContentIndexRef,
+      treeHashRef: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      selectedByRef: transition.promotionIntentRef,
+      authorityRefs: transition.authorityRefs,
+      writerGrantRefs: transition.grantRefs,
+    },
+    inputRefs: [transition.transitionRef],
+    outputRefs: ["version-selection:native-dev:constitute-cli:new"],
+  });
+  assert.equal(delta.toEntry.selectedVersionRef, transition.toSelectedVersionRef);
+
+  const rollback = assertSourcePromotionRollbackPosture({
+    kind: SOURCE.RECORD_KIND.PROMOTION_ROLLBACK_POSTURE,
+    rollbackRef: "rollback:source-snapshot:constitute-cli:abc",
+    state: "applied",
+    targetRef: transition.targetRef,
+    restoreSourceSnapshotRef: transition.fromSourceSnapshotRef,
+    restoreContentIndexRef: transition.fromContentIndexRef,
+    restoreSelectedVersionRef: transition.fromSelectedVersionRef,
+    rollbackGateRefs: [transition.fromSourceSnapshotRef, transition.fromSelectedVersionRef],
+  });
+  assert.equal(rollback.restoreSelectedVersionRef, transition.fromSelectedVersionRef);
+
+  const witness = assertSourcePromotionWitnessPosture({
+    kind: SOURCE.RECORD_KIND.PROMOTION_WITNESS_POSTURE,
+    witnessRef: "witness:source-promotion-apply:constitute-cli:abc",
+    state: "applied",
+    subjectRef: transition.transitionRef,
+    lifecycleManifestRef: transition.lifecycleManifestRef,
+    promotionIntentRef: transition.promotionIntentRef,
+    evidenceRefs: ["proof-event:operator:source-promotion-apply"],
+    proofGateRefs: ["proof-gate:external-dependency-storage-pinned:abc"],
+    storageRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+    storagePinRefs: ["storage:pin-intent:abc"],
+    storageAvailabilityRefs: ["storage-availability:abc"],
+  });
+  assert.equal(witness.subjectRef, transition.transitionRef);
+
+  const applied = assertSourceAppliedRefProjection({
+    kind: SOURCE.RECORD_KIND.APPLIED_REF_PROJECTION,
+    state: "applied",
+    projectionRef: "source-applied-ref-projection:native-dev:abc",
+    reportRef: "operator-report:source-promotion-apply-abc",
+    applyRef: "source-promotion-apply:native-dev:constitute-cli:abc",
+    repoRef: "repo:constitute-cli",
+    targetRef: transition.targetRef,
+    lifecycleManifestRef: transition.lifecycleManifestRef,
+    promotionIntentRef: transition.promotionIntentRef,
+    sourceRefTransitionRef: transition.transitionRef,
+    versionIndexDeltaRef: delta.deltaRef,
+    witnessRef: witness.witnessRef,
+    rollbackRef: rollback.rollbackRef,
+    fromSourceSnapshotRef: transition.fromSourceSnapshotRef,
+    toSourceSnapshotRef: transition.toSourceSnapshotRef,
+    fromContentIndexRef: transition.fromContentIndexRef,
+    toContentIndexRef: transition.toContentIndexRef,
+    fromSelectedVersionRef: transition.fromSelectedVersionRef,
+    toSelectedVersionRef: transition.toSelectedVersionRef,
+    toVersionIndexEntry: delta.toEntry,
+    authorityRefs: transition.authorityRefs,
+    grantRefs: transition.grantRefs,
+    proofGateRefs: witness.proofGateRefs,
+    evidenceRefs: witness.evidenceRefs,
+    storageRefs: witness.storageRefs,
+  });
+  assert.equal(applied.toSelectedVersionRef, transition.toSelectedVersionRef);
+
+  const sourceRefUpdate = assertSourceRefUpdate({
+    kind: SOURCE.RECORD_KIND.REF_UPDATE,
+    updateRef: "source:update:native-dev:constitute-cli:abc",
+    sourceGraphRef: "source:graph:native-dev",
+    refName: "refs/heads/main",
+    refKind: "branch",
+    fromSnapshotRef: transition.fromSourceSnapshotRef,
+    toSnapshotRef: transition.toSourceSnapshotRef,
+    writerRef: "member:operator-cli",
+    state: "applied",
+    grantRefs: transition.grantRefs,
+    evidenceRefs: ["proof-event:operator:authoring-candidate-fixture"],
+    witnessRefs: witness.proofGateRefs,
+    blockedReasons: [],
+    policy: {
+      fastForwardOnly: true,
+      reviewRequired: true,
+      signedUpdatesRequired: false,
+      allowedOperations: ["status", "push", "refUpdate"],
+    },
+    signedAt: 1779699600,
+    validUntil: 1779703200,
+  });
+
+  const storeEntry = {
+    applyRef: applied.applyRef,
+    reportRef: applied.reportRef,
+    repoRef: transition.repoRef,
+    targetRef: transition.targetRef,
+    sourceRefUpdateRefs: [sourceRefUpdate.updateRef],
+    sourceRefTransitionRef: transition.transitionRef,
+    versionIndexDeltaRef: delta.deltaRef,
+    witnessRef: witness.witnessRef,
+    rollbackRef: rollback.rollbackRef,
+    lifecycleManifestRef: transition.lifecycleManifestRef,
+    promotionIntentRef: transition.promotionIntentRef,
+    fromSourceSnapshotRef: transition.fromSourceSnapshotRef,
+    toSourceSnapshotRef: transition.toSourceSnapshotRef,
+    fromContentIndexRef: transition.fromContentIndexRef,
+    toContentIndexRef: transition.toContentIndexRef,
+    fromSelectedVersionRef: transition.fromSelectedVersionRef,
+    toSelectedVersionRef: transition.toSelectedVersionRef,
+    toVersionIndexEntry: delta.toEntry,
+    authorityRefs: transition.authorityRefs,
+    grantRefs: transition.grantRefs,
+    proofGateRefs: witness.proofGateRefs,
+    evidenceRefs: [applied.reportRef, transition.transitionRef],
+    storageRefs: witness.storageRefs,
+    storagePinRefs: witness.storagePinRefs,
+    storageAvailabilityRefs: witness.storageAvailabilityRefs,
+    observedAt: "2026-05-25T09:00:00.000Z",
+  };
+  const store = assertSourceRefStoreJournal({
+    kind: SOURCE.RECORD_KIND.REF_STORE_JOURNAL,
+    state: "ready",
+    storeRef: "source-ref-store:native-dev:constitute-cli-main",
+    journalRef: "source-ref-journal:native-dev:constitute-cli-main:abc",
+    sourceGraphRef: "source:graph:source-ref-store:constitute-cli-main",
+    targetRef: transition.targetRef,
+    repoRef: transition.repoRef,
+    current: storeEntry,
+    transitions: [storeEntry],
+    transitionCount: 1,
+    sourceRefUpdates: [sourceRefUpdate],
+    sourceRefUpdateRefs: [sourceRefUpdate.updateRef],
+    evidenceRefs: [applied.reportRef, transition.transitionRef],
+    storageObjectRefs: [SURFACE_APP_STORAGE_OBJECT_REF],
+    storageAvailabilityRefs: ["storage-availability:abc"],
+    storagePinIntentRefs: ["storage:pin-intent:abc"],
+    storagePinAttestationRefs: ["storage:pin-attestation:abc"],
+    safeFacts: {
+      sourceRefStoreIsStateResidence: true,
+      storageDoesNotOwnSourceSemantics: true,
+    },
+    updatedAt: "2026-05-25T09:00:00.000Z",
+  });
+  assert.equal(store.current.toSelectedVersionRef, transition.toSelectedVersionRef);
+  assert.deepEqual(store.sourceRefUpdateRefs, [sourceRefUpdate.updateRef]);
+  assert.equal(store.sourceRefUpdates[0].updateRef, sourceRefUpdate.updateRef);
+
+  const replay = assertSourceRefStoreReplayPosture({
+    kind: SOURCE.RECORD_KIND.REF_STORE_REPLAY_POSTURE,
+    state: "ready",
+    replayRef: "source-ref-store-replay:native-dev:constitute-cli-main:abc",
+    storeRef: store.storeRef,
+    journalRef: store.journalRef,
+    targetRef: store.targetRef,
+    expectedTargetRef: transition.targetRef,
+    repoRef: store.repoRef,
+    currentTransitionRef: transition.transitionRef,
+    currentVersionIndexDeltaRef: delta.deltaRef,
+    currentSelectedVersionRef: transition.toSelectedVersionRef,
+    transitionCount: store.transitionCount,
+    sourceRefUpdateRefs: store.sourceRefUpdateRefs,
+    storageObjectRefs: store.storageObjectRefs,
+    storageAvailabilityRefs: store.storageAvailabilityRefs,
+    evidenceRefs: [store.storeRef, transition.transitionRef],
+  });
+  assert.equal(replay.currentSelectedVersionRef, transition.toSelectedVersionRef);
+  assert.deepEqual(replay.sourceRefUpdateRefs, [sourceRefUpdate.updateRef]);
+  assert.throws(() => assertSourceRefStoreReplayPosture({
+    ...replay,
+    expectedTargetRef: "source:ref:native-dev:other:main",
+  }), /targetRef must match expectedTargetRef/);
+
+  assert.throws(() => assertSourceRefTransitionPosture({
+    ...transition,
+    blockedReasons: ["sourcePromotionApply:blocked"],
+  }), /applied source ref transition posture cannot carry blockedReasons/);
 });
 
 test("contract targets declare platform branch adapter slots and proof posture", () => {
@@ -2667,11 +3731,48 @@ test("storage manifest helpers validate ciphertext-addressed objects", () => {
     ciphertextHash: storageCiphertextHash(ciphertext),
     hashAlg: STORAGE.OBJECT_HASH_ALG,
     chunks: [chunk],
-    objectRefs: [manifest.objectId],
+    objectRefs: [`storage:object:${manifest.objectId}`],
     graphEdges: [],
     createdAt: 1700000000,
   };
   assertStorageIndexShard(shard);
+
+  const executable = assertStorageModuleExecutableInstantiationPosture({
+    kind: "storage.module.executable.instantiation.posture",
+    postureId: "storage-module-executable-instantiation-posture:abc",
+    storageMemberRef: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    moduleRef: "module:native-dev:constitute-build",
+    sourceSnapshotRef: "source:snapshot:native-dev:constitute-build:abc",
+    contentIndexRef: "content-index:native-dev:constitute-build:abc",
+    artifactRef: "artifact:native-dev:constitute-build:abc",
+    materializationRef: "storage:module-materialization:abc",
+    materializationPostureRef: "storage-module-materialization-posture:abc",
+    objectRef: `storage:object:${manifest.objectId}`,
+    executableRef: "executable:module:module_native-dev_constitute-build:abc",
+    executableHashRef: "sha256:abc",
+    mediaType: "application/vnd.constitute.module-source-pack+json",
+    state: "instantiated",
+    evidenceRefs: [`storage:object:${manifest.objectId}`],
+    conflictRefs: [],
+    adapterResidencyRefs: ["transition-conflict:constitute-fabric:cargo-path:constitute-protocol"],
+    legacyTransitionConflictRefs: ["transition-conflict:constitute-fabric:cargo-path:constitute-protocol"],
+    blockedReasons: [],
+    byteLength: 512,
+    chunkCount: 1,
+    safeFacts: {
+      storageRole: "byteCacheJournal",
+      loadOwner: "runner",
+      sourceSemanticOwner: "notStorage",
+    },
+    instantiatedAt: 1700000000,
+    expiresAt: 1700000060,
+  });
+  assert.equal(executable.storageMemberRef, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  assert.deepEqual(executable.adapterResidencyRefs, ["transition-conflict:constitute-fabric:cargo-path:constitute-protocol"]);
+  assert.throws(() => assertStorageModuleExecutableInstantiationPosture({
+    ...executable,
+    storageMemberRef: "service:storage:local",
+  }), /must be a resolved public key/);
 });
 
 test("logging helpers validate safe event envelopes", () => {
@@ -3277,7 +4378,7 @@ test("materialization budgets encode copy roles and consumer floors", () => {
     transferMode: SWARM.MATERIALIZATION_TRANSFER_MODE.REFERENCE_ONLY,
     privacyTier: SWARM.MATERIALIZATION_PRIVACY_TIER.ENCRYPTED_DETAIL,
     limits: { maxRefs: 500 },
-    referenceRefs: ["storage:object:encrypted-detail-1"],
+    referenceRefs: [ENCRYPTED_DETAIL_STORAGE_OBJECT_REF],
     issuedAt: 1700000013,
   });
 
@@ -3392,6 +4493,94 @@ test("contribution lifecycle validates validity witness retraction and release b
     issuedAt: 1_700_000_060,
     validUntil: 1_700_000_060,
   }), /validUntil/);
+});
+
+test("operation instance posture binds selected refs and role contributions without owner drift", () => {
+  const runtimeContribution = {
+    roleRef: "role:runtime-operation-binding",
+    contributionRef: "operation-contribution:nvr-preview:runtime",
+    contributorRef: "runtime:browser:shared-worker",
+    contributionType: SWARM.CONTRIBUTION_TYPE.FULFILLMENT,
+    state: SWARM.OPERATION_POSTURE_STATE.READY,
+    required: true,
+    authorityRefs: ["grant:runtime:stream-open"],
+    primitiveRefs: ["primitive:runtime.intent"],
+    capabilityRefs: [SWARM.CORE_CAPABILITY.STREAM_SESSION_OFFER],
+    inputRefs: ["stream.session.intent:nvr-preview"],
+    outputRefs: ["fulfillment:preview:nvr-preview-media-flow"],
+    evidenceRefs: ["evidence:runtime:stream-open"],
+    safeFacts: { surfaceSuppliesFlowTruth: false },
+  };
+  const posture = assertOperationInstancePosture({
+    kind: SWARM.RECORD_KIND.OPERATION_INSTANCE_POSTURE,
+    operationRef: "operation:nvr-preview:runtime-stream-open",
+    operationClassRef: "operation-class:stream-open",
+    methodRef: "runtime.stream.open",
+    state: SWARM.OPERATION_POSTURE_STATE.READY,
+    subjectRef: "flow:nvr-preview-media:candidate",
+    contractRef: "contract:nvr-preview@selected",
+    parentIntentRef: "stream.session.intent:nvr-preview",
+    fulfillmentSessionRef: "fulfillment:preview:nvr-preview-media-flow",
+    roleContributions: [
+      runtimeContribution,
+      {
+        roleRef: "role:host-service-operation-adapter",
+        contributionRef: "operation-contribution:nvr-preview:service-manager-not-selected",
+        contributorRef: "service-manager:local",
+        contributionType: SWARM.CONTRIBUTION_TYPE.OBSERVATION,
+        state: SWARM.OPERATION_POSTURE_STATE.NOT_SELECTED,
+        required: false,
+        deferredReasons: ["hostServiceOperationNotRequiredByRuntimeStreamOpen"],
+        safeFacts: { streamOperationDoesNotDefaultToServiceManagerControl: true },
+      },
+    ],
+    sourceRefs: ["source:snapshot:constitute-nvr:selected"],
+    contentIndexRefs: ["content-index:constitute-nvr:selected"],
+    buildRefs: ["build:nvr:selected"],
+    releaseRefs: ["release:nvr:selected"],
+    moduleRefs: ["module:flow:nvr-preview-media"],
+    artifactRefs: ["artifact:nvr:selected"],
+    executableRefs: ["executable:nvr:selected"],
+    storageRefs: ["storage:availability:nvr-preview"],
+    storageObjectRefs: ["storage:object:nvr-preview-index"],
+    routerBindingRefs: ["router-binding:nvr-preview:selected-path"],
+    carrierEdgeRefs: ["carrier-edge-selection:nvr-preview:websocket"],
+    serviceAdmissionRefs: ["service:nvr-preview:admission-response"],
+    runtimeProjectionRefs: ["runtime:fulfillment-session:projection:nvr-preview"],
+    surfaceBindingRefs: ["surface-binding:nvr-preview:media-element"],
+    fabricPlanRefs: ["hostFabric.fulfillment.plan:nvr-preview"],
+    cleanupRefs: ["cleanup:nvr-preview:release-media-path"],
+    evidenceRefs: ["evidence:operation:nvr-preview"],
+    safeFacts: {
+      surfaceDoesNotSupplyFlowTruth: true,
+      fabricComposesRolePlanDoesNotExecute: true,
+    },
+    observedAt: 1_700_000_005,
+    expiresAt: 1_700_000_065,
+  });
+
+  assert.equal(posture.roleContributions.length, 2);
+  assert.equal(posture.roleContributions[1].state, SWARM.OPERATION_POSTURE_STATE.NOT_SELECTED);
+
+  assert.throws(() => assertOperationInstancePosture({
+    ...posture,
+    roleContributions: [{ ...runtimeContribution, evidenceRefs: [] }],
+  }), /evidenceRefs/);
+
+  assert.throws(() => assertOperationInstancePosture({
+    ...posture,
+    safeFacts: { ownerRef: "service-manager" },
+  }), /owner drift/);
+
+  assert.throws(() => assertOperationInstancePosture({
+    ...posture,
+    roleContributions: [{
+      ...runtimeContribution,
+      state: SWARM.OPERATION_POSTURE_STATE.NOT_SELECTED,
+      required: true,
+      evidenceRefs: [],
+    }],
+  }), /required/);
 });
 
 test("projection repair posture stays distinct from routed stream activation", () => {
@@ -3756,7 +4945,7 @@ test("agreement grammar separates action authority, access epochs, private reada
     epochId: "access-epoch:logging-secure:2",
     subjectRef: "event:runtime:1",
     issuerRef: `member:${SERVICE_PK}`,
-    storageObjectRef: "storage-object:log-event-1",
+    storageObjectRef: LOG_EVENT_STORAGE_OBJECT_REF,
     caacEnvelopeRef: "caac:log-event-1",
     recipientRefs: [`member:${SERVICE_PK}`],
     keyRef: "key-ref:logging-secure:2",
@@ -4486,9 +5675,10 @@ test("swarm edge records use generic wire names and validate replay state", () =
 });
 
 test("storage pin intent derives projection from active attestations", () => {
+  const objectRef = "storage:object:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   const intent = assertStoragePinIntent({
     intentId: "pin-intent-1",
-    objectRefs: [{ objectId: "object-1" }],
+    objectRefs: [objectRef],
     manifestHash: "manifest-hash",
     desiredReplicas: 2,
     retention: "long",
@@ -4498,9 +5688,9 @@ test("storage pin intent derives projection from active attestations", () => {
   const active = assertStoragePinAttestation({
     attestationId: "att-1",
     intentId: intent.intentId,
-    storageMemberRef: "storage-member-a",
-    acceptedRefs: ["object-1"],
-    availabilityRefs: [{ availabilityId: "avail-1" }],
+    storageMemberRef: SERVICE_PK,
+    acceptedRefs: [objectRef],
+    availabilityRefs: [{ availabilityId: "avail-1", objectRef, storageMemberRef: SERVICE_PK }],
     status: "pinned",
     issuedAt: 1700000001,
     expiresAt: 1700000900,
@@ -4508,9 +5698,9 @@ test("storage pin intent derives projection from active attestations", () => {
   const expired = assertStoragePinAttestation({
     attestationId: "att-2",
     intentId: intent.intentId,
-    storageMemberRef: "storage-member-b",
-    acceptedRefs: ["object-1"],
-    availabilityRefs: [{ availabilityId: "avail-2" }],
+    storageMemberRef: GATEWAY_PK,
+    acceptedRefs: [objectRef],
+    availabilityRefs: [{ availabilityId: "avail-2", objectRef, storageMemberRef: GATEWAY_PK }],
     status: "pinned",
     issuedAt: 1,
     expiresAt: 2,
@@ -4543,6 +5733,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
 
   assertStreamSessionIntent({
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     capabilityRef: SWARM.CORE_CAPABILITY.STREAM_SESSION_OFFER,
     requesterRef: BROWSER_PK,
     channelId: "nvr.streams",
@@ -4562,6 +5753,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
   assertStreamSessionAdmission({
     admissionId: "admission-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     capabilityRef: SWARM.CORE_CAPABILITY.MEDIA_STREAM_PREVIEW,
     admittedBy: SERVICE_PK,
     constraints: { routePromiseId: "route-stream-1" },
@@ -4597,6 +5789,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
   assertStreamSessionOffer({
     offerId: "offer-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     transport: "webrtc",
     payload: { sdpRef: "encrypted-offer-detail-ref" },
     issuedAt: 1700000001,
@@ -4612,6 +5805,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
   assertStreamSessionAnswer({
     answerId: "answer-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     transport: "webrtc",
     payload: { sdpRef: "encrypted-answer-detail-ref" },
     issuedAt: 1700000001,
@@ -4619,6 +5813,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
   assertStreamSessionCandidate({
     candidateId: "candidate-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     transport: "webrtc",
     candidateRole: "browser",
     actionability: "usable",
@@ -4706,12 +5901,104 @@ test("stream sessions and recipe records validate without carrying media bytes",
     payload: { nested: { mediaBytes: "not allowed" } },
     issuedAt: 1700000001,
   }), /media bytes/);
-  assertMediaFulfillmentEvidence({
+  assertFulfillmentSession({
+    kind: SWARM.RECORD_KIND.FULFILLMENT_SESSION,
+    sessionId: "fulfillment:preview:front-door:1",
+    parentIntentRef: "stream.intent:front-door:preview",
+    subjectRef: "camera:front-door",
+    contractRef: "contract:nvr-preview@0.1.0",
+    state: SWARM.FULFILLMENT_SESSION_STATE.RUNNING,
+    nodePostures: [
+      {
+        nodeRef: "node:source:camera:front-door",
+        role: SWARM.FULFILLMENT_SESSION_NODE_ROLE.SOURCE,
+        state: SWARM.FULFILLMENT_SESSION_STATE.RUNNING,
+        required: true,
+        participantRef: "service:nvr:lab",
+        capabilityRefs: [SWARM.CORE_CAPABILITY.MEDIA_STREAM_PREVIEW],
+        outputRefs: ["media.source:front-door"],
+        evidenceRefs: ["evidence:source:rtsp-flowing"],
+      },
+      {
+        nodeRef: "node:carrier:browser-webrtc",
+        role: SWARM.FULFILLMENT_SESSION_NODE_ROLE.CARRIER,
+        state: SWARM.FULFILLMENT_SESSION_STATE.ACTIONABLE,
+        required: true,
+        participantRef: "adapter:media-webrtc:browser",
+        inputRefs: ["stream.session.answer:front-door"],
+        outputRefs: ["media.transport.path:front-door"],
+        evidenceRefs: ["carrier.edge.session:browser-webrtc:1"],
+      },
+      {
+        nodeRef: "node:render:preview-slot",
+        role: SWARM.FULFILLMENT_SESSION_NODE_ROLE.RENDER,
+        state: SWARM.FULFILLMENT_SESSION_STATE.DEGRADED,
+        required: true,
+        participantRef: "surface:nvr",
+        inputRefs: ["media.transport.path:front-door"],
+        evidenceRefs: ["media.transport.observation:browser:pending-render"],
+        safeFacts: { visibleFrame: false, readinessState: "waitingRender" },
+      },
+    ],
+    dependencyRefs: ["lifecycle.dependency:source-before-render"],
+    routerBindingRefs: ["router.binding:browser-nvr-preview"],
+    carrierEdgeRefs: ["carrier.edge.selection:browser-webrtc"],
+    mediaPathRefs: ["media.transport.path:front-door"],
+    lifecyclePlanRefs: ["lifecycle.plan:nvr-preview"],
+    availabilityRefs: ["availability:camera:front-door"],
+    evidenceRefs: ["service.admission:front-door", "stream.session.answer:front-door"],
+    releaseRefs: ["stream.session.close:front-door"],
+    safeFacts: {
+      profile: "browser-webrtc-preview",
+      nodeCount: 3,
+    },
+    issuedAt: 1700000002,
+    observedAt: 1700000004,
+    expiresAt: 1700000064,
+  });
+  assert.throws(() => assertFulfillmentSession({
+    kind: SWARM.RECORD_KIND.FULFILLMENT_SESSION,
+    sessionId: "fulfillment:preview:blocked",
+    parentIntentRef: "stream.intent:blocked",
+    subjectRef: "camera:blocked",
+    contractRef: "contract:nvr-preview@0.1.0",
+    state: SWARM.FULFILLMENT_SESSION_STATE.BLOCKED,
+    nodePostures: [{
+      nodeRef: "node:source:blocked",
+      role: SWARM.FULFILLMENT_SESSION_NODE_ROLE.SOURCE,
+      state: SWARM.FULFILLMENT_SESSION_STATE.BLOCKED,
+      required: true,
+    }],
+    issuedAt: 1700000002,
+    observedAt: 1700000004,
+  }), /blockedReasons/);
+  assert.throws(() => assertFulfillmentSession({
+    kind: SWARM.RECORD_KIND.FULFILLMENT_SESSION,
+    sessionId: "fulfillment:preview:unsafe",
+    parentIntentRef: "stream.intent:unsafe",
+    subjectRef: "camera:unsafe",
+    contractRef: "contract:nvr-preview@0.1.0",
+    state: SWARM.FULFILLMENT_SESSION_STATE.RUNNING,
+    nodePostures: [{
+      nodeRef: "node:render:unsafe",
+      role: SWARM.FULFILLMENT_SESSION_NODE_ROLE.RENDER,
+      state: SWARM.FULFILLMENT_SESSION_STATE.RUNNING,
+      required: true,
+      safeFacts: { mediaBytes: "not allowed" },
+    }],
+    issuedAt: 1700000002,
+    observedAt: 1700000004,
+  }), /media bytes/);
+  const mediaEvidence = assertMediaFulfillmentEvidence({
     kind: SWARM.RECORD_KIND.MEDIA_FULFILLMENT_EVIDENCE,
     evidenceId: "media-proof-1",
     evidenceKind: SWARM.MEDIA_FULFILLMENT_EVIDENCE_KIND.RENDER_STATE,
     state: SWARM.MEDIA_FULFILLMENT_STATE.USABLE,
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     sessionId: "stream-1",
+    operationRef: "operation:preview:runtime-stream-open:stream-1",
+    operationClassRef: "operation-class:stream-open",
+    methodRef: "runtime.stream.open",
     adapterRef: "adapter:media-webrtc:browser",
     sourceRef: "camera:front",
     safeFacts: {
@@ -4723,6 +6010,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
     observedAt: 1700000004,
     expiresAt: 1700000064,
   });
+  assert.equal(mediaEvidence.operationRef, "operation:preview:runtime-stream-open:stream-1");
   assertMediaFulfillmentEvidence({
     kind: SWARM.RECORD_KIND.MEDIA_FULFILLMENT_EVIDENCE,
     evidenceId: "media-proof-2",
@@ -4765,9 +6053,12 @@ test("stream sessions and recipe records validate without carrying media bytes",
     kind: SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
     pathId: "media-path-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     activationId: "activation-1",
     routePromiseId: "route-1",
     transportProfileRef: "runtime.media.browser-webrtc.default",
+    browserParticipantRef: "adapter:media-webrtc:browser",
+    serviceParticipantRef: "service:nvr:lab",
     browserCandidateRefs: ["candidate:browser:1"],
     serviceCandidateRefs: ["candidate:service:1"],
     relayParticipantRefs: ["member:relay:1"],
@@ -4775,6 +6066,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
     state: SWARM.MEDIA_TRANSPORT_PATH_STATE.BLOCKED,
     selectedPairState: SWARM.MEDIA_TRANSPORT_SELECTED_PAIR_STATE.FAILED,
     inboundRtpState: SWARM.MEDIA_TRANSPORT_RTP_STATE.BLOCKED,
+    trackState: SWARM.MEDIA_TRANSPORT_TRACK_STATE.BLOCKED,
     renderState: SWARM.MEDIA_TRANSPORT_RENDER_STATE.BLOCKED,
     blockedReason: "transportResourceExhausted",
     safeFacts: {
@@ -4787,12 +6079,26 @@ test("stream sessions and recipe records validate without carrying media bytes",
   });
   assert.throws(() => assertMediaTransportPath({
     kind: SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
+    pathId: "media-path-missing-fulfillment",
+    sessionId: "stream-1",
+    transportProfileRef: "runtime.media.browser-webrtc.default",
+    state: SWARM.MEDIA_TRANSPORT_PATH_STATE.PENDING,
+    selectedPairState: SWARM.MEDIA_TRANSPORT_SELECTED_PAIR_STATE.PENDING,
+    inboundRtpState: SWARM.MEDIA_TRANSPORT_RTP_STATE.PENDING,
+    trackState: SWARM.MEDIA_TRANSPORT_TRACK_STATE.PENDING,
+    renderState: SWARM.MEDIA_TRANSPORT_RENDER_STATE.PENDING,
+    issuedAt: 1700000006,
+  }), /fulfillmentSessionId/);
+  assert.throws(() => assertMediaTransportPath({
+    kind: SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
     pathId: "media-path-2",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     transportProfileRef: "runtime.media.browser-webrtc.default",
     state: SWARM.MEDIA_TRANSPORT_PATH_STATE.BLOCKED,
     selectedPairState: SWARM.MEDIA_TRANSPORT_SELECTED_PAIR_STATE.FAILED,
     inboundRtpState: SWARM.MEDIA_TRANSPORT_RTP_STATE.BLOCKED,
+    trackState: SWARM.MEDIA_TRANSPORT_TRACK_STATE.BLOCKED,
     renderState: SWARM.MEDIA_TRANSPORT_RENDER_STATE.BLOCKED,
     issuedAt: 1700000006,
   }), /blockedReason/);
@@ -4800,10 +6106,12 @@ test("stream sessions and recipe records validate without carrying media bytes",
     kind: SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
     pathId: "media-path-3",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     transportProfileRef: "runtime.media.browser-webrtc.default",
     state: SWARM.MEDIA_TRANSPORT_PATH_STATE.PENDING,
     selectedPairState: SWARM.MEDIA_TRANSPORT_SELECTED_PAIR_STATE.PENDING,
     inboundRtpState: SWARM.MEDIA_TRANSPORT_RTP_STATE.PENDING,
+    trackState: SWARM.MEDIA_TRANSPORT_TRACK_STATE.PENDING,
     renderState: SWARM.MEDIA_TRANSPORT_RENDER_STATE.PENDING,
     safeFacts: { sdp: "raw session description" },
     issuedAt: 1700000006,
@@ -4813,6 +6121,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
     observationId: "media-observation-1",
     pathId: "media-path-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     activationId: "activation-1",
     routePromiseId: "route-1",
     participantRef: "service:abc",
@@ -4821,6 +6130,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
     connectionState: "disconnected",
     selectedPairState: SWARM.MEDIA_TRANSPORT_SELECTED_PAIR_STATE.SELECTED,
     inboundRtpState: SWARM.MEDIA_TRANSPORT_RTP_STATE.STALLED,
+    trackState: SWARM.MEDIA_TRANSPORT_TRACK_STATE.LIVE,
     renderState: SWARM.MEDIA_TRANSPORT_RENDER_STATE.PENDING,
     reason: "peerConnectionDisconnected",
     safeFacts: {
@@ -4833,9 +6143,20 @@ test("stream sessions and recipe records validate without carrying media bytes",
   });
   assert.throws(() => assertMediaTransportObservation({
     kind: SWARM.RECORD_KIND.MEDIA_TRANSPORT_OBSERVATION,
+    observationId: "media-observation-missing-fulfillment",
+    pathId: "media-path-1",
+    sessionId: "stream-1",
+    participantRef: "browser:abc",
+    participantRole: SWARM.MEDIA_TRANSPORT_PARTICIPANT_ROLE.BROWSER,
+    state: SWARM.MEDIA_TRANSPORT_OBSERVATION_STATE.CONNECTED,
+    observedAt: 1700000007,
+  }), /fulfillmentSessionId/);
+  assert.throws(() => assertMediaTransportObservation({
+    kind: SWARM.RECORD_KIND.MEDIA_TRANSPORT_OBSERVATION,
     observationId: "media-observation-2",
     pathId: "media-path-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     participantRef: "service:abc",
     participantRole: SWARM.MEDIA_TRANSPORT_PARTICIPANT_ROLE.SERVICE,
     state: SWARM.MEDIA_TRANSPORT_OBSERVATION_STATE.BLOCKED,
@@ -4846,6 +6167,7 @@ test("stream sessions and recipe records validate without carrying media bytes",
     observationId: "media-observation-3",
     pathId: "media-path-1",
     sessionId: "stream-1",
+    fulfillmentSessionId: "fulfillment:preview:front-door:1",
     participantRef: "browser:abc",
     participantRole: SWARM.MEDIA_TRANSPORT_PARTICIPANT_ROLE.BROWSER,
     state: SWARM.MEDIA_TRANSPORT_OBSERVATION_STATE.CONNECTED,
