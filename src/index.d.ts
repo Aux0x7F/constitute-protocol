@@ -9,7 +9,10 @@ export const SURFACE_APP: Readonly<Record<string, unknown>>;
 export const APP: Readonly<Record<string, unknown>>;
 export const RUNNER: Readonly<Record<string, unknown>>;
 export const FABRIC: Readonly<Record<string, unknown>>;
+export const FLOW: Readonly<Record<string, unknown>>;
+export const DRIVER: Readonly<Record<string, unknown>>;
 export const BUILD: Readonly<Record<string, unknown>>;
+export const SOURCE: Readonly<Record<string, unknown>>;
 export const AGREEMENT: Readonly<Record<string, unknown>>;
 export const SERVICE_REGISTRY: Readonly<Record<string, unknown>>;
 export const STORAGE: Readonly<Record<string, string>>;
@@ -124,6 +127,33 @@ export type StorageIndexShard = {
   createdAt: number;
 };
 
+export type StorageModuleExecutableInstantiationPosture = {
+  kind?: "storage.module.executable.instantiation.posture";
+  postureId: string;
+  storageMemberRef: string;
+  moduleRef: string;
+  sourceSnapshotRef: string;
+  contentIndexRef: string;
+  artifactRef: string;
+  materializationRef: string;
+  materializationPostureRef: string;
+  objectRef: string;
+  executableRef: string;
+  executableHashRef: string;
+  mediaType: string;
+  state: "instantiated" | "degraded" | "blocked" | "missing";
+  evidenceRefs?: string[];
+  conflictRefs?: string[];
+  adapterResidencyRefs?: string[];
+  legacyTransitionConflictRefs?: string[];
+  blockedReasons?: string[];
+  byteLength: number;
+  chunkCount: number;
+  safeFacts?: Record<string, unknown>;
+  instantiatedAt: number;
+  expiresAt?: number;
+};
+
 export type StorageKeyGrant = {
   grantId: string;
   containerId: string;
@@ -157,6 +187,354 @@ export type StorageAvailabilityRef = {
   chunkHash?: string;
   exportedAt: number;
   expiresAt?: number;
+};
+
+export type SourceSignaturePosture = "signed" | "devUnsigned" | "blocked";
+
+export type SourceGraphPolicy = {
+  fastForwardOnly: boolean;
+  reviewRequired: boolean;
+  signedUpdatesRequired: boolean;
+  allowedOperations: string[];
+};
+
+export type SourceFileEntry = {
+  fileRef: string;
+  pathRef: string;
+  virtualPath: string;
+  hashRef: string;
+  byteLength: number;
+  storageObjectRef?: string;
+  evidenceRefs?: string[];
+};
+
+export type SourceSnapshot = {
+  kind?: "source.snapshot";
+  sourceGraphRef: string;
+  snapshotRef: string;
+  commitRef: string;
+  treeRef: string;
+  treeHashRef: string;
+  parentSnapshotRefs?: string[];
+  fileEntries: SourceFileEntry[];
+  storageObjectRefs: string[];
+  authorRef: string;
+  signaturePosture: SourceSignaturePosture;
+  messageDigestRef: string;
+  branchRefs?: string[];
+  candidateRefs?: string[];
+  writerGrantRefs?: string[];
+  authorityRefs?: string[];
+  materializedProjectionRefs?: string[];
+  dirtyProjectionRefs?: string[];
+  signatureRefs?: string[];
+  evidenceRefs?: string[];
+  issuedAt: number;
+};
+
+export type SourceVersionIndexEntry = {
+  kind?: "source.version-index.entry";
+  entryRef: string;
+  repoRef: string;
+  moduleRef: string;
+  selectedVersionRef: string;
+  contractVersionRef: string;
+  sourceSnapshotRef: string;
+  contentIndexRef: string;
+  declaredVersion?: string;
+  artifactRef?: string;
+  compatibilityRef?: string;
+};
+
+export type SourceVersionIndexProjection = {
+  kind?: "source.version-index.projection";
+  state: string;
+  versionIndexRef: string;
+  sourceSnapshotRef: string;
+  contentIndexRef: string;
+  entries: SourceVersionIndexEntry[];
+  selectedVersionRefs?: string[];
+  contractVersionRefs?: string[];
+  moduleRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SourceVersionIndexDeltaEntry = {
+  entryRef?: string;
+  contractRef?: string;
+  contractVersionRef?: string;
+  selectedVersionRef?: string;
+  moduleRef?: string;
+  repoRef?: string;
+  declaredVersion?: string;
+  sourceSnapshotRef?: string;
+  contentIndexRef?: string;
+  treeHashRef?: string;
+  artifactRef?: string;
+  selectedByRef?: string;
+  authorityRefs?: string[];
+  writerGrantRefs?: string[];
+};
+
+export type SourceRefTransitionPosture = {
+  kind?: "source.ref.transition.posture";
+  transitionRef: string;
+  state: string;
+  targetRef: string;
+  repoRef: string;
+  fromSourceSnapshotRef: string;
+  toSourceSnapshotRef: string;
+  fromContentIndexRef: string;
+  toContentIndexRef: string;
+  fromSelectedVersionRef: string;
+  toSelectedVersionRef: string;
+  lifecycleManifestRef: string;
+  promotionIntentRef: string;
+  authorityRefs?: string[];
+  grantRefs?: string[];
+  witnessRefs?: string[];
+  rollbackRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SourceVersionIndexDeltaPosture = {
+  kind?: "source.version-index.delta.posture";
+  deltaRef: string;
+  state: string;
+  versionIndexRef: string;
+  repoRef: string;
+  targetRef: string;
+  fromEntry: SourceVersionIndexDeltaEntry;
+  toEntry: SourceVersionIndexDeltaEntry;
+  inputRefs?: string[];
+  outputRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SourcePromotionRollbackPosture = {
+  kind?: "source.promotion.rollback.posture";
+  rollbackRef: string;
+  state: string;
+  targetRef: string;
+  restoreSourceSnapshotRef: string;
+  restoreContentIndexRef: string;
+  restoreSelectedVersionRef: string;
+  rollbackGateRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SourcePromotionWitnessPosture = {
+  kind?: "source.promotion.witness.posture";
+  witnessRef: string;
+  state: string;
+  subjectRef: string;
+  lifecycleManifestRef: string;
+  promotionIntentRef: string;
+  evidenceRefs?: string[];
+  proofGateRefs?: string[];
+  storageRefs?: string[];
+  storagePinRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type SourceAppliedRefProjection = {
+  kind?: "source.applied-ref.projection";
+  state: string;
+  projectionRef: string;
+  reportRef?: string;
+  applyRef?: string;
+  repoRef: string;
+  targetRef: string;
+  lifecycleManifestRef: string;
+  promotionIntentRef: string;
+  sourceRefTransitionRef: string;
+  versionIndexDeltaRef: string;
+  witnessRef: string;
+  rollbackRef: string;
+  fromSourceSnapshotRef: string;
+  toSourceSnapshotRef: string;
+  fromContentIndexRef: string;
+  toContentIndexRef: string;
+  fromSelectedVersionRef: string;
+  toSelectedVersionRef: string;
+  toVersionIndexEntry: SourceVersionIndexDeltaEntry;
+  authorityRefs?: string[];
+  grantRefs?: string[];
+  proofGateRefs?: string[];
+  evidenceRefs?: string[];
+  storageRefs?: string[];
+  storagePinRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  blockedReasons?: string[];
+  observedAt?: string;
+};
+
+export type SourceRefUpdate = {
+  kind?: "source.ref.update";
+  updateRef: string;
+  sourceGraphRef: string;
+  refName: string;
+  refKind: string;
+  fromSnapshotRef?: string;
+  toSnapshotRef: string;
+  writerRef: string;
+  state: string;
+  grantRefs?: string[];
+  evidenceRefs?: string[];
+  witnessRefs?: string[];
+  blockedReasons?: string[];
+  policy: SourceGraphPolicy;
+  signedAt: number;
+  validUntil?: number;
+};
+
+export type SourceRefStoreCurrentEntry = {
+  applyRef?: string;
+  reportRef?: string;
+  repoRef: string;
+  targetRef: string;
+  sourceRefUpdateRefs?: string[];
+  sourceRefTransitionRef: string;
+  versionIndexDeltaRef: string;
+  witnessRef: string;
+  rollbackRef: string;
+  lifecycleManifestRef: string;
+  promotionIntentRef: string;
+  fromSourceSnapshotRef: string;
+  toSourceSnapshotRef: string;
+  fromContentIndexRef: string;
+  toContentIndexRef: string;
+  fromSelectedVersionRef: string;
+  toSelectedVersionRef: string;
+  toVersionIndexEntry: SourceVersionIndexDeltaEntry;
+  authorityRefs?: string[];
+  grantRefs?: string[];
+  proofGateRefs?: string[];
+  evidenceRefs?: string[];
+  storageRefs?: string[];
+  storagePinRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  observedAt?: string;
+};
+
+export type SourceRefStoreJournal = {
+  kind?: "source.ref.store.journal";
+  state: string;
+  storeRef: string;
+  journalRef: string;
+  sourceGraphRef: string;
+  targetRef: string;
+  repoRef: string;
+  current: SourceRefStoreCurrentEntry;
+  transitions?: SourceRefStoreCurrentEntry[];
+  transitionCount?: number;
+  sourceRefUpdates?: SourceRefUpdate[];
+  sourceRefUpdateRefs?: string[];
+  evidenceRefs?: string[];
+  storageObjectRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  storagePinIntentRefs?: string[];
+  storagePinAttestationRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  updatedAt?: string;
+};
+
+export type SourceRefStoreReplayPosture = {
+  kind?: "source.ref.store.replay.posture";
+  state: string;
+  replayRef: string;
+  storeRef: string;
+  journalRef: string;
+  targetRef: string;
+  expectedTargetRef: string;
+  repoRef: string;
+  currentTransitionRef: string;
+  currentVersionIndexDeltaRef: string;
+  currentSelectedVersionRef: string;
+  transitionCount?: number;
+  sourceRefUpdateRefs?: string[];
+  storageObjectRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt?: string;
+};
+
+export type AuthoringProofTarget = {
+  proofTargetRef: string;
+  state: string;
+  actionAdapterRef?: string;
+  latestEvidenceRef?: string;
+};
+
+export type AuthoringCandidateFeedbackPosture = {
+  kind?: "swarm.workspace.authoring.candidate-feedback.posture";
+  state: string;
+  candidateSnapshotRefs?: string[];
+  candidateRefs?: string[];
+  sourceRefUpdateRefs?: string[];
+  storageObjectRefs?: string[];
+  availabilityRefs?: string[];
+  proofEventRefs?: string[];
+  promotionIntentRefs?: string[];
+  lifecycleRequestRefs?: string[];
+  reportRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type AuthoringWorkspaceEntry = {
+  kind?: "swarm.workspace.authoring.entry";
+  entryRef: string;
+  state: string;
+  repoRef: string;
+  moduleRef: string;
+  selectedVersionRef: string;
+  contractVersionRef?: string;
+  sourceSnapshotRef: string;
+  contentIndexRef: string;
+  candidateRefs?: string[];
+  dirtyProjectionRefs?: string[];
+  editableFileRefs?: string[];
+  editableFileCount?: number;
+  storageObjectRefs?: string[];
+  availabilityRefs?: string[];
+  candidateFeedback?: AuthoringCandidateFeedbackPosture;
+  proofTargets?: AuthoringProofTarget[];
+  proofTargetRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type AuthoringWorkspaceProjection = {
+  kind?: "swarm.workspace.authoring.projection";
+  state: string;
+  workspaceRef: string;
+  sourceSnapshotRef: string;
+  versionIndexRef: string;
+  authoringEntries: AuthoringWorkspaceEntry[];
+  selectedVersionRefs?: string[];
+  candidateRefs?: string[];
+  dirtyProjectionRefs?: string[];
+  proofTargetRefs?: string[];
+  blockedReasons?: string[];
+};
+
+export type AuthoringCandidateSnapshotPosture = {
+  kind?: "swarm.workspace.authoring.candidate-snapshot.posture";
+  state: string;
+  candidateSnapshotRef: string;
+  candidateRef: string;
+  workspaceRef: string;
+  repoRef: string;
+  selectedVersionRef: string;
+  parentSourceSnapshotRef: string;
+  fulfilledStorageObjectRefs?: string[];
+  availabilityRefs?: string[];
+  proofTargetRefs?: string[];
+  blockedReasons?: string[];
 };
 
 export type LogSeverity = "debug" | "info" | "notice" | "warning" | "error" | "critical";
@@ -1026,6 +1404,77 @@ export type ContributionLifecycle = {
   observedAt?: number;
 };
 
+export type OperationPostureState =
+  | "planned"
+  | "selected"
+  | "ready"
+  | "actionable"
+  | "running"
+  | "succeeded"
+  | "degraded"
+  | "blocked"
+  | "deferred"
+  | "notSelected"
+  | "released"
+  | "expired";
+
+export type OperationRoleContributionPosture = {
+  roleRef: string;
+  contributionRef: string;
+  contributorRef: string;
+  contributionType: ContributionType;
+  state: OperationPostureState;
+  required?: boolean;
+  authorityRefs?: string[];
+  primitiveRefs?: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  releaseRefs?: string[];
+  cleanupRefs?: string[];
+  blockedReasons?: string[];
+  deferredReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type OperationInstancePosture = {
+  kind?: "operation.instance.posture";
+  operationRef: string;
+  operationClassRef: string;
+  methodRef: string;
+  state: OperationPostureState;
+  subjectRef: string;
+  contractRef: string;
+  parentIntentRef?: string;
+  fulfillmentSessionRef?: string;
+  roleContributions: OperationRoleContributionPosture[];
+  sourceRefs?: string[];
+  contentIndexRefs?: string[];
+  buildRefs?: string[];
+  buildRunRefs?: string[];
+  releaseRefs?: string[];
+  rollbackRefs?: string[];
+  moduleRefs?: string[];
+  artifactRefs?: string[];
+  executableRefs?: string[];
+  storageRefs?: string[];
+  storageObjectRefs?: string[];
+  routerBindingRefs?: string[];
+  carrierEdgeRefs?: string[];
+  serviceAdmissionRefs?: string[];
+  runtimeProjectionRefs?: string[];
+  surfaceBindingRefs?: string[];
+  fabricPlanRefs?: string[];
+  cleanupRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  deferredReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type SwarmIdentityRecord = {
   kind?: "swarm.identity";
   identityId: string;
@@ -1745,6 +2194,7 @@ export type StoragePinAttestation = {
 export type StreamSessionRecord = {
   kind: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   issuer: string;
   issuedAt: number;
   [key: string]: unknown;
@@ -1770,6 +2220,7 @@ export type StreamSessionLifecycleCarrierRecord = {
 
 export type StreamSessionIntent = {
   sessionId: string;
+  fulfillmentSessionId?: string;
   capabilityRef: string;
   requesterRef: string;
   channelId: string;
@@ -1781,6 +2232,7 @@ export type StreamSessionIntent = {
 export type StreamSessionAdmission = {
   admissionId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   capabilityRef: string;
   admittedBy: string;
   constraints?: Record<string, unknown>;
@@ -1790,6 +2242,7 @@ export type StreamSessionAdmission = {
 export type StreamSessionReject = {
   rejectId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   capabilityRef?: string;
   rejectedBy: string;
   reasonCode: string;
@@ -1800,6 +2253,7 @@ export type StreamSessionReject = {
 export type StreamSessionOffer = {
   offerId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   transport: string;
   payload: Record<string, unknown>;
   issuedAt: number;
@@ -1808,6 +2262,7 @@ export type StreamSessionOffer = {
 export type StreamSessionAnswer = {
   answerId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   transport: string;
   payload: Record<string, unknown>;
   issuedAt: number;
@@ -1816,6 +2271,7 @@ export type StreamSessionAnswer = {
 export type StreamSessionCandidate = {
   candidateId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   transport: string;
   candidateRole: "browser" | "service";
   actionability: "usable" | "blocked";
@@ -1833,6 +2289,7 @@ export type StreamSessionCandidate = {
 export type StreamSessionControl = {
   controlId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   command: string;
   params?: Record<string, unknown>;
   issuedAt: number;
@@ -1841,6 +2298,7 @@ export type StreamSessionControl = {
 export type StreamSessionHealth = {
   healthId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   status: string;
   recovery?: Record<string, unknown>;
   issuedAt: number;
@@ -1849,6 +2307,7 @@ export type StreamSessionHealth = {
 export type StreamSessionClose = {
   closeId: string;
   sessionId: string;
+  fulfillmentSessionId?: string;
   reasonCode: string;
   issuedAt: number;
 };
@@ -1863,12 +2322,78 @@ export type MediaFulfillmentEvidenceKind =
 
 export type MediaFulfillmentState = "pending" | "usable" | "blocked" | "released";
 
+export type FulfillmentSessionState =
+  | "pending"
+  | "actionable"
+  | "running"
+  | "degraded"
+  | "blocked"
+  | "released"
+  | "expired";
+
+export type FulfillmentSessionNodeRole =
+  | "source"
+  | "processor"
+  | "carrier"
+  | "router"
+  | "runtime"
+  | "render"
+  | "surface"
+  | "storage"
+  | "wallet"
+  | "service"
+  | "fabric"
+  | "adapter";
+
+export type FulfillmentSessionNodePosture = {
+  nodeRef: string;
+  role: FulfillmentSessionNodeRole;
+  state: FulfillmentSessionState;
+  required?: boolean;
+  participantRef?: string;
+  memberRef?: string;
+  contractRef?: string;
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type FulfillmentSession = {
+  kind?: "fulfillment.session";
+  sessionId: string;
+  parentIntentRef: string;
+  subjectRef: string;
+  contractRef: string;
+  state: FulfillmentSessionState;
+  nodePostures: FulfillmentSessionNodePosture[];
+  dependencyRefs?: string[];
+  routerBindingRefs?: string[];
+  carrierEdgeRefs?: string[];
+  mediaPathRefs?: string[];
+  lifecyclePlanRefs?: string[];
+  availabilityRefs?: string[];
+  evidenceRefs?: string[];
+  releaseRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  issuedAt: number;
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type MediaFulfillmentEvidence = {
   kind?: "media.fulfillment.evidence";
   evidenceId: string;
   evidenceKind: MediaFulfillmentEvidenceKind;
   state: MediaFulfillmentState;
+  fulfillmentSessionId?: string;
   sessionId?: string;
+  operationRef?: string;
+  operationClassRef?: string;
+  methodRef?: string;
   activationId?: string;
   interactionId?: string;
   correlationId?: string;
@@ -1887,6 +2412,7 @@ export type MediaFulfillmentEvidence = {
 export type MediaTransportPathState = "pending" | "actionable" | "blocked" | "released";
 export type MediaTransportSelectedPairState = "pending" | "selected" | "failed" | "none";
 export type MediaTransportRtpState = "pending" | "flowing" | "stalled" | "blocked" | "released";
+export type MediaTransportTrackState = "pending" | "live" | "muted" | "ended" | "blocked" | "released";
 export type MediaTransportRenderState = "pending" | "visible" | "blocked" | "released";
 export type MediaTransportParticipantRole = "browser" | "service" | "gateway" | "relay" | "turn" | "runtime";
 export type MediaTransportObservationState =
@@ -1904,9 +2430,12 @@ export type MediaTransportPath = {
   kind?: "media.transport.path";
   pathId: string;
   sessionId: string;
+  fulfillmentSessionId: string;
   activationId?: string;
   routePromiseId?: string;
   transportProfileRef: string;
+  browserParticipantRef?: string;
+  serviceParticipantRef?: string;
   browserCandidateRefs?: string[];
   serviceCandidateRefs?: string[];
   relayParticipantRefs?: string[];
@@ -1914,6 +2443,7 @@ export type MediaTransportPath = {
   state: MediaTransportPathState;
   selectedPairState: MediaTransportSelectedPairState;
   inboundRtpState: MediaTransportRtpState;
+  trackState: MediaTransportTrackState;
   renderState: MediaTransportRenderState;
   blockedReason?: string;
   safeFacts?: Record<string, unknown>;
@@ -1927,6 +2457,7 @@ export type MediaTransportObservation = {
   observationId: string;
   pathId: string;
   sessionId: string;
+  fulfillmentSessionId: string;
   activationId?: string;
   routePromiseId?: string;
   participantRef: string;
@@ -1936,6 +2467,7 @@ export type MediaTransportObservation = {
   iceConnectionState?: string;
   selectedPairState?: MediaTransportSelectedPairState;
   inboundRtpState?: MediaTransportRtpState;
+  trackState?: MediaTransportTrackState;
   renderState?: MediaTransportRenderState;
   blockedReason?: string;
   reason?: string;
@@ -2047,6 +2579,7 @@ export type SurfaceModuleRole =
   | "runtimeClient"
   | "projectionModel"
   | "platformAdapter"
+  | "runtimeRunnerBridge"
   | "serviceSurfaceAdapter"
   | "serviceEdgeAdapter"
   | "productView"
@@ -2649,6 +3182,26 @@ export type ServiceManagerOperationPosture = {
   expiresAt?: number;
 };
 
+export type ServiceManagerControlRequestPosture = {
+  kind?: "service.manager.control.request.posture";
+  requestId: string;
+  operation: ServiceManagerOperation;
+  subjectRef: string;
+  serviceManagerRef: string;
+  requesterRef: string;
+  fabricControlRoleRef?: string;
+  serviceRefs?: string[];
+  capabilityRefs?: string[];
+  authorityRefs?: string[];
+  grantRefs?: string[];
+  evidenceRefs?: string[];
+  proofRefs?: string[];
+  safeFacts?: Record<string, unknown>;
+  blockedReasons?: string[];
+  requestedAt: number;
+  expiresAt?: number;
+};
+
 export type ServiceManagerProofDigest = {
   kind?: "service.manager.proof.digest";
   digestId: string;
@@ -2915,6 +3468,7 @@ export type SurfaceAppRuntimeSelectionPosture = {
   appContractResolution?: Record<string, unknown>;
   sourceCandidatePosture?: SurfaceAppSourceCandidatePosture;
   sourceTrustResult?: Record<string, unknown>;
+  moduleResolverPosture?: Record<string, unknown> | null;
   modulePostures?: SurfaceModuleRolePosture[];
   runnerReadiness?: Record<string, unknown>;
   serviceManagerReadiness?: Record<string, unknown>;
@@ -3238,12 +3792,192 @@ export type FabricLifecyclePhase = "source" | "build" | "release" | "load" | "ru
 export type FabricLifecyclePhaseState = "notRequired" | "pending" | "ready" | "running" | "succeeded" | "degraded" | "blocked" | "failed" | "released" | "expired";
 export type FabricContentIndexState = "ready" | "degraded" | "blocked" | "superseded" | "expired";
 export type FabricContractIntentionState = "draft" | "ready" | "degraded" | "blocked" | "superseded" | "expired";
+export type FabricLifecycleManifestState = "ready" | "degraded" | "blocked" | "expired";
+export type FabricLifecyclePromotionState = "candidateReady" | "accepted" | "rejected" | "blocked" | "expired";
+export type FabricAdapterDebtState = "clear" | "tracking" | "blocked";
+export type FabricAdapterDebtBlockingState = "trackedNonBlocking" | "blocking" | "retired" | "planned";
+export type FabricAdapterResidencyState = "clear" | "ready" | "tracking" | "blocked";
+export type FabricManifestSelectedOperationState = "succeeded" | "degraded" | "blocked";
+export type FabricControlInversionProofState = "proved" | "degraded" | "blocked";
 export type FabricUniqueEdgeClassificationState = "genericPrimitive" | "uniqueEdge" | "blocked";
 export type FabricContractTargetState = "selected" | "ready" | "degraded" | "blocked" | "expired";
 export type FabricContractTargetCompatibilityState = "compatible" | "degraded" | "incompatible" | "unknown";
 export type FabricContractTargetRegistryState = "ready" | "degraded" | "blocked" | "expired";
 export type FabricContractTargetSlotState = "available" | "degraded" | "missing" | "blocked" | "notRequired";
 export type FabricContractTargetPlatformFitState = "compatible" | "degraded" | "incompatible" | "unknown";
+export type ContractFlowGraphState = "draft" | "tracking" | "ready" | "degraded" | "blocked" | "released" | "expired";
+export type ContractFlowNodeRole =
+  | "source"
+  | "driver"
+  | "processor"
+  | "router"
+  | "carrierEdge"
+  | "storage"
+  | "runtime"
+  | "surface"
+  | "fabric"
+  | "fabricRunner"
+  | "authority"
+  | "observer";
+export type ContractFlowNodeState = "planned" | "tracking" | "ready" | "degraded" | "blocked" | "missing" | "released" | "expired";
+export type ContractFlowEdgeKind =
+  | "lifecycleDependency"
+  | "sourceToDriver"
+  | "stream"
+  | "processorOutput"
+  | "routerBinding"
+  | "carrier"
+  | "storageAvailability"
+  | "projection"
+  | "surfaceBinding"
+  | "fulfillment"
+  | "evidence";
+export type ContractFlowEdgeState = "planned" | "tracking" | "ready" | "degraded" | "blocked" | "released" | "expired";
+
+export type ContractFlowNode = {
+  kind?: "contract.flow.node";
+  nodeRef: string;
+  role: ContractFlowNodeRole;
+  state: ContractFlowNodeState;
+  participantRef?: string;
+  primitiveRef?: string;
+  targetBoundaryRef?: string;
+  currentResidenceRefs?: string[];
+  contractRefs?: string[];
+  moduleRefs?: string[];
+  sourceRefs?: string[];
+  capabilityRefs?: string[];
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  roleContributionRefs?: string[];
+  fulfillmentSessionRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type ContractFlowEdge = {
+  kind?: "contract.flow.edge";
+  edgeRef: string;
+  fromNodeRef: string;
+  toNodeRef: string;
+  edgeKind: ContractFlowEdgeKind;
+  state: ContractFlowEdgeState;
+  inputRefs?: string[];
+  outputRefs?: string[];
+  evidenceRefs?: string[];
+  routerBindingRefs?: string[];
+  carrierEdgeRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  projectionRefs?: string[];
+  surfaceBindingRefs?: string[];
+  fulfillmentSessionRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type ContractFlowGraph = {
+  kind?: "contract.flow.graph";
+  graphRef: string;
+  flowRef: string;
+  contractSpaceRef: string;
+  state: ContractFlowGraphState;
+  broadTargetRef?: string;
+  dependencySliceRef?: string;
+  nodes: ContractFlowNode[];
+  edges: ContractFlowEdge[];
+  sourceRefs?: string[];
+  lifecyclePlanRefs?: string[];
+  fulfillmentSessionRefs?: string[];
+  routerBindingRefs?: string[];
+  carrierEdgeRefs?: string[];
+  storageAvailabilityRefs?: string[];
+  fabricRefs?: string[];
+  runtimeProjectionRefs?: string[];
+  surfaceBindingRefs?: string[];
+  releaseRefs?: string[];
+  rollbackRefs?: string[];
+  cleanupRefs?: string[];
+  evidenceRefs?: string[];
+  futureSliceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type DriverAssetClass =
+  | "camera"
+  | "sensor"
+  | "filesystem"
+  | "process"
+  | "osApi"
+  | "hardwareBus"
+  | "compiler"
+  | "vendorApi"
+  | "networkInterface"
+  | "storageDevice"
+  | "unknown";
+export type DriverTouchpointKind = "corporealAsset" | "hostCapability" | "toolchain" | "vendorApi" | "filesystemMaterialization";
+export type DriverRequirementState = "declared" | "tracking" | "ready" | "degraded" | "blocked" | "released" | "expired";
+export type DriverEvidenceState = "observed" | "actionable" | "degraded" | "blocked" | "expired";
+export type DriverBoundaryState = "tracking" | "ready" | "degraded" | "blocked" | "released" | "expired";
+
+export type DriverRequirement = {
+  kind?: "driver.requirement";
+  requirementRef: string;
+  driverRef: string;
+  contractSpaceRef: string;
+  subjectRef: string;
+  assetClass: DriverAssetClass;
+  touchpointKind: DriverTouchpointKind;
+  state: DriverRequirementState;
+  selectedByRefs?: string[];
+  contractFlowGraphRefs?: string[];
+  capabilityRefs?: string[];
+  allowedOperationRefs?: string[];
+  evidenceRequirementRefs?: string[];
+  deniedOwnershipRefs?: string[];
+  boundaryRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type DriverEvidence = {
+  kind?: "driver.evidence";
+  evidenceRef: string;
+  driverRef: string;
+  requirementRef: string;
+  assetRef: string;
+  state: DriverEvidenceState;
+  implementationCustodyRefs?: string[];
+  capabilityRefs?: string[];
+  observationRefs?: string[];
+  proofRefs?: string[];
+  contractFlowGraphRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type DriverBoundaryPosture = {
+  kind?: "driver.boundary.posture";
+  postureRef: string;
+  contractSpaceRef: string;
+  state: DriverBoundaryState;
+  driverRefs?: string[];
+  requirementRefs?: string[];
+  evidenceRefs?: string[];
+  assetRefs?: string[];
+  implementationCustodyRefs?: string[];
+  contractFlowGraphRefs?: string[];
+  deniedOwnershipRefs?: string[];
+  futureSliceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+};
 
 export type SubstrateAssociationHandoff = {
   kind?: "substrate.association.handoff";
@@ -3496,6 +4230,46 @@ export type ContentIndexRefPosture = {
   expiresAt?: number;
 };
 
+export type ContentIndexResolutionEntry = {
+  resolutionRef: string;
+  subjectRef: string;
+  resolutionKind: string;
+  contentIndexRef: string;
+  state: FabricContentIndexState;
+  sourceSnapshotRef?: string;
+  treeHashRef?: string;
+  inputRefs?: string[];
+  sourceRefs?: string[];
+  fileRefs?: string[];
+  artifactRefs?: string[];
+  objectRefs?: string[];
+  chunkRefs?: string[];
+  storageMemberRefs?: string[];
+  availabilityRefs?: string[];
+  materializedProjectionRefs?: string[];
+  adapterRefs?: string[];
+  conflictRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+};
+
+export type ContentIndexResolverPosture = {
+  kind?: "contentIndex.resolver.posture";
+  resolverRef: string;
+  contentIndexRef: string;
+  state: FabricContentIndexState;
+  sourceSnapshotRef?: string;
+  resolutions?: ContentIndexResolutionEntry[];
+  materializedProjectionRefs?: string[];
+  transitionConflictRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
 export type ContractIntentionPosture = {
   kind?: "contract.intention.posture";
   postureId: string;
@@ -3523,6 +4297,163 @@ export type ContractIntentionPosture = {
   proofGateRefs?: string[];
   reducerRefs?: string[];
   evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type LifecycleManifestSeed = {
+  kind?: "lifecycle.manifest.seed";
+  manifestRef: string;
+  state: FabricLifecycleManifestState;
+  promotionState: FabricLifecyclePromotionState;
+  targetRef?: string;
+  candidateRefs?: string[];
+  sourceSnapshotRefs?: string[];
+  contentIndexRefs?: string[];
+  buildRefs?: string[];
+  buildRunRefs?: string[];
+  artifactRefs?: string[];
+  storageRefs?: string[];
+  proofRefs?: string[];
+  logRefs?: string[];
+  metricRefs?: string[];
+  releaseCandidateRefs?: string[];
+  rollbackRefs?: string[];
+  cleanupRefs?: string[];
+  proofGateRefs?: string[];
+  governanceRefs?: string[];
+  conflictRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type AdapterDebtDeletionWorkItem = {
+  kind?: "adapter.debt.deletion.work-item";
+  order: number;
+  deletionSliceRef: string;
+  subjectRef: string;
+  adapterRef: string;
+  currentShim: string;
+  desiredPrimitive: string;
+  proofToRetire: string;
+  blockingState: FabricAdapterDebtBlockingState;
+  blockedReasons?: string[];
+};
+
+export type AdapterDebtDeletionWorklist = {
+  kind?: "adapter.debt.deletion.worklist";
+  state: FabricAdapterDebtState;
+  itemCount: number;
+  ownerCount: number;
+  retiredAsBlockerCount: number;
+  orderPolicy?: string[];
+  blockerPolicy?: string;
+  ownerGroups?: Array<Record<string, unknown>>;
+  items?: AdapterDebtDeletionWorkItem[];
+  blockedReasons?: string[];
+};
+
+export type AdapterDebtPosture = {
+  kind?: "adapter.debt.posture";
+  state: FabricAdapterDebtState;
+  debtItemCount: number;
+  familyCounts?: Record<string, unknown>;
+  explicitAdapterRefs?: string[];
+  desiredPrimitiveRefs?: string[];
+  deletionSliceRefs?: string[];
+  retiredAsBlockers?: Array<Record<string, unknown>>;
+  deletionWorklist?: AdapterDebtDeletionWorklist;
+  debtItems?: Array<Record<string, unknown>>;
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type AdapterResidencyPosture = {
+  kind?: "adapter.residency.tool-materialization.posture";
+  state: FabricAdapterResidencyState;
+  adapterRef: string;
+  adapterRole: string;
+  residencyCount: number;
+  residencyRefs?: string[];
+  subjectRefs?: string[];
+  nativeDependencyRefs?: string[];
+  storageBackedInputRefs?: string[];
+  toolMaterializationRefs?: string[];
+  semanticConflictRefs?: string[];
+  legacyTransitionConflictRefs?: string[];
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type ManifestSelectedOperationPosture = {
+  kind?: "manifest-selected.operation.posture";
+  state: FabricManifestSelectedOperationState;
+  lifecycleManifestRef: string;
+  promotionIntentRef: string;
+  buildRefs?: string[];
+  buildRunRefs?: string[];
+  artifactRefs?: string[];
+  storageRefs?: string[];
+  storageObjectRefs?: string[];
+  executableRefs?: string[];
+  executableHashRefs?: string[];
+  runnerOperationRef: string;
+  runnerContractRef: string;
+  hostPostureRef: string;
+  fulfillmentSessionRef: string;
+  fulfillmentSessionContractRef: string;
+  fulfillmentSessionParentIntentRef: string;
+  transitionConflictRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type RuntimeFulfillmentSessionProjection = {
+  kind?: "runtime.fulfillment-session.projection";
+  projectionRef: string;
+  state: FabricLifecycleManifestState;
+  sessionId: string;
+  lifecycleManifestRef: string;
+  parentIntentRef: string;
+  subjectRef: string;
+  contractRef: string;
+  hostRef?: string;
+  runnerRef?: string;
+  storageAvailabilityRefs?: string[];
+  storageRefs?: string[];
+  executableRefs?: string[];
+  adapterDebtState?: FabricAdapterDebtState;
+  adapterDebtRef?: string;
+  queryKeys: Record<string, unknown>;
+  currentPosture?: Record<string, unknown>;
+  evidenceRefs?: string[];
+  blockedReasons?: string[];
+  safeFacts?: Record<string, unknown>;
+  observedAt: number;
+  expiresAt?: number;
+};
+
+export type ControlInversionProof = {
+  kind?: "control-inversion.proof";
+  roleRef: string;
+  state: FabricControlInversionProofState;
+  primaryControl: string;
+  primaryRefs?: string[];
+  legacyFallbackRefs?: string[];
+  legacyPathState: string;
+  adapterDebtState?: FabricAdapterDebtState;
   blockedReasons?: string[];
   safeFacts?: Record<string, unknown>;
   observedAt: number;
@@ -3664,7 +4595,9 @@ export function makeStorageObjectManifest(input?: {
   tags?: string[];
   encryptionAlg?: string;
 }): StorageObjectManifest;
+export function assertStorageObjectRef(value: unknown, name?: string): string;
 export function assertStorageIndexShard(shard: unknown): StorageIndexShard;
+export function assertStorageModuleExecutableInstantiationPosture(record: unknown): StorageModuleExecutableInstantiationPosture;
 export function logEventId(event: Partial<LogEventEnvelope>): string;
 export function rejectSensitiveSafeFacts(value: unknown): void;
 export function assertLogEventEnvelope(event: unknown): LogEventEnvelope;
@@ -3710,6 +4643,7 @@ export function assertMaterializationBudget(record: unknown): MaterializationBud
 export function assertProjectionRepairPosture(record: unknown): ProjectionRepairPosture;
 export function assertRetentionReleasePosture(record: unknown): RetentionReleasePosture;
 export function assertContributionLifecycle(record: unknown, context?: string): ContributionLifecycle;
+export function assertOperationInstancePosture(record: unknown): OperationInstancePosture;
 export function assertSwarmFrameBody(body: unknown, frameKind?: string): SwarmFrameBody;
 export function swarmFrameId(frame: Partial<SwarmFrame>): string;
 export function assertSwarmFrame(frame: unknown, opts?: { now?: number }): SwarmFrame;
@@ -3801,6 +4735,7 @@ export function assertStreamSessionCandidate(record: unknown): StreamSessionCand
 export function assertStreamSessionControl(record: unknown): StreamSessionControl;
 export function assertStreamSessionHealth(record: unknown): StreamSessionHealth;
 export function assertStreamSessionClose(record: unknown): StreamSessionClose;
+export function assertFulfillmentSession(record: unknown): FulfillmentSession;
 export function assertMediaFulfillmentEvidence(record: unknown): MediaFulfillmentEvidence;
 export function assertMediaTransportPath(record: unknown): MediaTransportPath;
 export function assertMediaTransportObservation(record: unknown): MediaTransportObservation;
@@ -3839,15 +4774,36 @@ export function assertServiceManagerReleaseContract(record: unknown): ServiceMan
 export function assertServiceManagerLabProof(record: unknown): ServiceManagerLabProof;
 export function assertServiceManagerTrainDigest(record: unknown): ServiceManagerTrainDigest;
 export function assertServiceManagerOperationPosture(record: unknown): ServiceManagerOperationPosture;
+export function assertServiceManagerControlRequestPosture(record: unknown): ServiceManagerControlRequestPosture;
 export function assertServiceManagerProofDigest(record: unknown): ServiceManagerProofDigest;
 export function assertSurfaceAppBootstrapContract(record: unknown): SurfaceAppBootstrapContract;
 export function assertSurfaceAppBootstrapPosture(record: unknown): SurfaceAppBootstrapPosture;
+export function assertSourceFileEntry(record: unknown): SourceFileEntry;
+export function assertSourceSnapshot(record: unknown): SourceSnapshot;
+export function assertSourceVersionIndexProjection(record: unknown): SourceVersionIndexProjection;
+export function assertSourceRefTransitionPosture(record: unknown): SourceRefTransitionPosture;
+export function assertSourceVersionIndexDeltaPosture(record: unknown): SourceVersionIndexDeltaPosture;
+export function assertSourcePromotionRollbackPosture(record: unknown): SourcePromotionRollbackPosture;
+export function assertSourcePromotionWitnessPosture(record: unknown): SourcePromotionWitnessPosture;
+export function assertSourceAppliedRefProjection(record: unknown): SourceAppliedRefProjection;
+export function assertSourceRefUpdate(record: unknown): SourceRefUpdate;
+export function assertSourceRefStoreJournal(record: unknown): SourceRefStoreJournal;
+export function assertSourceRefStoreReplayPosture(record: unknown): SourceRefStoreReplayPosture;
+export function assertAuthoringCandidateFeedbackPosture(record: unknown, context?: string): AuthoringCandidateFeedbackPosture;
+export function assertAuthoringWorkspaceProjection(record: unknown): AuthoringWorkspaceProjection;
+export function assertAuthoringCandidateSnapshotPosture(record: unknown): AuthoringCandidateSnapshotPosture;
 export function assertAppRecipe(record: unknown): AppRecipe;
 export function assertAppRunnerAdvertisement(record: unknown): AppRunnerAdvertisement;
 export function assertRunnerOperation(record: unknown): RunnerOperationRecord;
 export function assertRunnerHostFulfillmentPosture(record: unknown): RunnerHostFulfillmentPosture;
 export function assertAppRunnerFulfillmentReport(record: unknown): AppRunnerFulfillmentReport;
 export function assertAppRunnerFulfillmentLifecycle(record: unknown): AppRunnerFulfillmentLifecycle;
+export function assertContractFlowNode(record: unknown, context?: string): ContractFlowNode;
+export function assertContractFlowEdge(record: unknown, context?: string): ContractFlowEdge;
+export function assertContractFlowGraph(record: unknown): ContractFlowGraph;
+export function assertDriverRequirement(record: unknown): DriverRequirement;
+export function assertDriverEvidence(record: unknown): DriverEvidence;
+export function assertDriverBoundaryPosture(record: unknown): DriverBoundaryPosture;
 export function assertSubstrateAssociationHandoff(record: unknown): SubstrateAssociationHandoff;
 export function assertHostFabricMemberContribution(record: unknown): HostFabricMemberContribution;
 export function assertHostFabricFulfillmentPlan(record: unknown): HostFabricFulfillmentPlan;
@@ -3859,7 +4815,16 @@ export function assertHostFabricAdapterExecutionEvidence(record: unknown): HostF
 export function assertLifecycleDependencyEdge(record: unknown): LifecycleDependencyEdge;
 export function assertLifecyclePlanPosture(record: unknown): LifecyclePlanPosture;
 export function assertContentIndexRefPosture(record: unknown): ContentIndexRefPosture;
+export function assertContentIndexResolutionEntry(record: unknown): ContentIndexResolutionEntry;
+export function assertContentIndexResolverPosture(record: unknown): ContentIndexResolverPosture;
 export function assertContractIntentionPosture(record: unknown): ContractIntentionPosture;
+export function assertLifecycleManifestSeed(record: unknown): LifecycleManifestSeed;
+export function assertAdapterDebtDeletionWorklist(record: unknown): AdapterDebtDeletionWorklist;
+export function assertAdapterDebtPosture(record: unknown): AdapterDebtPosture;
+export function assertAdapterResidencyPosture(record: unknown): AdapterResidencyPosture;
+export function assertManifestSelectedOperationPosture(record: unknown): ManifestSelectedOperationPosture;
+export function assertRuntimeFulfillmentSessionProjection(record: unknown): RuntimeFulfillmentSessionProjection;
+export function assertControlInversionProof(record: unknown): ControlInversionProof;
 export function assertUniqueEdgeClassification(record: unknown): UniqueEdgeClassification;
 export function assertContractTarget(record: unknown): ContractTarget;
 export function assertContractTargetRegistryPosture(record: unknown): ContractTargetRegistryPosture;

@@ -282,7 +282,7 @@ pub fn validate_build_run(record: &BuildRun) -> Result<()> {
     validate_ref_list(&record.log_refs, "build run logRefs")?;
     validate_ref_list(&record.proof_refs, "build run proofRefs")?;
     validate_ref_list(&record.metric_refs, "build run metricRefs")?;
-    validate_ref_list(&record.storage_refs, "build run storageRefs")?;
+    validate_storage_object_ref_list(&record.storage_refs, "build run storageRefs")?;
     validate_ref_list(&record.compatibility_refs, "build run compatibilityRefs")?;
     validate_ref_list(
         &record.release_candidate_refs,
@@ -346,7 +346,7 @@ pub fn validate_build_artifact(record: &BuildArtifact) -> Result<()> {
     validate_contract_ref(&record.artifact_ref, "build artifact artifactRef")?;
     validate_contract_ref(&record.run_ref, "build artifact runRef")?;
     validate_build_artifact_kind(&record.artifact_kind)?;
-    validate_contract_ref(
+    validate_storage_object_ref(
         &record.storage_object_ref,
         "build artifact storageObjectRef",
     )?;
@@ -475,6 +475,27 @@ fn validate_ref_list(values: &[String], context: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_storage_object_ref_list(values: &[String], context: &str) -> Result<()> {
+    for value in values {
+        validate_storage_object_ref(value, context)?;
+    }
+    Ok(())
+}
+
+fn validate_storage_object_ref(value: &str, context: &str) -> Result<()> {
+    validate_contract_ref(value, context)?;
+    let object_id = value
+        .strip_prefix("storage:object:")
+        .ok_or_else(|| anyhow!("{context} must be storage object ref"))?;
+    if object_id.len() == 64 && object_id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "{context} must be content-addressed storage object ref"
+        ))
+    }
+}
+
 fn validate_reason_list(values: &[String], context: &str) -> Result<()> {
     for value in values {
         validate_reason(value, context)?;
@@ -567,6 +588,11 @@ fn reject_private_fields(value: &Value, context: &str) -> Result<()> {
 mod tests {
     use super::*;
 
+    const TEST_ARTIFACT_STORAGE_OBJECT_REF: &str =
+        "storage:object:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const TEST_LOG_STORAGE_OBJECT_REF: &str =
+        "storage:object:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
     fn contract() -> BuildContract {
         BuildContract {
             kind: Some(RECORD_BUILD_CONTRACT.to_string()),
@@ -617,10 +643,10 @@ mod tests {
             resource_grant_refs: vec!["resource:grant:build-lite".to_string()],
             secret_boundary_refs: vec!["secret:boundary:not-required".to_string()],
             artifact_refs: vec!["build:artifact:module".to_string()],
-            log_refs: vec!["storage:object:build-log".to_string()],
+            log_refs: vec![TEST_LOG_STORAGE_OBJECT_REF.to_string()],
             proof_refs: vec!["build:proof:1".to_string()],
             metric_refs: vec!["metrics:build:1".to_string()],
-            storage_refs: vec!["storage:object:artifact-module".to_string()],
+            storage_refs: vec![TEST_ARTIFACT_STORAGE_OBJECT_REF.to_string()],
             compatibility_refs: vec!["compat:surface-app:0.1".to_string()],
             release_candidate_refs: vec!["release:candidate:module".to_string()],
             project_refs: contract.project_refs.clone(),
@@ -640,7 +666,7 @@ mod tests {
             artifact_ref: "build:artifact:module".to_string(),
             run_ref: run.run_ref.clone(),
             artifact_kind: BUILD_ARTIFACT_KIND_MODULE.to_string(),
-            storage_object_ref: "storage:object:artifact-module".to_string(),
+            storage_object_ref: TEST_ARTIFACT_STORAGE_OBJECT_REF.to_string(),
             digest_ref: "digest:sha256:module".to_string(),
             compatibility_ref: "compat:surface-app:0.1".to_string(),
             media_type: "application/javascript".to_string(),
@@ -661,7 +687,7 @@ mod tests {
             processor_contract_refs: run.processor_contract_refs.clone(),
             processor_role_refs: run.processor_role_refs.clone(),
             artifact_refs: vec![artifact.artifact_ref],
-            log_refs: vec!["storage:object:build-log".to_string()],
+            log_refs: vec![TEST_LOG_STORAGE_OBJECT_REF.to_string()],
             metric_refs: vec!["metrics:build:1".to_string()],
             evidence_refs: vec!["runner:evidence:build-1".to_string()],
             blocked_reasons: vec![],

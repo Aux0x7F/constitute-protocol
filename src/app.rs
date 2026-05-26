@@ -32,6 +32,7 @@ pub const APP_EMBED_POLICY_DENIED: &str = "denied";
 pub const APP_MODULE_ROLE_RUNTIME_CLIENT: &str = "runtimeClient";
 pub const APP_MODULE_ROLE_PROJECTION_MODEL: &str = "projectionModel";
 pub const APP_MODULE_ROLE_PLATFORM_ADAPTER: &str = "platformAdapter";
+pub const APP_MODULE_ROLE_RUNTIME_RUNNER_BRIDGE: &str = "runtimeRunnerBridge";
 pub const APP_MODULE_ROLE_SERVICE_SURFACE_ADAPTER: &str = "serviceSurfaceAdapter";
 pub const APP_MODULE_ROLE_SERVICE_EDGE_ADAPTER: &str = "serviceEdgeAdapter";
 pub const APP_MODULE_ROLE_PRODUCT_VIEW: &str = "productView";
@@ -424,7 +425,7 @@ pub fn validate_app_release(record: &AppRelease) -> Result<()> {
     validate_ref_list(&record.artifact_refs, "app release artifactRefs")?;
     validate_ref_list(&record.proof_refs, "app release proofRefs")?;
     validate_ref_list(&record.module_role_refs, "app release moduleRoleRefs")?;
-    validate_ref_list(&record.storage_refs, "app release storageRefs")?;
+    validate_storage_object_ref_list(&record.storage_refs, "app release storageRefs")?;
     validate_ref_list(&record.compatibility_refs, "app release compatibilityRefs")?;
     validate_ref_list(&record.evidence_refs, "app release evidenceRefs")?;
     validate_reason_list(&record.blocked_reasons, "app release blockedReasons")?;
@@ -491,7 +492,7 @@ pub fn validate_app_release_resolution(record: &AppReleaseResolution) -> Result<
         &record.selected_module_role_refs,
         "app release resolution selectedModuleRoleRefs",
     )?;
-    validate_ref_list(
+    validate_storage_object_ref_list(
         &record.selected_storage_refs,
         "app release resolution selectedStorageRefs",
     )?;
@@ -829,6 +830,7 @@ fn validate_app_module_role_name(value: &str) -> Result<()> {
         APP_MODULE_ROLE_RUNTIME_CLIENT
             | APP_MODULE_ROLE_PROJECTION_MODEL
             | APP_MODULE_ROLE_PLATFORM_ADAPTER
+            | APP_MODULE_ROLE_RUNTIME_RUNNER_BRIDGE
             | APP_MODULE_ROLE_SERVICE_SURFACE_ADAPTER
             | APP_MODULE_ROLE_SERVICE_EDGE_ADAPTER
             | APP_MODULE_ROLE_PRODUCT_VIEW
@@ -946,6 +948,27 @@ fn validate_ref_list(values: &[String], context: &str) -> Result<()> {
     Ok(())
 }
 
+fn validate_storage_object_ref_list(values: &[String], context: &str) -> Result<()> {
+    for value in values {
+        validate_storage_object_ref(value, context)?;
+    }
+    Ok(())
+}
+
+fn validate_storage_object_ref(value: &str, context: &str) -> Result<()> {
+    validate_contract_ref(value, context)?;
+    let object_id = value
+        .strip_prefix("storage:object:")
+        .ok_or_else(|| anyhow!("{context} must be storage object refs"))?;
+    if object_id.len() == 64 && object_id.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        Ok(())
+    } else {
+        Err(anyhow!(
+            "{context} must be content-addressed storage object refs"
+        ))
+    }
+}
+
 fn validate_reason_list(values: &[String], context: &str) -> Result<()> {
     for value in values {
         validate_reason(value, context)?;
@@ -1056,6 +1079,9 @@ fn reject_private_fields(value: &Value, context: &str) -> Result<()> {
 mod tests {
     use super::*;
 
+    const TEST_STORAGE_OBJECT_REF: &str =
+        "storage:object:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
     fn contract() -> AppContract {
         AppContract {
             kind: Some(RECORD_APP_CONTRACT.to_string()),
@@ -1132,7 +1158,7 @@ mod tests {
             artifact_refs: vec!["build:artifact:module".to_string()],
             proof_refs: vec!["build:proof:cybersec-bootstrap".to_string()],
             module_role_refs: vec![module.module_role_ref],
-            storage_refs: vec!["storage:object:cybersec-module".to_string()],
+            storage_refs: vec![TEST_STORAGE_OBJECT_REF.to_string()],
             compatibility_refs: contract.compatibility_refs.clone(),
             evidence_refs: vec!["build:evidence:artifact-hash".to_string()],
             blocked_reasons: vec![],

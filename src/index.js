@@ -35,6 +35,7 @@ export const SURFACE_APP = Object.freeze({
     RUNTIME_CLIENT: "runtimeClient",
     PROJECTION_MODEL: "projectionModel",
     PLATFORM_ADAPTER: "platformAdapter",
+    RUNTIME_RUNNER_BRIDGE: "runtimeRunnerBridge",
     SERVICE_SURFACE_ADAPTER: "serviceSurfaceAdapter",
     SERVICE_EDGE_ADAPTER: "serviceEdgeAdapter",
     PRODUCT_VIEW: "productView",
@@ -419,6 +420,46 @@ export const FABRIC = Object.freeze({
     SUPERSEDED: "superseded",
     EXPIRED: "expired",
   }),
+  LIFECYCLE_MANIFEST_STATE: Object.freeze({
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  LIFECYCLE_PROMOTION_STATE: Object.freeze({
+    CANDIDATE_READY: "candidateReady",
+    ACCEPTED: "accepted",
+    REJECTED: "rejected",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  ADAPTER_DEBT_STATE: Object.freeze({
+    CLEAR: "clear",
+    TRACKING: "tracking",
+    BLOCKED: "blocked",
+  }),
+  ADAPTER_DEBT_BLOCKING_STATE: Object.freeze({
+    TRACKED_NON_BLOCKING: "trackedNonBlocking",
+    BLOCKING: "blocking",
+    RETIRED: "retired",
+    PLANNED: "planned",
+  }),
+  ADAPTER_RESIDENCY_STATE: Object.freeze({
+    CLEAR: "clear",
+    READY: "ready",
+    TRACKING: "tracking",
+    BLOCKED: "blocked",
+  }),
+  MANIFEST_SELECTED_OPERATION_STATE: Object.freeze({
+    SUCCEEDED: "succeeded",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+  }),
+  CONTROL_INVERSION_PROOF_STATE: Object.freeze({
+    PROVED: "proved",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+  }),
   UNIQUE_EDGE_CLASSIFICATION: Object.freeze({
     GENERIC_PRIMITIVE: "genericPrimitive",
     UNIQUE_EDGE: "uniqueEdge",
@@ -458,9 +499,153 @@ export const FABRIC = Object.freeze({
   }),
 });
 
+export const FLOW = Object.freeze({
+  RECORD_KIND: Object.freeze({
+    GRAPH: "contract.flow.graph",
+    NODE: "contract.flow.node",
+    EDGE: "contract.flow.edge",
+  }),
+  GRAPH_STATE: Object.freeze({
+    DRAFT: "draft",
+    TRACKING: "tracking",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  NODE_ROLE: Object.freeze({
+    SOURCE: "source",
+    DRIVER: "driver",
+    PROCESSOR: "processor",
+    ROUTER: "router",
+    CARRIER_EDGE: "carrierEdge",
+    STORAGE: "storage",
+    RUNTIME: "runtime",
+    SURFACE: "surface",
+    FABRIC: "fabric",
+    FABRIC_RUNNER: "fabricRunner",
+    AUTHORITY: "authority",
+    OBSERVER: "observer",
+  }),
+  NODE_STATE: Object.freeze({
+    PLANNED: "planned",
+    TRACKING: "tracking",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    MISSING: "missing",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  EDGE_KIND: Object.freeze({
+    LIFECYCLE_DEPENDENCY: "lifecycleDependency",
+    SOURCE_TO_DRIVER: "sourceToDriver",
+    STREAM: "stream",
+    PROCESSOR_OUTPUT: "processorOutput",
+    ROUTER_BINDING: "routerBinding",
+    CARRIER: "carrier",
+    STORAGE_AVAILABILITY: "storageAvailability",
+    PROJECTION: "projection",
+    SURFACE_BINDING: "surfaceBinding",
+    FULFILLMENT: "fulfillment",
+    EVIDENCE: "evidence",
+  }),
+  EDGE_STATE: Object.freeze({
+    PLANNED: "planned",
+    TRACKING: "tracking",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+});
+
+export const DRIVER = Object.freeze({
+  RECORD_KIND: Object.freeze({
+    REQUIREMENT: "driver.requirement",
+    EVIDENCE: "driver.evidence",
+    BOUNDARY_POSTURE: "driver.boundary.posture",
+  }),
+  ASSET_CLASS: Object.freeze({
+    CAMERA: "camera",
+    SENSOR: "sensor",
+    FILESYSTEM: "filesystem",
+    PROCESS: "process",
+    OS_API: "osApi",
+    HARDWARE_BUS: "hardwareBus",
+    COMPILER: "compiler",
+    VENDOR_API: "vendorApi",
+    NETWORK_INTERFACE: "networkInterface",
+    STORAGE_DEVICE: "storageDevice",
+    UNKNOWN: "unknown",
+  }),
+  TOUCHPOINT_KIND: Object.freeze({
+    CORPOREAL_ASSET: "corporealAsset",
+    HOST_CAPABILITY: "hostCapability",
+    TOOLCHAIN: "toolchain",
+    VENDOR_API: "vendorApi",
+    FILESYSTEM_MATERIALIZATION: "filesystemMaterialization",
+  }),
+  REQUIREMENT_STATE: Object.freeze({
+    DECLARED: "declared",
+    TRACKING: "tracking",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  EVIDENCE_STATE: Object.freeze({
+    OBSERVED: "observed",
+    ACTIONABLE: "actionable",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    EXPIRED: "expired",
+  }),
+  BOUNDARY_STATE: Object.freeze({
+    TRACKING: "tracking",
+    READY: "ready",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+});
+
 export const BUILD = Object.freeze({
   CAPABILITY: Object.freeze({
     RUN_EXECUTE: "build.run.execute",
+  }),
+});
+
+export const SOURCE = Object.freeze({
+  RECORD_KIND: Object.freeze({
+    VERSION_GRAPH: "source.version.graph",
+    SNAPSHOT: "source.snapshot",
+    VERSION_INDEX_ENTRY: "source.version-index.entry",
+    VERSION_INDEX_PROJECTION: "source.version-index.projection",
+    REF_TRANSITION_POSTURE: "source.ref.transition.posture",
+    VERSION_INDEX_DELTA_POSTURE: "source.version-index.delta.posture",
+    APPLIED_REF_PROJECTION: "source.applied-ref.projection",
+    REF_STORE_JOURNAL: "source.ref.store.journal",
+    REF_STORE_REPLAY_POSTURE: "source.ref.store.replay.posture",
+    PROMOTION_ROLLBACK_POSTURE: "source.promotion.rollback.posture",
+    PROMOTION_WITNESS_POSTURE: "source.promotion.witness.posture",
+    AUTHORING_WORKSPACE_PROJECTION: "swarm.workspace.authoring.projection",
+    AUTHORING_WORKSPACE_ENTRY: "swarm.workspace.authoring.entry",
+    AUTHORING_CANDIDATE_SNAPSHOT_POSTURE: "swarm.workspace.authoring.candidate-snapshot.posture",
+    AUTHORING_CANDIDATE_FEEDBACK_POSTURE: "swarm.workspace.authoring.candidate-feedback.posture",
+    REF_UPDATE: "source.ref.update",
+    WRITER_GRANT: "source.writer.grant",
+    IMPORT_PROOF: "source.import.proof",
+    PROJECT_OPERATION: "source.project.operation",
+  }),
+  SIGNATURE_POSTURE: Object.freeze({
+    SIGNED: "signed",
+    DEV_UNSIGNED: "devUnsigned",
+    BLOCKED: "blocked",
   }),
 });
 
@@ -963,6 +1148,593 @@ export function makeStorageObjectManifest({
   return assertStorageObjectManifest(manifest);
 }
 
+export function assertStorageObjectRef(value, name = "storage objectRef") {
+  const text = requireString(value, name);
+  if (!/^storage:object:[0-9a-f]{64}$/i.test(text)) {
+    throw new Error(`${name} must be content-addressed storage object ref`);
+  }
+  return text;
+}
+
+function assertStorageObjectRefList(values, name) {
+  for (const value of values) assertStorageObjectRef(value, name);
+  return values;
+}
+
+function assertStorageChunkRefString(value, name = "storage chunkRef") {
+  const text = requireString(value, name);
+  if (!/^storage:chunk:[0-9a-f]{64}$/i.test(text)) {
+    throw new Error(`${name} must be content-addressed storage chunk ref`);
+  }
+  return text;
+}
+
+function assertStorageChunkRefStringList(values, name) {
+  for (const value of values) assertStorageChunkRefString(value, name);
+  return values;
+}
+
+function assertSourceContractRef(value, name) {
+  const raw = String(value ?? "");
+  const text = raw.trim();
+  if (!text) throw new Error(`${name} is empty`);
+  if (
+    raw !== text
+    || /\s/.test(text)
+    || text.includes("\\")
+    || text.startsWith("/")
+    || text.startsWith("file:")
+    || text.startsWith("http:")
+    || text.startsWith("https:")
+    || !text.includes(":")
+  ) {
+    throw new Error(`${name} must be a contract/storage ref, not a raw path or URL`);
+  }
+  return text;
+}
+
+function assertSourceHashRef(value, name) {
+  const text = assertSourceContractRef(value, name);
+  if (!/^sha256:[0-9a-f]{64}$/i.test(text)) {
+    throw new Error(`${name} must be sha256:<64 hex>`);
+  }
+  return text.toLowerCase();
+}
+
+function assertSourceVirtualPath(value, name = "source file entry virtualPath") {
+  const raw = String(value ?? "");
+  const text = raw.trim();
+  if (!text) throw new Error("source file entry missing virtualPath");
+  if (
+    raw !== text
+    || text.includes("\\")
+    || text.includes("..")
+    || text.startsWith("/")
+    || text.startsWith("file:")
+    || text.startsWith("http:")
+    || text.startsWith("https:")
+    || text.includes(":")
+  ) {
+    throw new Error(`${name} must be a logical relative path`);
+  }
+  return text;
+}
+
+export function assertSourceFileEntry(record, context = "source file entry") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertSourceContractRef(record.fileRef, `${context} fileRef`);
+  assertSourceContractRef(record.pathRef, `${context} pathRef`);
+  const virtualPath = assertSourceVirtualPath(record.virtualPath, `${context} virtualPath`);
+  const hashRef = assertSourceHashRef(record.hashRef, `${context} hashRef`);
+  const byteLength = Number(record.byteLength || 0);
+  if (!Number.isFinite(byteLength) || byteLength <= 0) throw new Error(`${context} missing byteLength`);
+  if (record.storageObjectRef !== undefined) assertStorageObjectRef(record.storageObjectRef, `${context} storageObjectRef`);
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  return { ...record, virtualPath, hashRef, byteLength, evidenceRefs };
+}
+
+export function assertSourceSnapshot(record) {
+  if (!isObject(record)) throw new Error("source snapshot must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.SNAPSHOT, "source snapshot");
+  assertSourceContractRef(record.sourceGraphRef, "source snapshot sourceGraphRef");
+  assertSourceContractRef(record.snapshotRef, "source snapshot snapshotRef");
+  assertSourceContractRef(record.commitRef, "source snapshot commitRef");
+  assertSourceContractRef(record.treeRef, "source snapshot treeRef");
+  const treeHashRef = assertSourceHashRef(record.treeHashRef, "source snapshot treeHashRef");
+  const parentSnapshotRefs = assertOptionalReferenceList(record.parentSnapshotRefs, "source snapshot parentSnapshotRefs");
+  const fileEntries = requireNonEmptyArray(record.fileEntries, "source snapshot fileEntries")
+    .map((entry, index) => assertSourceFileEntry(entry, `source snapshot fileEntries ${index}`));
+  const storageObjectRefs = assertStorageObjectRefList(
+    requireNonEmptyArray(record.storageObjectRefs, "source snapshot storageObjectRefs"),
+    "source snapshot storageObjectRefs",
+  );
+  assertSourceContractRef(record.authorRef, "source snapshot authorRef");
+  const signaturePosture = assertEnumValue(record.signaturePosture, SOURCE.SIGNATURE_POSTURE, "source snapshot signaturePosture");
+  assertSourceContractRef(record.messageDigestRef, "source snapshot messageDigestRef");
+  const branchRefs = assertOptionalReferenceList(record.branchRefs, "source snapshot branchRefs");
+  const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "source snapshot candidateRefs");
+  const writerGrantRefs = assertOptionalReferenceList(record.writerGrantRefs, "source snapshot writerGrantRefs");
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "source snapshot authorityRefs");
+  const materializedProjectionRefs = assertOptionalReferenceList(record.materializedProjectionRefs, "source snapshot materializedProjectionRefs");
+  const dirtyProjectionRefs = assertOptionalReferenceList(record.dirtyProjectionRefs, "source snapshot dirtyProjectionRefs");
+  const signatureRefs = assertOptionalReferenceList(record.signatureRefs, "source snapshot signatureRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source snapshot evidenceRefs");
+  if (signaturePosture === SOURCE.SIGNATURE_POSTURE.SIGNED && signatureRefs.length === 0) {
+    throw new Error("signed source snapshot needs signatureRefs");
+  }
+  if (signaturePosture === SOURCE.SIGNATURE_POSTURE.DEV_UNSIGNED && evidenceRefs.length === 0) {
+    throw new Error("dev-unsigned source snapshot needs evidenceRefs");
+  }
+  if (dirtyProjectionRefs.length && candidateRefs.length === 0) {
+    throw new Error("dirty source snapshot projection needs candidateRefs");
+  }
+  if (!Number(record.issuedAt || 0)) throw new Error("source snapshot missing issuedAt");
+  return {
+    ...record,
+    treeHashRef,
+    parentSnapshotRefs,
+    fileEntries,
+    storageObjectRefs,
+    signaturePosture,
+    branchRefs,
+    candidateRefs,
+    writerGrantRefs,
+    authorityRefs,
+    materializedProjectionRefs,
+    dirtyProjectionRefs,
+    signatureRefs,
+    evidenceRefs,
+  };
+}
+
+export function assertSourceVersionIndexProjection(record) {
+  if (!isObject(record)) throw new Error("source version-index projection must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.VERSION_INDEX_PROJECTION, "source version-index projection");
+  const state = requireString(record.state, "source version-index projection state");
+  assertSourceContractRef(record.versionIndexRef, "source version-index projection versionIndexRef");
+  assertSourceContractRef(record.sourceSnapshotRef, "source version-index projection sourceSnapshotRef");
+  assertSourceContractRef(record.contentIndexRef, "source version-index projection contentIndexRef");
+  const entries = requireNonEmptyArray(record.entries, "source version-index projection entries")
+    .map((entry, index) => {
+      if (!isObject(entry)) throw new Error(`source version-index entry ${index} must be an object`);
+      assertRecordKind(entry, SOURCE.RECORD_KIND.VERSION_INDEX_ENTRY, `source version-index entry ${index}`);
+      assertSourceContractRef(entry.entryRef, `source version-index entry ${index} entryRef`);
+      assertSourceContractRef(entry.repoRef, `source version-index entry ${index} repoRef`);
+      assertSourceContractRef(entry.moduleRef, `source version-index entry ${index} moduleRef`);
+      assertSourceContractRef(entry.selectedVersionRef, `source version-index entry ${index} selectedVersionRef`);
+      assertSourceContractRef(entry.contractVersionRef, `source version-index entry ${index} contractVersionRef`);
+      assertSourceContractRef(entry.sourceSnapshotRef, `source version-index entry ${index} sourceSnapshotRef`);
+      assertSourceContractRef(entry.contentIndexRef, `source version-index entry ${index} contentIndexRef`);
+      return { ...entry };
+    });
+  const selectedVersionRefs = assertOptionalReferenceList(record.selectedVersionRefs, "source version-index projection selectedVersionRefs");
+  const contractVersionRefs = assertOptionalReferenceList(record.contractVersionRefs, "source version-index projection contractVersionRefs");
+  const moduleRefs = assertOptionalReferenceList(record.moduleRefs, "source version-index projection moduleRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source version-index projection evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source version-index projection blockedReasons");
+  return { ...record, state, entries, selectedVersionRefs, contractVersionRefs, moduleRefs, evidenceRefs, blockedReasons };
+}
+
+function assertSourceVersionIndexDeltaEntry(entry, context, requireSelection = true) {
+  if (!isObject(entry)) throw new Error(`${context} must be an object`);
+  if (entry.entryRef !== undefined) assertSourceContractRef(entry.entryRef, `${context} entryRef`);
+  if (entry.contractRef !== undefined) assertSourceContractRef(entry.contractRef, `${context} contractRef`);
+  if (entry.contractVersionRef !== undefined) assertSourceContractRef(entry.contractVersionRef, `${context} contractVersionRef`);
+  if (entry.selectedVersionRef !== undefined) assertSourceContractRef(entry.selectedVersionRef, `${context} selectedVersionRef`);
+  else if (requireSelection) throw new Error(`${context} requires selectedVersionRef`);
+  if (entry.moduleRef !== undefined) assertSourceContractRef(entry.moduleRef, `${context} moduleRef`);
+  if (entry.repoRef !== undefined) assertSourceContractRef(entry.repoRef, `${context} repoRef`);
+  if (entry.sourceSnapshotRef !== undefined) assertSourceContractRef(entry.sourceSnapshotRef, `${context} sourceSnapshotRef`);
+  else if (requireSelection) throw new Error(`${context} requires sourceSnapshotRef`);
+  if (entry.contentIndexRef !== undefined) assertSourceContractRef(entry.contentIndexRef, `${context} contentIndexRef`);
+  else if (requireSelection) throw new Error(`${context} requires contentIndexRef`);
+  if (entry.treeHashRef !== undefined) assertSourceHashRef(entry.treeHashRef, `${context} treeHashRef`);
+  if (entry.artifactRef !== undefined) assertSourceContractRef(entry.artifactRef, `${context} artifactRef`);
+  if (entry.selectedByRef !== undefined) assertSourceContractRef(entry.selectedByRef, `${context} selectedByRef`);
+  const authorityRefs = assertOptionalReferenceList(entry.authorityRefs, `${context} authorityRefs`);
+  const writerGrantRefs = assertOptionalReferenceList(entry.writerGrantRefs, `${context} writerGrantRefs`);
+  return { ...entry, authorityRefs, writerGrantRefs };
+}
+
+const SOURCE_REF_KINDS = new Set(["branch", "tag", "note"]);
+const SOURCE_UPDATE_STATES = new Set(["requested", "accepted", "applied", "rejected", "blocked", "superseded"]);
+const SOURCE_OPERATIONS = new Set([
+  "import",
+  "fetch",
+  "push",
+  "status",
+  "refUpdate",
+  "branch",
+  "tag",
+  "release",
+  "projectLink",
+  "export",
+]);
+
+function assertSourceRefName(value, name = "source ref update refName") {
+  const raw = String(value ?? "");
+  const text = raw.trim();
+  if (!text) throw new Error("source ref update missing refName");
+  if (
+    raw !== text
+    || text.includes("\\")
+    || text.includes("..")
+    || text.startsWith("/")
+    || text.startsWith("file:")
+    || text.startsWith("http:")
+    || text.startsWith("https:")
+  ) {
+    throw new Error(`${name} must be a logical git-style ref`);
+  }
+  return text;
+}
+
+function assertSourceGraphPolicy(policy, context = "source ref update policy") {
+  if (!isObject(policy)) throw new Error(`${context} must be an object`);
+  if (typeof policy.fastForwardOnly !== "boolean") throw new Error(`${context} fastForwardOnly must be boolean`);
+  if (typeof policy.reviewRequired !== "boolean") throw new Error(`${context} reviewRequired must be boolean`);
+  if (typeof policy.signedUpdatesRequired !== "boolean") throw new Error(`${context} signedUpdatesRequired must be boolean`);
+  const allowedOperations = assertOptionalReferenceList(policy.allowedOperations, `${context} allowedOperations`);
+  if (!allowedOperations.length) throw new Error("source policy needs allowedOperations");
+  for (const operation of allowedOperations) {
+    if (!SOURCE_OPERATIONS.has(operation)) throw new Error("unsupported source operation");
+  }
+  return { ...policy, allowedOperations };
+}
+
+export function assertSourceRefUpdate(record) {
+  if (!isObject(record)) throw new Error("source ref update must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.REF_UPDATE, "source ref update");
+  rejectAdapterResidencyTransportFields(record, "source ref update");
+  assertSourceContractRef(record.updateRef, "source ref update updateRef");
+  assertSourceContractRef(record.sourceGraphRef, "source ref update sourceGraphRef");
+  const refName = assertSourceRefName(record.refName);
+  const refKind = requireString(record.refKind, "source ref update refKind");
+  if (!SOURCE_REF_KINDS.has(refKind)) throw new Error("unsupported source ref kind");
+  if (record.fromSnapshotRef !== undefined) {
+    assertSourceContractRef(record.fromSnapshotRef, "source ref update fromSnapshotRef");
+  }
+  assertSourceContractRef(record.toSnapshotRef, "source ref update toSnapshotRef");
+  assertSourceContractRef(record.writerRef, "source ref update writerRef");
+  const state = requireString(record.state, "source ref update state");
+  if (!SOURCE_UPDATE_STATES.has(state)) throw new Error("unsupported source ref update state");
+  const grantRefs = assertOptionalReferenceList(record.grantRefs, "source ref update grantRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source ref update evidenceRefs");
+  const witnessRefs = assertOptionalReferenceList(record.witnessRefs, "source ref update witnessRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source ref update blockedReasons");
+  const policy = assertSourceGraphPolicy(record.policy);
+  const signedAt = Number(record.signedAt || 0);
+  if (!Number.isInteger(signedAt) || signedAt <= 0) throw new Error("source ref update missing signedAt");
+  const validUntil = record.validUntil === undefined ? undefined : Number(record.validUntil);
+  if (validUntil !== undefined && (!Number.isInteger(validUntil) || validUntil <= signedAt)) {
+    throw new Error("source ref update validUntil must be after signedAt");
+  }
+  if ((state === "accepted" || state === "applied") && !grantRefs.length) {
+    throw new Error("accepted source ref update needs grantRefs");
+  }
+  if ((state === "rejected" || state === "blocked") && !blockedReasons.length) {
+    throw new Error("blocked or rejected source ref update needs blockedReasons");
+  }
+  if ((state === "accepted" || state === "applied") && policy.fastForwardOnly && record.fromSnapshotRef === undefined) {
+    throw new Error("fast-forward source ref update needs fromSnapshotRef");
+  }
+  return {
+    ...record,
+    refName,
+    refKind,
+    state,
+    grantRefs,
+    evidenceRefs,
+    witnessRefs,
+    blockedReasons,
+    policy,
+    signedAt,
+    ...(validUntil === undefined ? {} : { validUntil }),
+  };
+}
+
+export function assertSourceRefTransitionPosture(record) {
+  if (!isObject(record)) throw new Error("source ref transition posture must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.REF_TRANSITION_POSTURE, "source ref transition posture");
+  const state = requireString(record.state, "source ref transition posture state");
+  assertSourceContractRef(record.transitionRef, "source ref transition posture transitionRef");
+  assertSourceContractRef(record.targetRef, "source ref transition posture targetRef");
+  assertSourceContractRef(record.repoRef, "source ref transition posture repoRef");
+  assertSourceContractRef(record.fromSourceSnapshotRef, "source ref transition posture fromSourceSnapshotRef");
+  assertSourceContractRef(record.toSourceSnapshotRef, "source ref transition posture toSourceSnapshotRef");
+  assertSourceContractRef(record.fromContentIndexRef, "source ref transition posture fromContentIndexRef");
+  assertSourceContractRef(record.toContentIndexRef, "source ref transition posture toContentIndexRef");
+  assertSourceContractRef(record.fromSelectedVersionRef, "source ref transition posture fromSelectedVersionRef");
+  assertSourceContractRef(record.toSelectedVersionRef, "source ref transition posture toSelectedVersionRef");
+  assertSourceContractRef(record.lifecycleManifestRef, "source ref transition posture lifecycleManifestRef");
+  assertSourceContractRef(record.promotionIntentRef, "source ref transition posture promotionIntentRef");
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "source ref transition posture authorityRefs");
+  const grantRefs = assertOptionalReferenceList(record.grantRefs, "source ref transition posture grantRefs");
+  const witnessRefs = assertOptionalReferenceList(record.witnessRefs, "source ref transition posture witnessRefs");
+  const rollbackRefs = assertOptionalReferenceList(record.rollbackRefs, "source ref transition posture rollbackRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source ref transition posture blockedReasons");
+  if (state === "applied" && blockedReasons.length) throw new Error("applied source ref transition posture cannot carry blockedReasons");
+  if (state === "applied" && (!authorityRefs.length || !grantRefs.length || !witnessRefs.length || !rollbackRefs.length)) {
+    throw new Error("applied source ref transition posture requires authority, grant, witness, and rollback refs");
+  }
+  return { ...record, state, authorityRefs, grantRefs, witnessRefs, rollbackRefs, blockedReasons };
+}
+
+export function assertSourceVersionIndexDeltaPosture(record) {
+  if (!isObject(record)) throw new Error("source version-index delta posture must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.VERSION_INDEX_DELTA_POSTURE, "source version-index delta posture");
+  const state = requireString(record.state, "source version-index delta posture state");
+  assertSourceContractRef(record.deltaRef, "source version-index delta posture deltaRef");
+  assertSourceContractRef(record.versionIndexRef, "source version-index delta posture versionIndexRef");
+  assertSourceContractRef(record.repoRef, "source version-index delta posture repoRef");
+  assertSourceContractRef(record.targetRef, "source version-index delta posture targetRef");
+  const fromEntry = assertSourceVersionIndexDeltaEntry(record.fromEntry, "source version-index delta posture fromEntry");
+  const toEntry = assertSourceVersionIndexDeltaEntry(record.toEntry, "source version-index delta posture toEntry");
+  const inputRefs = assertOptionalReferenceList(record.inputRefs, "source version-index delta posture inputRefs");
+  const outputRefs = assertOptionalReferenceList(record.outputRefs, "source version-index delta posture outputRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source version-index delta posture blockedReasons");
+  if (state === "applied" && blockedReasons.length) throw new Error("applied source version-index delta posture cannot carry blockedReasons");
+  return { ...record, state, fromEntry, toEntry, inputRefs, outputRefs, blockedReasons };
+}
+
+export function assertSourcePromotionRollbackPosture(record) {
+  if (!isObject(record)) throw new Error("source promotion rollback posture must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.PROMOTION_ROLLBACK_POSTURE, "source promotion rollback posture");
+  const state = requireString(record.state, "source promotion rollback posture state");
+  assertSourceContractRef(record.rollbackRef, "source promotion rollback posture rollbackRef");
+  assertSourceContractRef(record.targetRef, "source promotion rollback posture targetRef");
+  assertSourceContractRef(record.restoreSourceSnapshotRef, "source promotion rollback posture restoreSourceSnapshotRef");
+  assertSourceContractRef(record.restoreContentIndexRef, "source promotion rollback posture restoreContentIndexRef");
+  assertSourceContractRef(record.restoreSelectedVersionRef, "source promotion rollback posture restoreSelectedVersionRef");
+  const rollbackGateRefs = assertOptionalReferenceList(record.rollbackGateRefs, "source promotion rollback posture rollbackGateRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source promotion rollback posture blockedReasons");
+  if (state === "applied" && !rollbackGateRefs.length) throw new Error("applied source promotion rollback posture requires rollbackGateRefs");
+  return { ...record, state, rollbackGateRefs, blockedReasons };
+}
+
+export function assertSourcePromotionWitnessPosture(record) {
+  if (!isObject(record)) throw new Error("source promotion witness posture must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.PROMOTION_WITNESS_POSTURE, "source promotion witness posture");
+  const state = requireString(record.state, "source promotion witness posture state");
+  assertSourceContractRef(record.witnessRef, "source promotion witness posture witnessRef");
+  assertSourceContractRef(record.subjectRef, "source promotion witness posture subjectRef");
+  assertSourceContractRef(record.lifecycleManifestRef, "source promotion witness posture lifecycleManifestRef");
+  assertSourceContractRef(record.promotionIntentRef, "source promotion witness posture promotionIntentRef");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source promotion witness posture evidenceRefs");
+  const proofGateRefs = assertOptionalReferenceList(record.proofGateRefs, "source promotion witness posture proofGateRefs");
+  const storageRefs = assertStorageObjectRefList(record.storageRefs || [], "source promotion witness posture storageRefs");
+  const storagePinRefs = assertOptionalReferenceList(record.storagePinRefs, "source promotion witness posture storagePinRefs");
+  const storageAvailabilityRefs = assertOptionalReferenceList(record.storageAvailabilityRefs, "source promotion witness posture storageAvailabilityRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source promotion witness posture blockedReasons");
+  if (state === "applied" && (!evidenceRefs.length || !proofGateRefs.length)) {
+    throw new Error("applied source promotion witness posture requires evidenceRefs and proofGateRefs");
+  }
+  return { ...record, state, evidenceRefs, proofGateRefs, storageRefs, storagePinRefs, storageAvailabilityRefs, blockedReasons };
+}
+
+export function assertSourceAppliedRefProjection(record) {
+  if (!isObject(record)) throw new Error("source applied-ref projection must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.APPLIED_REF_PROJECTION, "source applied-ref projection");
+  const state = requireString(record.state, "source applied-ref projection state");
+  assertSourceContractRef(record.projectionRef, "source applied-ref projection projectionRef");
+  if (record.reportRef !== undefined) assertSourceContractRef(record.reportRef, "source applied-ref projection reportRef");
+  if (record.applyRef !== undefined) assertSourceContractRef(record.applyRef, "source applied-ref projection applyRef");
+  assertSourceContractRef(record.repoRef, "source applied-ref projection repoRef");
+  assertSourceContractRef(record.targetRef, "source applied-ref projection targetRef");
+  assertSourceContractRef(record.lifecycleManifestRef, "source applied-ref projection lifecycleManifestRef");
+  assertSourceContractRef(record.promotionIntentRef, "source applied-ref projection promotionIntentRef");
+  assertSourceContractRef(record.sourceRefTransitionRef, "source applied-ref projection sourceRefTransitionRef");
+  assertSourceContractRef(record.versionIndexDeltaRef, "source applied-ref projection versionIndexDeltaRef");
+  assertSourceContractRef(record.witnessRef, "source applied-ref projection witnessRef");
+  assertSourceContractRef(record.rollbackRef, "source applied-ref projection rollbackRef");
+  assertSourceContractRef(record.fromSourceSnapshotRef, "source applied-ref projection fromSourceSnapshotRef");
+  assertSourceContractRef(record.toSourceSnapshotRef, "source applied-ref projection toSourceSnapshotRef");
+  assertSourceContractRef(record.fromContentIndexRef, "source applied-ref projection fromContentIndexRef");
+  assertSourceContractRef(record.toContentIndexRef, "source applied-ref projection toContentIndexRef");
+  assertSourceContractRef(record.fromSelectedVersionRef, "source applied-ref projection fromSelectedVersionRef");
+  assertSourceContractRef(record.toSelectedVersionRef, "source applied-ref projection toSelectedVersionRef");
+  const toVersionIndexEntry = assertSourceVersionIndexDeltaEntry(record.toVersionIndexEntry, "source applied-ref projection toVersionIndexEntry");
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, "source applied-ref projection authorityRefs");
+  const grantRefs = assertOptionalReferenceList(record.grantRefs, "source applied-ref projection grantRefs");
+  const proofGateRefs = assertOptionalReferenceList(record.proofGateRefs, "source applied-ref projection proofGateRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source applied-ref projection evidenceRefs");
+  const storageRefs = assertStorageObjectRefList(record.storageRefs || [], "source applied-ref projection storageRefs");
+  const storagePinRefs = assertOptionalReferenceList(record.storagePinRefs, "source applied-ref projection storagePinRefs");
+  const storageAvailabilityRefs = assertOptionalReferenceList(record.storageAvailabilityRefs, "source applied-ref projection storageAvailabilityRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source applied-ref projection blockedReasons");
+  if (state === "applied" && blockedReasons.length) throw new Error("applied source applied-ref projection cannot carry blockedReasons");
+  return { ...record, state, toVersionIndexEntry, authorityRefs, grantRefs, proofGateRefs, evidenceRefs, storageRefs, storagePinRefs, storageAvailabilityRefs, blockedReasons };
+}
+
+function assertSourceRefStoreCurrentEntry(record, context = "source ref store current") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  if (record.applyRef !== undefined) assertSourceContractRef(record.applyRef, `${context} applyRef`);
+  if (record.reportRef !== undefined) assertSourceContractRef(record.reportRef, `${context} reportRef`);
+  assertSourceContractRef(record.repoRef, `${context} repoRef`);
+  assertSourceContractRef(record.targetRef, `${context} targetRef`);
+  const sourceRefUpdateRefs = assertOptionalReferenceList(record.sourceRefUpdateRefs, `${context} sourceRefUpdateRefs`);
+  assertSourceContractRef(record.sourceRefTransitionRef, `${context} sourceRefTransitionRef`);
+  assertSourceContractRef(record.versionIndexDeltaRef, `${context} versionIndexDeltaRef`);
+  assertSourceContractRef(record.witnessRef, `${context} witnessRef`);
+  assertSourceContractRef(record.rollbackRef, `${context} rollbackRef`);
+  assertSourceContractRef(record.lifecycleManifestRef, `${context} lifecycleManifestRef`);
+  assertSourceContractRef(record.promotionIntentRef, `${context} promotionIntentRef`);
+  assertSourceContractRef(record.fromSourceSnapshotRef, `${context} fromSourceSnapshotRef`);
+  assertSourceContractRef(record.toSourceSnapshotRef, `${context} toSourceSnapshotRef`);
+  assertSourceContractRef(record.fromContentIndexRef, `${context} fromContentIndexRef`);
+  assertSourceContractRef(record.toContentIndexRef, `${context} toContentIndexRef`);
+  assertSourceContractRef(record.fromSelectedVersionRef, `${context} fromSelectedVersionRef`);
+  assertSourceContractRef(record.toSelectedVersionRef, `${context} toSelectedVersionRef`);
+  const toVersionIndexEntry = assertSourceVersionIndexDeltaEntry(record.toVersionIndexEntry, `${context} toVersionIndexEntry`);
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, `${context} authorityRefs`);
+  const grantRefs = assertOptionalReferenceList(record.grantRefs, `${context} grantRefs`);
+  const proofGateRefs = assertOptionalReferenceList(record.proofGateRefs, `${context} proofGateRefs`);
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  const storageRefs = assertStorageObjectRefList(record.storageRefs || [], `${context} storageRefs`);
+  const storagePinRefs = assertOptionalReferenceList(record.storagePinRefs, `${context} storagePinRefs`);
+  const storageAvailabilityRefs = assertOptionalReferenceList(record.storageAvailabilityRefs, `${context} storageAvailabilityRefs`);
+  return { ...record, sourceRefUpdateRefs, toVersionIndexEntry, authorityRefs, grantRefs, proofGateRefs, evidenceRefs, storageRefs, storagePinRefs, storageAvailabilityRefs };
+}
+
+export function assertSourceRefStoreJournal(record) {
+  if (!isObject(record)) throw new Error("source ref store journal must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.REF_STORE_JOURNAL, "source ref store journal");
+  const state = requireString(record.state, "source ref store journal state");
+  assertSourceContractRef(record.storeRef, "source ref store journal storeRef");
+  assertSourceContractRef(record.journalRef, "source ref store journal journalRef");
+  assertSourceContractRef(record.sourceGraphRef, "source ref store journal sourceGraphRef");
+  assertSourceContractRef(record.targetRef, "source ref store journal targetRef");
+  assertSourceContractRef(record.repoRef, "source ref store journal repoRef");
+  const current = assertSourceRefStoreCurrentEntry(record.current, "source ref store journal current");
+  if (current.targetRef !== record.targetRef) throw new Error("source ref store journal current targetRef must match targetRef");
+  if (current.repoRef !== record.repoRef) throw new Error("source ref store journal current repoRef must match repoRef");
+  const transitions = requireArray(record.transitions || [], "source ref store journal transitions")
+    .map((entry, index) => {
+      const transition = assertSourceRefStoreCurrentEntry(entry, `source ref store journal transition ${index}`);
+      if (transition.targetRef !== record.targetRef) throw new Error("source ref store journal transition targetRef must match targetRef");
+      return transition;
+    });
+  const transitionCount = Number(record.transitionCount ?? transitions.length);
+  if (!Number.isInteger(transitionCount) || transitionCount !== transitions.length) {
+    throw new Error("source ref store journal transitionCount must equal transitions length");
+  }
+  const sourceRefUpdates = requireArray(record.sourceRefUpdates || [], "source ref store journal sourceRefUpdates")
+    .map((entry) => assertSourceRefUpdate(entry));
+  const sourceRefUpdateRefs = assertOptionalReferenceList(record.sourceRefUpdateRefs, "source ref store journal sourceRefUpdateRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source ref store journal evidenceRefs");
+  const storageObjectRefs = assertStorageObjectRefList(record.storageObjectRefs || [], "source ref store journal storageObjectRefs");
+  const storageAvailabilityRefs = assertOptionalReferenceList(record.storageAvailabilityRefs, "source ref store journal storageAvailabilityRefs");
+  const storagePinIntentRefs = assertOptionalReferenceList(record.storagePinIntentRefs, "source ref store journal storagePinIntentRefs");
+  const storagePinAttestationRefs = assertOptionalReferenceList(record.storagePinAttestationRefs, "source ref store journal storagePinAttestationRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source ref store journal blockedReasons");
+  if (state === "ready" && blockedReasons.length) throw new Error("ready source ref store journal cannot carry blockedReasons");
+  return {
+    ...record,
+    state,
+    current,
+    transitions,
+    transitionCount,
+    sourceRefUpdates,
+    sourceRefUpdateRefs,
+    evidenceRefs,
+    storageObjectRefs,
+    storageAvailabilityRefs,
+    storagePinIntentRefs,
+    storagePinAttestationRefs,
+    blockedReasons,
+  };
+}
+
+export function assertSourceRefStoreReplayPosture(record) {
+  if (!isObject(record)) throw new Error("source ref store replay posture must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.REF_STORE_REPLAY_POSTURE, "source ref store replay posture");
+  const state = requireString(record.state, "source ref store replay posture state");
+  assertSourceContractRef(record.replayRef, "source ref store replay posture replayRef");
+  assertSourceContractRef(record.storeRef, "source ref store replay posture storeRef");
+  assertSourceContractRef(record.journalRef, "source ref store replay posture journalRef");
+  assertSourceContractRef(record.targetRef, "source ref store replay posture targetRef");
+  assertSourceContractRef(record.expectedTargetRef, "source ref store replay posture expectedTargetRef");
+  assertSourceContractRef(record.repoRef, "source ref store replay posture repoRef");
+  assertSourceContractRef(record.currentTransitionRef, "source ref store replay posture currentTransitionRef");
+  assertSourceContractRef(record.currentVersionIndexDeltaRef, "source ref store replay posture currentVersionIndexDeltaRef");
+  assertSourceContractRef(record.currentSelectedVersionRef, "source ref store replay posture currentSelectedVersionRef");
+  const transitionCount = Number(record.transitionCount || 0);
+  if (!Number.isInteger(transitionCount)) throw new Error("source ref store replay posture transitionCount must be an integer");
+  const sourceRefUpdateRefs = assertOptionalReferenceList(record.sourceRefUpdateRefs, "source ref store replay posture sourceRefUpdateRefs");
+  const storageObjectRefs = assertStorageObjectRefList(record.storageObjectRefs || [], "source ref store replay posture storageObjectRefs");
+  const storageAvailabilityRefs = assertOptionalReferenceList(record.storageAvailabilityRefs, "source ref store replay posture storageAvailabilityRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "source ref store replay posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "source ref store replay posture blockedReasons");
+  if (state === "ready" && record.targetRef !== record.expectedTargetRef) {
+    throw new Error("ready source ref store replay posture targetRef must match expectedTargetRef");
+  }
+  if (state === "ready" && blockedReasons.length) throw new Error("ready source ref store replay posture cannot carry blockedReasons");
+  return { ...record, state, transitionCount, sourceRefUpdateRefs, storageObjectRefs, storageAvailabilityRefs, evidenceRefs, blockedReasons };
+}
+
+export function assertAuthoringCandidateFeedbackPosture(record, context = "authoring candidate feedback posture") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, SOURCE.RECORD_KIND.AUTHORING_CANDIDATE_FEEDBACK_POSTURE, context);
+  const state = requireString(record.state, `${context} state`);
+  const candidateSnapshotRefs = assertOptionalReferenceList(record.candidateSnapshotRefs, `${context} candidateSnapshotRefs`);
+  const candidateRefs = assertOptionalReferenceList(record.candidateRefs, `${context} candidateRefs`);
+  const sourceRefUpdateRefs = assertOptionalReferenceList(record.sourceRefUpdateRefs, `${context} sourceRefUpdateRefs`);
+  const storageObjectRefs = assertStorageObjectRefList(record.storageObjectRefs || [], `${context} storageObjectRefs`);
+  const availabilityRefs = assertOptionalReferenceList(record.availabilityRefs, `${context} availabilityRefs`);
+  const proofEventRefs = assertOptionalReferenceList(record.proofEventRefs, `${context} proofEventRefs`);
+  const promotionIntentRefs = assertOptionalReferenceList(record.promotionIntentRefs, `${context} promotionIntentRefs`);
+  const lifecycleRequestRefs = assertOptionalReferenceList(record.lifecycleRequestRefs, `${context} lifecycleRequestRefs`);
+  const reportRefs = assertOptionalReferenceList(record.reportRefs, `${context} reportRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  if (state === "ready" && candidateSnapshotRefs.length === 0) throw new Error(`${context} ready state requires candidateSnapshotRefs`);
+  if (state === "ready" && blockedReasons.length) throw new Error(`${context} ready state cannot carry blockedReasons`);
+  return {
+    ...record,
+    state,
+    candidateSnapshotRefs,
+    candidateRefs,
+    sourceRefUpdateRefs,
+    storageObjectRefs,
+    availabilityRefs,
+    proofEventRefs,
+    promotionIntentRefs,
+    lifecycleRequestRefs,
+    reportRefs,
+    blockedReasons,
+  };
+}
+
+export function assertAuthoringWorkspaceProjection(record) {
+  if (!isObject(record)) throw new Error("authoring workspace projection must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.AUTHORING_WORKSPACE_PROJECTION, "authoring workspace projection");
+  const state = requireString(record.state, "authoring workspace projection state");
+  assertSourceContractRef(record.workspaceRef, "authoring workspace projection workspaceRef");
+  assertSourceContractRef(record.sourceSnapshotRef, "authoring workspace projection sourceSnapshotRef");
+  assertSourceContractRef(record.versionIndexRef, "authoring workspace projection versionIndexRef");
+  const authoringEntries = requireNonEmptyArray(record.authoringEntries, "authoring workspace projection authoringEntries")
+    .map((entry, index) => {
+      if (!isObject(entry)) throw new Error(`authoring workspace entry ${index} must be an object`);
+      assertRecordKind(entry, SOURCE.RECORD_KIND.AUTHORING_WORKSPACE_ENTRY, `authoring workspace entry ${index}`);
+      assertSourceContractRef(entry.entryRef, `authoring workspace entry ${index} entryRef`);
+      assertSourceContractRef(entry.repoRef, `authoring workspace entry ${index} repoRef`);
+      assertSourceContractRef(entry.moduleRef, `authoring workspace entry ${index} moduleRef`);
+      assertSourceContractRef(entry.selectedVersionRef, `authoring workspace entry ${index} selectedVersionRef`);
+      assertSourceContractRef(entry.sourceSnapshotRef, `authoring workspace entry ${index} sourceSnapshotRef`);
+      assertSourceContractRef(entry.contentIndexRef, `authoring workspace entry ${index} contentIndexRef`);
+      assertOptionalReferenceList(entry.candidateRefs, `authoring workspace entry ${index} candidateRefs`);
+      assertOptionalReferenceList(entry.dirtyProjectionRefs, `authoring workspace entry ${index} dirtyProjectionRefs`);
+      assertOptionalReferenceList(entry.proofTargetRefs, `authoring workspace entry ${index} proofTargetRefs`);
+      if (entry.candidateFeedback !== undefined) {
+        assertAuthoringCandidateFeedbackPosture(entry.candidateFeedback, `authoring workspace entry ${index} candidateFeedback`);
+      }
+      return { ...entry };
+    });
+  const selectedVersionRefs = assertOptionalReferenceList(record.selectedVersionRefs, "authoring workspace projection selectedVersionRefs");
+  const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "authoring workspace projection candidateRefs");
+  const dirtyProjectionRefs = assertOptionalReferenceList(record.dirtyProjectionRefs, "authoring workspace projection dirtyProjectionRefs");
+  const proofTargetRefs = assertOptionalReferenceList(record.proofTargetRefs, "authoring workspace projection proofTargetRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "authoring workspace projection blockedReasons");
+  return { ...record, state, authoringEntries, selectedVersionRefs, candidateRefs, dirtyProjectionRefs, proofTargetRefs, blockedReasons };
+}
+
+export function assertAuthoringCandidateSnapshotPosture(record) {
+  if (!isObject(record)) throw new Error("authoring candidate snapshot posture must be an object");
+  assertRecordKind(record, SOURCE.RECORD_KIND.AUTHORING_CANDIDATE_SNAPSHOT_POSTURE, "authoring candidate snapshot posture");
+  const state = requireString(record.state, "authoring candidate snapshot posture state");
+  assertSourceContractRef(record.candidateSnapshotRef, "authoring candidate snapshot posture candidateSnapshotRef");
+  assertSourceContractRef(record.candidateRef, "authoring candidate snapshot posture candidateRef");
+  assertSourceContractRef(record.workspaceRef, "authoring candidate snapshot posture workspaceRef");
+  assertSourceContractRef(record.repoRef, "authoring candidate snapshot posture repoRef");
+  assertSourceContractRef(record.selectedVersionRef, "authoring candidate snapshot posture selectedVersionRef");
+  assertSourceContractRef(record.parentSourceSnapshotRef, "authoring candidate snapshot posture parentSourceSnapshotRef");
+  assertStorageObjectRefList(record.fulfilledStorageObjectRefs || [], "authoring candidate snapshot posture fulfilledStorageObjectRefs");
+  assertOptionalReferenceList(record.availabilityRefs, "authoring candidate snapshot posture availabilityRefs");
+  assertOptionalReferenceList(record.proofTargetRefs, "authoring candidate snapshot posture proofTargetRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "authoring candidate snapshot posture blockedReasons");
+  if (state === "ready" && blockedReasons.length) throw new Error("ready authoring candidate snapshot posture cannot carry blockedReasons");
+  return { ...record, state, blockedReasons };
+}
+
 export function assertStorageIndexShard(shard) {
   if (!shard || typeof shard !== "object") throw new Error("storage index shard must be an object");
   if (!String(shard.shardId || "").trim()) throw new Error("storage index shard missing id");
@@ -971,7 +1743,58 @@ export function assertStorageIndexShard(shard) {
   if (shard.hashAlg !== STORAGE.OBJECT_HASH_ALG) throw new Error("unsupported storage index shard hash algorithm");
   if (!String(shard.ciphertextHash || "").trim()) throw new Error("storage index shard missing ciphertext hash");
   if (!Array.isArray(shard.chunks) || shard.chunks.length === 0) throw new Error("storage index shard has no chunks");
+  assertStorageObjectRefList(shard.objectRefs || [], "storage index shard objectRefs");
   return shard;
+}
+
+export function assertStorageModuleExecutableInstantiationPosture(record) {
+  if (!isObject(record)) throw new Error("storage module executable instantiation posture must be an object");
+  if (record.kind !== undefined && record.kind !== "storage.module.executable.instantiation.posture") {
+    throw new Error("storage module executable instantiation posture kind mismatch");
+  }
+  requireString(record.postureId, "storage module executable instantiation postureId");
+  assertResolvedMemberRef(record.storageMemberRef, "storage module executable instantiation storageMemberRef");
+  requireString(record.moduleRef, "storage module executable instantiation moduleRef");
+  requireString(record.sourceSnapshotRef, "storage module executable instantiation sourceSnapshotRef");
+  requireString(record.contentIndexRef, "storage module executable instantiation contentIndexRef");
+  requireString(record.artifactRef, "storage module executable instantiation artifactRef");
+  requireString(record.materializationRef, "storage module executable instantiation materializationRef");
+  requireString(record.materializationPostureRef, "storage module executable instantiation materializationPostureRef");
+  const objectRef = assertStorageObjectRef(record.objectRef, "storage module executable instantiation objectRef");
+  const executableRef = requireString(record.executableRef, "storage module executable instantiation executableRef");
+  if (!executableRef.startsWith("executable:module:")) throw new Error("storage module executable instantiation executableRef must be module executable ref");
+  const executableHashRef = requireString(record.executableHashRef, "storage module executable instantiation executableHashRef");
+  if (!executableHashRef.startsWith("sha256:")) throw new Error("storage module executable instantiation executableHashRef must be sha256 ref");
+  requireString(record.mediaType, "storage module executable instantiation mediaType");
+  if (!["instantiated", "degraded", "blocked", "missing"].includes(String(record.state || ""))) {
+    throw new Error("unsupported storage module executable instantiation state");
+  }
+  const evidenceRefs = requireArray(record.evidenceRefs || [], "storage module executable instantiation evidenceRefs");
+  const conflictRefs = requireArray(record.conflictRefs || [], "storage module executable instantiation conflictRefs");
+  const adapterResidencyRefs = assertOptionalReferenceList(record.adapterResidencyRefs, "storage module executable instantiation adapterResidencyRefs");
+  const legacyTransitionConflictRefs = assertOptionalReferenceList(record.legacyTransitionConflictRefs, "storage module executable instantiation legacyTransitionConflictRefs");
+  const blockedReasons = requireArray(record.blockedReasons || [], "storage module executable instantiation blockedReasons");
+  for (const ref of [
+    ...evidenceRefs,
+    ...conflictRefs,
+    ...adapterResidencyRefs,
+    ...legacyTransitionConflictRefs,
+    ...blockedReasons,
+  ]) requireString(ref, "storage module executable instantiation ref");
+  if (record.state === "instantiated" && blockedReasons.length) {
+    throw new Error("instantiated storage module executable posture cannot carry blockedReasons");
+  }
+  if (["degraded", "blocked", "missing"].includes(record.state) && blockedReasons.length === 0) {
+    throw new Error("degraded, blocked, or missing storage module executable posture requires blockedReasons");
+  }
+  if (Number(record.byteLength || 0) <= 0) throw new Error("storage module executable instantiation missing byteLength");
+  if (Number(record.chunkCount || 0) <= 0) throw new Error("storage module executable instantiation missing chunkCount");
+  if (!Number(record.instantiatedAt || 0)) throw new Error("storage module executable instantiation missing instantiatedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.instantiatedAt || 0)) {
+    throw new Error("storage module executable instantiation expiresAt must be after instantiatedAt");
+  }
+  rejectSensitiveSafeFacts(record.safeFacts || {});
+  return { ...record, evidenceRefs, conflictRefs, adapterResidencyRefs, legacyTransitionConflictRefs, blockedReasons };
 }
 
 const SENSITIVE_SAFE_FACT_KEY_FRAGMENTS = [
@@ -1599,6 +2422,8 @@ export const SWARM = Object.freeze({
     RESOURCE_POSTURE: "resource.posture",
     RETENTION_RELEASE: "retention.release",
     CONTRIBUTION_LIFECYCLE: "contribution.lifecycle",
+    OPERATION_INSTANCE_POSTURE: "operation.instance.posture",
+    FULFILLMENT_SESSION: "fulfillment.session",
     MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
     MEDIA_TRANSPORT_PATH: "media.transport.path",
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
@@ -1610,6 +2435,7 @@ export const SWARM = Object.freeze({
     SERVICE_EDGE_ADAPTER_POSTURE: "service.edge.adapter.posture",
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
     SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
+    SERVICE_MANAGER_CONTROL_REQUEST_POSTURE: "service.manager.control.request.posture",
     SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
     SERVICE_MANAGER_RELEASE_CONTRACT: "service.manager.release.contract",
     SERVICE_MANAGER_SECRET_BOUNDARY: "service.manager.secretBoundary",
@@ -1641,7 +2467,15 @@ export const SWARM = Object.freeze({
     LIFECYCLE_DEPENDENCY_EDGE: "lifecycle.dependency.edge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
+    CONTENT_INDEX_RESOLVER_POSTURE: "contentIndex.resolver.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
+    LIFECYCLE_MANIFEST_SEED: "lifecycle.manifest.seed",
+    ADAPTER_DEBT_POSTURE: "adapter.debt.posture",
+    ADAPTER_DEBT_DELETION_WORKLIST: "adapter.debt.deletion.worklist",
+    ADAPTER_RESIDENCY_POSTURE: "adapter.residency.tool-materialization.posture",
+    MANIFEST_SELECTED_OPERATION_POSTURE: "manifest-selected.operation.posture",
+    RUNTIME_FULFILLMENT_SESSION_PROJECTION: "runtime.fulfillment-session.projection",
+    CONTROL_INVERSION_PROOF: "control-inversion.proof",
     UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
     CONTRACT_TARGET: "contract.target",
     CONTRACT_TARGET_REGISTRY_POSTURE: "contract.target.registry.posture",
@@ -1713,6 +2547,8 @@ export const SWARM = Object.freeze({
     RESOURCE_POSTURE: "resource.posture",
     RETENTION_RELEASE: "retention.release",
     CONTRIBUTION_LIFECYCLE: "contribution.lifecycle",
+    OPERATION_INSTANCE_POSTURE: "operation.instance.posture",
+    FULFILLMENT_SESSION: "fulfillment.session",
     MEDIA_FULFILLMENT_EVIDENCE: "media.fulfillment.evidence",
     MEDIA_TRANSPORT_PATH: "media.transport.path",
     MEDIA_TRANSPORT_OBSERVATION: "media.transport.observation",
@@ -1724,6 +2560,7 @@ export const SWARM = Object.freeze({
     SERVICE_EDGE_ADAPTER_POSTURE: "service.edge.adapter.posture",
     SERVICE_MANAGER_POSTURE: "service.manager.posture",
     SERVICE_MANAGER_OPERATION_POSTURE: "service.manager.operation.posture",
+    SERVICE_MANAGER_CONTROL_REQUEST_POSTURE: "service.manager.control.request.posture",
     SERVICE_MANAGER_PROOF_DIGEST: "service.manager.proof.digest",
     SERVICE_MANAGER_RELEASE_CONTRACT: "service.manager.release.contract",
     SERVICE_MANAGER_SECRET_BOUNDARY: "service.manager.secretBoundary",
@@ -1755,7 +2592,15 @@ export const SWARM = Object.freeze({
     LIFECYCLE_DEPENDENCY_EDGE: "lifecycle.dependency.edge",
     LIFECYCLE_PLAN_POSTURE: "lifecycle.plan.posture",
     CONTENT_INDEX_REF_POSTURE: "contentIndex.ref.posture",
+    CONTENT_INDEX_RESOLVER_POSTURE: "contentIndex.resolver.posture",
     CONTRACT_INTENTION_POSTURE: "contract.intention.posture",
+    LIFECYCLE_MANIFEST_SEED: "lifecycle.manifest.seed",
+    ADAPTER_DEBT_POSTURE: "adapter.debt.posture",
+    ADAPTER_DEBT_DELETION_WORKLIST: "adapter.debt.deletion.worklist",
+    ADAPTER_RESIDENCY_POSTURE: "adapter.residency.tool-materialization.posture",
+    MANIFEST_SELECTED_OPERATION_POSTURE: "manifest-selected.operation.posture",
+    RUNTIME_FULFILLMENT_SESSION_PROJECTION: "runtime.fulfillment-session.projection",
+    CONTROL_INVERSION_PROOF: "control-inversion.proof",
     UNIQUE_EDGE_CLASSIFICATION: "uniqueEdge.classification",
     CONTRACT_TARGET: "contract.target",
     CONTRACT_TARGET_REGISTRY_POSTURE: "contract.target.registry.posture",
@@ -2041,6 +2886,43 @@ export const SWARM = Object.freeze({
     EXPIRED: "expired",
     BLOCKED: "blocked",
   }),
+  FULFILLMENT_SESSION_STATE: Object.freeze({
+    PENDING: "pending",
+    ACTIONABLE: "actionable",
+    RUNNING: "running",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
+  FULFILLMENT_SESSION_NODE_ROLE: Object.freeze({
+    SOURCE: "source",
+    PROCESSOR: "processor",
+    CARRIER: "carrier",
+    ROUTER: "router",
+    RUNTIME: "runtime",
+    RENDER: "render",
+    SURFACE: "surface",
+    STORAGE: "storage",
+    WALLET: "wallet",
+    SERVICE: "service",
+    FABRIC: "fabric",
+    ADAPTER: "adapter",
+  }),
+  OPERATION_POSTURE_STATE: Object.freeze({
+    PLANNED: "planned",
+    SELECTED: "selected",
+    READY: "ready",
+    ACTIONABLE: "actionable",
+    RUNNING: "running",
+    SUCCEEDED: "succeeded",
+    DEGRADED: "degraded",
+    BLOCKED: "blocked",
+    DEFERRED: "deferred",
+    NOT_SELECTED: "notSelected",
+    RELEASED: "released",
+    EXPIRED: "expired",
+  }),
   MEDIA_FULFILLMENT_EVIDENCE_KIND: Object.freeze({
     TRANSPORT_STATE: "transportState",
     SELECTED_CANDIDATE_PAIR: "selectedCandidatePair",
@@ -2071,6 +2953,14 @@ export const SWARM = Object.freeze({
     PENDING: "pending",
     FLOWING: "flowing",
     STALLED: "stalled",
+    BLOCKED: "blocked",
+    RELEASED: "released",
+  }),
+  MEDIA_TRANSPORT_TRACK_STATE: Object.freeze({
+    PENDING: "pending",
+    LIVE: "live",
+    MUTED: "muted",
+    ENDED: "ended",
     BLOCKED: "blocked",
     RELEASED: "released",
   }),
@@ -2809,7 +3699,7 @@ export function assertSwarmEdgeClose(record) {
 export function assertStoragePinIntent(record) {
   if (!isObject(record)) throw new Error("storage pin intent must be an object");
   requireString(record.intentId, "storage pin intent id");
-  requireArray(record.objectRefs, "storage pin intent objectRefs");
+  assertStorageObjectRefList(requireArray(record.objectRefs, "storage pin intent objectRefs"), "storage pin intent objectRefs");
   requireString(record.manifestHash, "storage pin intent manifestHash");
   if (!Number.isInteger(Number(record.desiredReplicas)) || Number(record.desiredReplicas) < 1) throw new Error("storage pin intent desiredReplicas must be positive");
   requireString(record.retention, "storage pin intent retention");
@@ -2821,9 +3711,14 @@ export function assertStoragePinAttestation(record) {
   if (!isObject(record)) throw new Error("storage pin attestation must be an object");
   requireString(record.attestationId, "storage pin attestation id");
   requireString(record.intentId, "storage pin attestation intentId");
-  requireString(record.storageMemberRef, "storage pin attestation storageMemberRef");
-  requireArray(record.acceptedRefs, "storage pin attestation acceptedRefs");
-  requireArray(record.availabilityRefs, "storage pin attestation availabilityRefs");
+  assertResolvedMemberRef(record.storageMemberRef, "storage pin attestation storageMemberRef");
+  assertStorageObjectRefList(requireArray(record.acceptedRefs, "storage pin attestation acceptedRefs"), "storage pin attestation acceptedRefs");
+  for (const availability of requireArray(record.availabilityRefs, "storage pin attestation availabilityRefs")) {
+    if (!isObject(availability)) throw new Error("storage pin attestation availabilityRef must be an object");
+    requireString(availability.availabilityId, "storage availability id");
+    assertStorageObjectRef(availability.objectRef, "storage availability objectRef");
+    assertResolvedMemberRef(availability.storageMemberRef, "storage availability storageMemberRef");
+  }
   requireString(record.status, "storage pin attestation status");
   if (!Number(record.issuedAt || 0)) throw new Error("storage pin attestation missing issuedAt");
   return record;
@@ -2853,6 +3748,7 @@ export function assertStreamSessionRecord(record) {
   const kind = requireString(record.kind, "stream session kind");
   if (!Object.values(SWARM.STREAM_RECORD_KIND).includes(kind)) throw new Error("unsupported stream session kind");
   requireString(record.sessionId, "stream session id");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session fulfillmentSessionId");
   requireString(record.issuer, "stream session issuer");
   if (!Number(record.issuedAt || 0)) throw new Error("stream session missing issuedAt");
   rejectMediaByteFields(record, "stream session record");
@@ -2862,6 +3758,7 @@ export function assertStreamSessionRecord(record) {
 export function assertStreamSessionIntent(record) {
   if (!isObject(record)) throw new Error("stream session intent must be an object");
   requireString(record.sessionId, "stream session intent sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session intent fulfillmentSessionId");
   assertCapabilityName(record.capabilityRef);
   assertResolvedMemberRef(record.requesterRef, "stream session intent requesterRef");
   requireString(record.channelId, "stream session intent channelId");
@@ -2875,6 +3772,7 @@ export function assertStreamSessionAdmission(record) {
   if (!isObject(record)) throw new Error("stream session admission must be an object");
   requireString(record.admissionId, "stream session admission id");
   requireString(record.sessionId, "stream session admission sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session admission fulfillmentSessionId");
   assertCapabilityName(record.capabilityRef);
   assertResolvedMemberRef(record.admittedBy, "stream session admission admittedBy");
   if (record.constraints !== undefined && record.constraints !== null && !isObject(record.constraints)) {
@@ -2889,6 +3787,7 @@ export function assertStreamSessionReject(record) {
   if (!isObject(record)) throw new Error("stream session reject must be an object");
   requireString(record.rejectId, "stream session reject id");
   requireString(record.sessionId, "stream session reject sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session reject fulfillmentSessionId");
   if (record.capabilityRef !== undefined) assertCapabilityName(record.capabilityRef);
   assertResolvedMemberRef(record.rejectedBy, "stream session reject rejectedBy");
   requireString(record.reasonCode || record.reason, "stream session reject reason");
@@ -2904,6 +3803,7 @@ export function assertStreamSessionOffer(record) {
   if (!isObject(record)) throw new Error("stream session offer must be an object");
   requireString(record.offerId, "stream session offer id");
   requireString(record.sessionId, "stream session offer sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session offer fulfillmentSessionId");
   requireString(record.transport, "stream session offer transport");
   if (!isObject(record.payload)) throw new Error("stream session offer payload must be an object");
   if (!Number(record.issuedAt || 0)) throw new Error("stream session offer missing issuedAt");
@@ -2915,6 +3815,7 @@ export function assertStreamSessionAnswer(record) {
   if (!isObject(record)) throw new Error("stream session answer must be an object");
   requireString(record.answerId, "stream session answer id");
   requireString(record.sessionId, "stream session answer sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session answer fulfillmentSessionId");
   requireString(record.transport, "stream session answer transport");
   if (!isObject(record.payload)) throw new Error("stream session answer payload must be an object");
   if (!Number(record.issuedAt || 0)) throw new Error("stream session answer missing issuedAt");
@@ -2926,6 +3827,7 @@ export function assertStreamSessionCandidate(record) {
   if (!isObject(record)) throw new Error("stream session candidate must be an object");
   requireString(record.candidateId, "stream session candidate id");
   requireString(record.sessionId, "stream session candidate sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session candidate fulfillmentSessionId");
   requireString(record.transport, "stream session candidate transport");
   requireString(record.candidateRole, "stream session candidate role");
   if (!Object.values(SWARM.STREAM_CANDIDATE_ROLE).includes(record.candidateRole)) {
@@ -2963,6 +3865,7 @@ export function assertStreamSessionControl(record) {
   if (!isObject(record)) throw new Error("stream session control must be an object");
   requireString(record.controlId, "stream session control id");
   requireString(record.sessionId, "stream session control sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session control fulfillmentSessionId");
   requireString(record.command, "stream session control command");
   if (record.params !== undefined && record.params !== null && !isObject(record.params)) {
     throw new Error("stream session control params must be an object");
@@ -2976,6 +3879,7 @@ export function assertStreamSessionHealth(record) {
   if (!isObject(record)) throw new Error("stream session health must be an object");
   requireString(record.healthId, "stream session health id");
   requireString(record.sessionId, "stream session health sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session health fulfillmentSessionId");
   requireString(record.status, "stream session health status");
   if (record.recovery !== undefined && record.recovery !== null && !isObject(record.recovery)) {
     throw new Error("stream session health recovery must be an object");
@@ -2989,6 +3893,7 @@ export function assertStreamSessionClose(record) {
   if (!isObject(record)) throw new Error("stream session close must be an object");
   requireString(record.closeId, "stream session close id");
   requireString(record.sessionId, "stream session close sessionId");
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "stream session close fulfillmentSessionId");
   requireString(record.reasonCode, "stream session close reasonCode");
   if (!Number(record.issuedAt || 0)) throw new Error("stream session close missing issuedAt");
   rejectMediaByteFields(record, "stream session close");
@@ -3032,6 +3937,34 @@ function rejectForbiddenKeys(value, forbidden, context, path = "") {
     if (forbidden.has(key)) throw new Error(`${context} contains forbidden protocol field: ${path}${key}`);
     rejectForbiddenKeys(next, forbidden, context, `${path}${key}.`);
   }
+}
+
+const ADAPTER_RESIDENCY_TRANSPORT_FIELDS = new Set([
+  "path",
+  "paths",
+  "localPath",
+  "localPaths",
+  "workspacePath",
+  "workspacePaths",
+  "folderPath",
+  "mountPath",
+  "manifestPath",
+  "toolInputPath",
+  "inputPath",
+  "outputPath",
+  "filesystemPath",
+  "statePath",
+  "adapterResidence",
+  "argv",
+  "args",
+  "command",
+  "commandLine",
+  "env",
+  "environment",
+]);
+
+function rejectAdapterResidencyTransportFields(record, context) {
+  rejectForbiddenKeys(record, ADAPTER_RESIDENCY_TRANSPORT_FIELDS, context);
 }
 
 function rejectRouteControlByteFields(record, context) {
@@ -3378,7 +4311,7 @@ const EVENT_PLANE_KIND_RULES = Object.freeze([
   [SWARM.EVENT_PLANE.PROJECTION_REPAIR, /^projection\.repair/],
   [SWARM.EVENT_PLANE.PROJECTION, /^projection\./],
   [SWARM.EVENT_PLANE.CONTRIBUTION, /^contribution\./],
-  [SWARM.EVENT_PLANE.ACTIVATION, /^(service|stream|interaction|media|runner|app\.runner)\./],
+  [SWARM.EVENT_PLANE.ACTIVATION, /^(service|stream|interaction|fulfillment|media|runner|app\.runner|lifecycle|manifest-selected|runtime\.fulfillment-session|control-inversion)\./],
   [SWARM.EVENT_PLANE.ROUTE, /^(route|frame|adapter\.edge|runtime\.directory)\./],
   [SWARM.EVENT_PLANE.RETENTION, /^(retention|runtime\.retention)\./],
 ]);
@@ -3496,6 +4429,18 @@ function assertMediaFulfillmentState(value, name = "media fulfillment state") {
   return state;
 }
 
+function assertFulfillmentSessionState(value, name = "fulfillment session state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.FULFILLMENT_SESSION_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertFulfillmentSessionNodeRole(value, name = "fulfillment session node role") {
+  const role = requireString(value, name);
+  if (!Object.values(SWARM.FULFILLMENT_SESSION_NODE_ROLE).includes(role)) throw new Error(`unsupported ${name}`);
+  return role;
+}
+
 function assertMediaTransportPathState(value, name = "media transport path state") {
   const state = requireString(value, name);
   if (!Object.values(SWARM.MEDIA_TRANSPORT_PATH_STATE).includes(state)) throw new Error(`unsupported ${name}`);
@@ -3511,6 +4456,12 @@ function assertMediaTransportSelectedPairState(value, name = "media transport se
 function assertMediaTransportRtpState(value, name = "media transport rtp state") {
   const state = requireString(value, name);
   if (!Object.values(SWARM.MEDIA_TRANSPORT_RTP_STATE).includes(state)) throw new Error(`unsupported ${name}`);
+  return state;
+}
+
+function assertMediaTransportTrackState(value, name = "media transport track state") {
+  const state = requireString(value, name);
+  if (!Object.values(SWARM.MEDIA_TRANSPORT_TRACK_STATE).includes(state)) throw new Error(`unsupported ${name}`);
   return state;
 }
 
@@ -4115,13 +5066,183 @@ export function assertContributionLifecycle(record, context = "contribution life
   };
 }
 
+function assertOperationPostureState(value, name) {
+  return assertEnumValue(value, SWARM.OPERATION_POSTURE_STATE, name);
+}
+
+function operationStateRequiresEvidence(state) {
+  return [
+    SWARM.OPERATION_POSTURE_STATE.SELECTED,
+    SWARM.OPERATION_POSTURE_STATE.READY,
+    SWARM.OPERATION_POSTURE_STATE.ACTIONABLE,
+    SWARM.OPERATION_POSTURE_STATE.RUNNING,
+    SWARM.OPERATION_POSTURE_STATE.SUCCEEDED,
+    SWARM.OPERATION_POSTURE_STATE.DEGRADED,
+  ].includes(state);
+}
+
+function rejectOperationOwnerDriftFields(value, context) {
+  if (!value || typeof value !== "object") return;
+  const forbidden = new Set([
+    "ownerRef",
+    "semanticOwnerRef",
+    "truthOwnerRef",
+    "routeTruthOwnerRef",
+    "associationTruthOwnerRef",
+    "serviceTruthOwnerRef",
+    "flowTruthOwnerRef",
+    "streamPlumbingOwnerRef",
+    "fabricExecutionOwnerRef",
+  ]);
+  for (const [key, child] of Object.entries(value)) {
+    if (forbidden.has(key)) throw new Error(`${context} contains owner drift field: ${key}`);
+    if (child && typeof child === "object") rejectOperationOwnerDriftFields(child, context);
+  }
+}
+
+function assertOperationRoleContributionPosture(record, context = "operation role contribution") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  requireString(record.roleRef, `${context} roleRef`);
+  requireString(record.contributionRef, `${context} contributionRef`);
+  requireString(record.contributorRef, `${context} contributorRef`);
+  const contributionType = assertContributionType(record.contributionType, `${context} contributionType`);
+  const state = assertOperationPostureState(record.state, `${context} state`);
+  const authorityRefs = assertOptionalReferenceList(record.authorityRefs, `${context} authorityRefs`);
+  const primitiveRefs = assertOptionalReferenceList(record.primitiveRefs, `${context} primitiveRefs`);
+  const capabilityRefs = assertOptionalReferenceList(record.capabilityRefs, `${context} capabilityRefs`);
+  const inputRefs = assertOptionalReferenceList(record.inputRefs, `${context} inputRefs`);
+  const outputRefs = assertOptionalReferenceList(record.outputRefs, `${context} outputRefs`);
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  const releaseRefs = assertOptionalReferenceList(record.releaseRefs, `${context} releaseRefs`);
+  const cleanupRefs = assertOptionalReferenceList(record.cleanupRefs, `${context} cleanupRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  const deferredReasons = assertOptionalReferenceList(record.deferredReasons, `${context} deferredReasons`);
+  if (operationStateRequiresEvidence(state) && evidenceRefs.length === 0) {
+    throw new Error(`${context} selected state requires evidenceRefs`);
+  }
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.OPERATION_POSTURE_STATE.BLOCKED, SWARM.OPERATION_POSTURE_STATE.EXPIRED],
+    blockedReasons,
+    context,
+  );
+  if (state === SWARM.OPERATION_POSTURE_STATE.DEFERRED && deferredReasons.length === 0) {
+    throw new Error(`deferred ${context} requires deferredReasons`);
+  }
+  if (state === SWARM.OPERATION_POSTURE_STATE.NOT_SELECTED && record.required === true) {
+    throw new Error(`required ${context} cannot be notSelected`);
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, `${context} safeFacts`);
+  rejectOperationOwnerDriftFields(record, context);
+  assertNoPrivateContentFields(record, context);
+  rejectMediaByteFields(record, context);
+  return {
+    ...record,
+    contributionType,
+    state,
+    authorityRefs,
+    primitiveRefs,
+    capabilityRefs,
+    inputRefs,
+    outputRefs,
+    evidenceRefs,
+    releaseRefs,
+    cleanupRefs,
+    blockedReasons,
+    deferredReasons,
+  };
+}
+
+export function assertOperationInstancePosture(record) {
+  if (!isObject(record)) throw new Error("operation instance posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.OPERATION_INSTANCE_POSTURE, "operation instance posture");
+  requireString(record.operationRef, "operation instance posture operationRef");
+  requireString(record.operationClassRef, "operation instance posture operationClassRef");
+  requireString(record.methodRef, "operation instance posture methodRef");
+  const state = assertOperationPostureState(record.state, "operation instance posture state");
+  requireString(record.subjectRef, "operation instance posture subjectRef");
+  requireString(record.contractRef, "operation instance posture contractRef");
+  if (record.parentIntentRef !== undefined) requireString(record.parentIntentRef, "operation instance posture parentIntentRef");
+  if (record.fulfillmentSessionRef !== undefined) requireString(record.fulfillmentSessionRef, "operation instance posture fulfillmentSessionRef");
+  const roleContributions = requireNonEmptyArray(record.roleContributions, "operation instance posture roleContributions")
+    .map((entry, index) => assertOperationRoleContributionPosture(entry, `operation instance posture roleContributions ${index}`));
+  const sourceRefs = assertOptionalReferenceList(record.sourceRefs, "operation instance posture sourceRefs");
+  const contentIndexRefs = assertOptionalReferenceList(record.contentIndexRefs, "operation instance posture contentIndexRefs");
+  const buildRefs = assertOptionalReferenceList(record.buildRefs, "operation instance posture buildRefs");
+  const buildRunRefs = assertOptionalReferenceList(record.buildRunRefs, "operation instance posture buildRunRefs");
+  const releaseRefs = assertOptionalReferenceList(record.releaseRefs, "operation instance posture releaseRefs");
+  const rollbackRefs = assertOptionalReferenceList(record.rollbackRefs, "operation instance posture rollbackRefs");
+  const moduleRefs = assertOptionalReferenceList(record.moduleRefs, "operation instance posture moduleRefs");
+  const artifactRefs = assertOptionalReferenceList(record.artifactRefs, "operation instance posture artifactRefs");
+  const executableRefs = assertOptionalReferenceList(record.executableRefs, "operation instance posture executableRefs");
+  const storageRefs = assertOptionalReferenceList(record.storageRefs, "operation instance posture storageRefs");
+  const storageObjectRefs = assertOptionalReferenceList(record.storageObjectRefs, "operation instance posture storageObjectRefs");
+  const routerBindingRefs = assertOptionalReferenceList(record.routerBindingRefs, "operation instance posture routerBindingRefs");
+  const carrierEdgeRefs = assertOptionalReferenceList(record.carrierEdgeRefs, "operation instance posture carrierEdgeRefs");
+  const serviceAdmissionRefs = assertOptionalReferenceList(record.serviceAdmissionRefs, "operation instance posture serviceAdmissionRefs");
+  const runtimeProjectionRefs = assertOptionalReferenceList(record.runtimeProjectionRefs, "operation instance posture runtimeProjectionRefs");
+  const surfaceBindingRefs = assertOptionalReferenceList(record.surfaceBindingRefs, "operation instance posture surfaceBindingRefs");
+  const fabricPlanRefs = assertOptionalReferenceList(record.fabricPlanRefs, "operation instance posture fabricPlanRefs");
+  const cleanupRefs = assertOptionalReferenceList(record.cleanupRefs, "operation instance posture cleanupRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "operation instance posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "operation instance posture blockedReasons");
+  const deferredReasons = assertOptionalReferenceList(record.deferredReasons, "operation instance posture deferredReasons");
+  if (operationStateRequiresEvidence(state) && evidenceRefs.length === 0) {
+    throw new Error("operation instance posture selected state requires evidenceRefs");
+  }
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.OPERATION_POSTURE_STATE.BLOCKED, SWARM.OPERATION_POSTURE_STATE.EXPIRED],
+    blockedReasons,
+    "operation instance posture",
+  );
+  if (state === SWARM.OPERATION_POSTURE_STATE.DEFERRED && deferredReasons.length === 0) {
+    throw new Error("deferred operation instance posture requires deferredReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "operation instance posture safeFacts");
+  rejectOperationOwnerDriftFields(record, "operation instance posture");
+  assertNoPrivateContentFields(record, "operation instance posture");
+  rejectMediaByteFields(record, "operation instance posture");
+  assertFabricObservedWindow(record, "operation instance posture");
+  return {
+    ...record,
+    state,
+    roleContributions,
+    sourceRefs,
+    contentIndexRefs,
+    buildRefs,
+    buildRunRefs,
+    releaseRefs,
+    rollbackRefs,
+    moduleRefs,
+    artifactRefs,
+    executableRefs,
+    storageRefs,
+    storageObjectRefs,
+    routerBindingRefs,
+    carrierEdgeRefs,
+    serviceAdmissionRefs,
+    runtimeProjectionRefs,
+    surfaceBindingRefs,
+    fabricPlanRefs,
+    cleanupRefs,
+    evidenceRefs,
+    blockedReasons,
+    deferredReasons,
+  };
+}
+
 export function assertMediaFulfillmentEvidence(record) {
   if (!isObject(record)) throw new Error("media fulfillment evidence must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.MEDIA_FULFILLMENT_EVIDENCE, "media fulfillment evidence");
   requireString(record.evidenceId, "media fulfillment evidence evidenceId");
   const evidenceKind = assertMediaFulfillmentEvidenceKind(record.evidenceKind);
   const state = assertMediaFulfillmentState(record.state);
+  if (record.fulfillmentSessionId !== undefined) requireString(record.fulfillmentSessionId, "media fulfillment evidence fulfillmentSessionId");
   if (record.sessionId !== undefined) requireString(record.sessionId, "media fulfillment evidence sessionId");
+  if (record.operationRef !== undefined) requireString(record.operationRef, "media fulfillment evidence operationRef");
+  if (record.operationClassRef !== undefined) requireString(record.operationClassRef, "media fulfillment evidence operationClassRef");
+  if (record.methodRef !== undefined) requireString(record.methodRef, "media fulfillment evidence methodRef");
   if (record.activationId !== undefined) requireString(record.activationId, "media fulfillment evidence activationId");
   if (record.interactionId !== undefined) requireString(record.interactionId, "media fulfillment evidence interactionId");
   if (record.correlationId !== undefined) requireString(record.correlationId, "media fulfillment evidence correlationId");
@@ -4150,17 +5271,83 @@ export function assertMediaFulfillmentEvidence(record) {
   return record;
 }
 
+function assertFulfillmentSessionNodePosture(record, context = "fulfillment session node") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  requireString(record.nodeRef, `${context} nodeRef`);
+  const role = assertFulfillmentSessionNodeRole(record.role, `${context} role`);
+  const state = assertFulfillmentSessionState(record.state, `${context} state`);
+  if (record.participantRef !== undefined) requireString(record.participantRef, `${context} participantRef`);
+  if (record.memberRef !== undefined) requireString(record.memberRef, `${context} memberRef`);
+  if (record.contractRef !== undefined) requireString(record.contractRef, `${context} contractRef`);
+  assertOptionalCapabilityList(record.capabilityRefs, `${context} capabilityRefs`);
+  assertOptionalReferenceList(record.inputRefs, `${context} inputRefs`);
+  assertOptionalReferenceList(record.outputRefs, `${context} outputRefs`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.FULFILLMENT_SESSION_STATE.BLOCKED, SWARM.FULFILLMENT_SESSION_STATE.EXPIRED],
+    blockedReasons,
+    context,
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, `${context} safeFacts`);
+  assertSurfaceManagerSensitiveBoundary(record, context);
+  return { ...record, role, state, blockedReasons };
+}
+
+export function assertFulfillmentSession(record) {
+  if (!isObject(record)) throw new Error("fulfillment session must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.FULFILLMENT_SESSION, "fulfillment session");
+  requireString(record.sessionId, "fulfillment session sessionId");
+  requireString(record.parentIntentRef, "fulfillment session parentIntentRef");
+  requireString(record.subjectRef, "fulfillment session subjectRef");
+  requireString(record.contractRef, "fulfillment session contractRef");
+  const state = assertFulfillmentSessionState(record.state);
+  const nodePostures = requireNonEmptyArray(record.nodePostures, "fulfillment session nodePostures")
+    .map((entry, index) => assertFulfillmentSessionNodePosture(entry, `fulfillment session nodePostures ${index}`));
+  assertOptionalReferenceList(record.dependencyRefs, "fulfillment session dependencyRefs");
+  assertOptionalReferenceList(record.routerBindingRefs, "fulfillment session routerBindingRefs");
+  assertOptionalReferenceList(record.carrierEdgeRefs, "fulfillment session carrierEdgeRefs");
+  assertOptionalReferenceList(record.mediaPathRefs, "fulfillment session mediaPathRefs");
+  assertOptionalReferenceList(record.lifecyclePlanRefs, "fulfillment session lifecyclePlanRefs");
+  assertOptionalReferenceList(record.availabilityRefs, "fulfillment session availabilityRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "fulfillment session evidenceRefs");
+  assertOptionalReferenceList(record.releaseRefs, "fulfillment session releaseRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "fulfillment session blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [SWARM.FULFILLMENT_SESSION_STATE.BLOCKED, SWARM.FULFILLMENT_SESSION_STATE.EXPIRED],
+    blockedReasons,
+    "fulfillment session",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "fulfillment session safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "fulfillment session");
+  if (!Number(record.issuedAt || 0)) throw new Error("fulfillment session missing issuedAt");
+  if (!Number(record.observedAt || 0)) throw new Error("fulfillment session missing observedAt");
+  if (record.expiresAt !== undefined && (
+    Number(record.expiresAt || 0) <= Number(record.issuedAt || 0) ||
+    Number(record.expiresAt || 0) <= Number(record.observedAt || 0)
+  )) {
+    throw new Error("fulfillment session expiresAt must be after issuedAt and observedAt");
+  }
+  return { ...record, state, nodePostures, blockedReasons };
+}
+
 export function assertMediaTransportPath(record) {
   if (!isObject(record)) throw new Error("media transport path must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH, "media transport path");
   requireString(record.pathId, "media transport path pathId");
   requireString(record.sessionId, "media transport path sessionId");
+  requireString(record.fulfillmentSessionId, "media transport path fulfillmentSessionId");
   if (record.activationId !== undefined) requireString(record.activationId, "media transport path activationId");
   if (record.routePromiseId !== undefined) requireString(record.routePromiseId, "media transport path routePromiseId");
   requireString(record.transportProfileRef, "media transport path transportProfileRef");
+  if (record.browserParticipantRef !== undefined) requireString(record.browserParticipantRef, "media transport path browserParticipantRef");
+  if (record.serviceParticipantRef !== undefined) requireString(record.serviceParticipantRef, "media transport path serviceParticipantRef");
   assertMediaTransportPathState(record.state);
   assertMediaTransportSelectedPairState(record.selectedPairState);
   assertMediaTransportRtpState(record.inboundRtpState);
+  assertMediaTransportTrackState(record.trackState);
   assertMediaTransportRenderState(record.renderState);
   assertOptionalReferenceList(record.browserCandidateRefs, "media transport path browserCandidateRefs");
   assertOptionalReferenceList(record.serviceCandidateRefs, "media transport path serviceCandidateRefs");
@@ -4190,6 +5377,7 @@ export function assertMediaTransportObservation(record) {
   requireString(record.observationId, "media transport observation observationId");
   requireString(record.pathId, "media transport observation pathId");
   requireString(record.sessionId, "media transport observation sessionId");
+  requireString(record.fulfillmentSessionId, "media transport observation fulfillmentSessionId");
   if (record.activationId !== undefined) requireString(record.activationId, "media transport observation activationId");
   if (record.routePromiseId !== undefined) requireString(record.routePromiseId, "media transport observation routePromiseId");
   requireString(record.participantRef, "media transport observation participantRef");
@@ -4197,6 +5385,7 @@ export function assertMediaTransportObservation(record) {
   assertMediaTransportObservationState(record.state);
   if (record.selectedPairState !== undefined) assertMediaTransportSelectedPairState(record.selectedPairState);
   if (record.inboundRtpState !== undefined) assertMediaTransportRtpState(record.inboundRtpState);
+  if (record.trackState !== undefined) assertMediaTransportTrackState(record.trackState);
   if (record.renderState !== undefined) assertMediaTransportRenderState(record.renderState);
   const blockedReason = String(record.blockedReason || "").trim();
   if (record.state === SWARM.MEDIA_TRANSPORT_OBSERVATION_STATE.BLOCKED && !blockedReason) {
@@ -4357,6 +5546,196 @@ function assertEnumValue(value, allowed, name) {
   const text = requireString(value, name);
   if (!Object.values(allowed).includes(text)) throw new Error(`unsupported ${name}`);
   return text;
+}
+
+export function assertContractFlowNode(record, context = "contract flow node") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, FLOW.RECORD_KIND.NODE, context);
+  requireString(record.nodeRef, `${context} nodeRef`);
+  const role = assertEnumValue(record.role, FLOW.NODE_ROLE, `${context} role`);
+  const state = assertEnumValue(record.state, FLOW.NODE_STATE, `${context} state`);
+  if (record.participantRef !== undefined) requireString(record.participantRef, `${context} participantRef`);
+  if (record.primitiveRef !== undefined) requireString(record.primitiveRef, `${context} primitiveRef`);
+  if (record.targetBoundaryRef !== undefined) requireString(record.targetBoundaryRef, `${context} targetBoundaryRef`);
+  assertOptionalReferenceList(record.currentResidenceRefs, `${context} currentResidenceRefs`);
+  assertOptionalReferenceList(record.contractRefs, `${context} contractRefs`);
+  assertOptionalReferenceList(record.moduleRefs, `${context} moduleRefs`);
+  assertOptionalReferenceList(record.sourceRefs, `${context} sourceRefs`);
+  assertOptionalReferenceList(record.capabilityRefs, `${context} capabilityRefs`);
+  assertOptionalReferenceList(record.inputRefs, `${context} inputRefs`);
+  assertOptionalReferenceList(record.outputRefs, `${context} outputRefs`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  assertOptionalReferenceList(record.roleContributionRefs, `${context} roleContributionRefs`);
+  assertOptionalReferenceList(record.fulfillmentSessionRefs, `${context} fulfillmentSessionRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  assertBlockedReasonsForState(
+    state,
+    [FLOW.NODE_STATE.BLOCKED, FLOW.NODE_STATE.MISSING],
+    blockedReasons,
+    context,
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, `${context} safeFacts`);
+  return { ...record, role, state, blockedReasons };
+}
+
+export function assertContractFlowEdge(record, context = "contract flow edge") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  assertRecordKind(record, FLOW.RECORD_KIND.EDGE, context);
+  requireString(record.edgeRef, `${context} edgeRef`);
+  requireString(record.fromNodeRef, `${context} fromNodeRef`);
+  requireString(record.toNodeRef, `${context} toNodeRef`);
+  const edgeKind = assertEnumValue(record.edgeKind, FLOW.EDGE_KIND, `${context} edgeKind`);
+  const state = assertEnumValue(record.state, FLOW.EDGE_STATE, `${context} state`);
+  assertOptionalReferenceList(record.inputRefs, `${context} inputRefs`);
+  assertOptionalReferenceList(record.outputRefs, `${context} outputRefs`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  assertOptionalReferenceList(record.routerBindingRefs, `${context} routerBindingRefs`);
+  assertOptionalReferenceList(record.carrierEdgeRefs, `${context} carrierEdgeRefs`);
+  assertOptionalReferenceList(record.storageAvailabilityRefs, `${context} storageAvailabilityRefs`);
+  assertOptionalReferenceList(record.projectionRefs, `${context} projectionRefs`);
+  assertOptionalReferenceList(record.surfaceBindingRefs, `${context} surfaceBindingRefs`);
+  assertOptionalReferenceList(record.fulfillmentSessionRefs, `${context} fulfillmentSessionRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  assertBlockedReasonsForState(
+    state,
+    [FLOW.EDGE_STATE.BLOCKED],
+    blockedReasons,
+    context,
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, `${context} safeFacts`);
+  return { ...record, edgeKind, state, blockedReasons };
+}
+
+export function assertContractFlowGraph(record) {
+  if (!isObject(record)) throw new Error("contract flow graph must be an object");
+  assertRecordKind(record, FLOW.RECORD_KIND.GRAPH, "contract flow graph");
+  requireString(record.graphRef, "contract flow graph graphRef");
+  requireString(record.flowRef, "contract flow graph flowRef");
+  requireString(record.contractSpaceRef, "contract flow graph contractSpaceRef");
+  const state = assertEnumValue(record.state, FLOW.GRAPH_STATE, "contract flow graph state");
+  const nodes = requireNonEmptyArray(record.nodes, "contract flow graph nodes")
+    .map((node, index) => assertContractFlowNode(node, `contract flow graph nodes ${index}`));
+  const nodeRefs = new Set(nodes.map((node) => node.nodeRef));
+  const edges = requireNonEmptyArray(record.edges, "contract flow graph edges")
+    .map((edge, index) => assertContractFlowEdge(edge, `contract flow graph edges ${index}`));
+  for (const edge of edges) {
+    if (!nodeRefs.has(edge.fromNodeRef)) throw new Error(`contract flow graph edge ${edge.edgeRef} unknown fromNodeRef`);
+    if (!nodeRefs.has(edge.toNodeRef)) throw new Error(`contract flow graph edge ${edge.edgeRef} unknown toNodeRef`);
+  }
+  if (record.broadTargetRef !== undefined) requireString(record.broadTargetRef, "contract flow graph broadTargetRef");
+  if (record.dependencySliceRef !== undefined) requireString(record.dependencySliceRef, "contract flow graph dependencySliceRef");
+  assertOptionalReferenceList(record.sourceRefs, "contract flow graph sourceRefs");
+  assertOptionalReferenceList(record.lifecyclePlanRefs, "contract flow graph lifecyclePlanRefs");
+  assertOptionalReferenceList(record.fulfillmentSessionRefs, "contract flow graph fulfillmentSessionRefs");
+  assertOptionalReferenceList(record.routerBindingRefs, "contract flow graph routerBindingRefs");
+  assertOptionalReferenceList(record.carrierEdgeRefs, "contract flow graph carrierEdgeRefs");
+  assertOptionalReferenceList(record.storageAvailabilityRefs, "contract flow graph storageAvailabilityRefs");
+  assertOptionalReferenceList(record.fabricRefs, "contract flow graph fabricRefs");
+  assertOptionalReferenceList(record.runtimeProjectionRefs, "contract flow graph runtimeProjectionRefs");
+  assertOptionalReferenceList(record.surfaceBindingRefs, "contract flow graph surfaceBindingRefs");
+  assertOptionalReferenceList(record.releaseRefs, "contract flow graph releaseRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "contract flow graph rollbackRefs");
+  assertOptionalReferenceList(record.cleanupRefs, "contract flow graph cleanupRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "contract flow graph evidenceRefs");
+  assertOptionalReferenceList(record.futureSliceRefs, "contract flow graph futureSliceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "contract flow graph blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FLOW.GRAPH_STATE.BLOCKED, FLOW.GRAPH_STATE.DEGRADED],
+    blockedReasons,
+    "contract flow graph",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "contract flow graph safeFacts");
+  if (!Number(record.observedAt || 0)) throw new Error("contract flow graph missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("contract flow graph expiresAt must be after observedAt");
+  }
+  return { ...record, state, nodes, edges, blockedReasons };
+}
+
+export function assertDriverRequirement(record) {
+  if (!isObject(record)) throw new Error("driver requirement must be an object");
+  assertRecordKind(record, DRIVER.RECORD_KIND.REQUIREMENT, "driver requirement");
+  requireString(record.requirementRef, "driver requirement requirementRef");
+  requireString(record.driverRef, "driver requirement driverRef");
+  requireString(record.contractSpaceRef, "driver requirement contractSpaceRef");
+  requireString(record.subjectRef, "driver requirement subjectRef");
+  const assetClass = assertEnumValue(record.assetClass, DRIVER.ASSET_CLASS, "driver requirement assetClass");
+  const touchpointKind = assertEnumValue(record.touchpointKind, DRIVER.TOUCHPOINT_KIND, "driver requirement touchpointKind");
+  const state = assertEnumValue(record.state, DRIVER.REQUIREMENT_STATE, "driver requirement state");
+  assertOptionalReferenceList(record.selectedByRefs, "driver requirement selectedByRefs");
+  assertOptionalReferenceList(record.contractFlowGraphRefs, "driver requirement contractFlowGraphRefs");
+  assertOptionalReferenceList(record.capabilityRefs, "driver requirement capabilityRefs");
+  assertOptionalReferenceList(record.allowedOperationRefs, "driver requirement allowedOperationRefs");
+  assertOptionalReferenceList(record.evidenceRequirementRefs, "driver requirement evidenceRequirementRefs");
+  assertOptionalReferenceList(record.deniedOwnershipRefs, "driver requirement deniedOwnershipRefs");
+  assertOptionalReferenceList(record.boundaryRefs, "driver requirement boundaryRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "driver requirement blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [DRIVER.REQUIREMENT_STATE.BLOCKED],
+    blockedReasons,
+    "driver requirement",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "driver requirement safeFacts");
+  return { ...record, assetClass, touchpointKind, state, blockedReasons };
+}
+
+export function assertDriverEvidence(record) {
+  if (!isObject(record)) throw new Error("driver evidence must be an object");
+  assertRecordKind(record, DRIVER.RECORD_KIND.EVIDENCE, "driver evidence");
+  requireString(record.evidenceRef, "driver evidence evidenceRef");
+  requireString(record.driverRef, "driver evidence driverRef");
+  requireString(record.requirementRef, "driver evidence requirementRef");
+  requireString(record.assetRef, "driver evidence assetRef");
+  const state = assertEnumValue(record.state, DRIVER.EVIDENCE_STATE, "driver evidence state");
+  assertOptionalReferenceList(record.implementationCustodyRefs, "driver evidence implementationCustodyRefs");
+  assertOptionalReferenceList(record.capabilityRefs, "driver evidence capabilityRefs");
+  assertOptionalReferenceList(record.observationRefs, "driver evidence observationRefs");
+  assertOptionalReferenceList(record.proofRefs, "driver evidence proofRefs");
+  assertOptionalReferenceList(record.contractFlowGraphRefs, "driver evidence contractFlowGraphRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "driver evidence blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [DRIVER.EVIDENCE_STATE.BLOCKED],
+    blockedReasons,
+    "driver evidence",
+  );
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "driver evidence safeFacts");
+  if (!Number(record.observedAt || 0)) throw new Error("driver evidence missing observedAt");
+  if (record.expiresAt !== undefined && Number(record.expiresAt || 0) <= Number(record.observedAt || 0)) {
+    throw new Error("driver evidence expiresAt must be after observedAt");
+  }
+  return { ...record, state, blockedReasons };
+}
+
+export function assertDriverBoundaryPosture(record) {
+  if (!isObject(record)) throw new Error("driver boundary posture must be an object");
+  assertRecordKind(record, DRIVER.RECORD_KIND.BOUNDARY_POSTURE, "driver boundary posture");
+  requireString(record.postureRef, "driver boundary posture postureRef");
+  requireString(record.contractSpaceRef, "driver boundary posture contractSpaceRef");
+  const state = assertEnumValue(record.state, DRIVER.BOUNDARY_STATE, "driver boundary posture state");
+  assertOptionalReferenceList(record.driverRefs, "driver boundary posture driverRefs");
+  assertOptionalReferenceList(record.requirementRefs, "driver boundary posture requirementRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "driver boundary posture evidenceRefs");
+  assertOptionalReferenceList(record.assetRefs, "driver boundary posture assetRefs");
+  assertOptionalReferenceList(record.implementationCustodyRefs, "driver boundary posture implementationCustodyRefs");
+  assertOptionalReferenceList(record.contractFlowGraphRefs, "driver boundary posture contractFlowGraphRefs");
+  assertOptionalReferenceList(record.deniedOwnershipRefs, "driver boundary posture deniedOwnershipRefs");
+  assertOptionalReferenceList(record.futureSliceRefs, "driver boundary posture futureSliceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "driver boundary posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [DRIVER.BOUNDARY_STATE.BLOCKED, DRIVER.BOUNDARY_STATE.DEGRADED],
+    blockedReasons,
+    "driver boundary posture",
+  );
+  if (state === DRIVER.BOUNDARY_STATE.READY && !assertOptionalReferenceList(record.driverRefs, "driver boundary posture driverRefs").length) {
+    throw new Error("ready driver boundary posture requires driverRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "driver boundary posture safeFacts");
+  if (!Number(record.observedAt || 0)) throw new Error("driver boundary posture missing observedAt");
+  return { ...record, state, blockedReasons };
 }
 
 function assertBlockedReasonsForState(state, blockedStates, blockedReasons, context) {
@@ -4862,6 +6241,95 @@ export function assertContentIndexRefPosture(record) {
   return { ...record, state, sourceRefs, materializedProjectionRefs, blockedReasons };
 }
 
+export function assertContentIndexResolutionEntry(record, context = "content-index resolution") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  requireString(record.resolutionRef, `${context} resolutionRef`);
+  requireString(record.subjectRef, `${context} subjectRef`);
+  requireString(record.resolutionKind, `${context} resolutionKind`);
+  requireString(record.contentIndexRef, `${context} contentIndexRef`);
+  const state = assertEnumValue(record.state, FABRIC.CONTENT_INDEX_STATE, `${context} state`);
+  if (record.sourceSnapshotRef !== undefined) requireString(record.sourceSnapshotRef, `${context} sourceSnapshotRef`);
+  if (record.treeHashRef !== undefined) requireString(record.treeHashRef, `${context} treeHashRef`);
+  assertOptionalReferenceList(record.inputRefs, `${context} inputRefs`);
+  const sourceRefs = assertOptionalReferenceList(record.sourceRefs, `${context} sourceRefs`);
+  const fileRefs = assertOptionalReferenceList(record.fileRefs, `${context} fileRefs`);
+  const artifactRefs = assertOptionalReferenceList(record.artifactRefs, `${context} artifactRefs`);
+  const objectRefs = assertStorageObjectRefList(
+    requireArray(record.objectRefs || [], `${context} objectRefs`),
+    `${context} objectRefs`,
+  );
+  const chunkRefs = assertStorageChunkRefStringList(
+    requireArray(record.chunkRefs || [], `${context} chunkRefs`),
+    `${context} chunkRefs`,
+  );
+  assertOptionalResolvedMemberRefList(record.storageMemberRefs, `${context} storageMemberRefs`);
+  const availabilityRefs = assertOptionalReferenceList(record.availabilityRefs, `${context} availabilityRefs`);
+  const materializedProjectionRefs = assertOptionalReferenceList(record.materializedProjectionRefs, `${context} materializedProjectionRefs`);
+  assertOptionalReferenceList(record.adapterRefs, `${context} adapterRefs`);
+  const conflictRefs = assertOptionalReferenceList(record.conflictRefs, `${context} conflictRefs`);
+  assertOptionalReferenceList(record.evidenceRefs, `${context} evidenceRefs`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTENT_INDEX_STATE.BLOCKED, FABRIC.CONTENT_INDEX_STATE.EXPIRED],
+    blockedReasons,
+    context,
+  );
+  if (state === FABRIC.CONTENT_INDEX_STATE.READY && (conflictRefs.length || blockedReasons.length)) {
+    throw new Error("ready content-index resolution cannot carry conflictRefs or blockedReasons");
+  }
+  if (
+    state === FABRIC.CONTENT_INDEX_STATE.READY
+    && sourceRefs.length === 0
+    && fileRefs.length === 0
+    && artifactRefs.length === 0
+    && objectRefs.length === 0
+    && chunkRefs.length === 0
+    && availabilityRefs.length === 0
+    && materializedProjectionRefs.length === 0
+  ) {
+    throw new Error("ready content-index resolution requires a resolved output ref");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, `${context} safeFacts`);
+  return { ...record, state, sourceRefs, fileRefs, artifactRefs, objectRefs, chunkRefs, availabilityRefs, materializedProjectionRefs, conflictRefs, blockedReasons };
+}
+
+export function assertContentIndexResolverPosture(record) {
+  if (!isObject(record)) throw new Error("content-index resolver posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTENT_INDEX_RESOLVER_POSTURE, "content-index resolver posture");
+  requireString(record.resolverRef, "content-index resolver posture resolverRef");
+  requireString(record.contentIndexRef, "content-index resolver posture contentIndexRef");
+  const state = assertEnumValue(record.state, FABRIC.CONTENT_INDEX_STATE, "content-index resolver posture state");
+  if (record.sourceSnapshotRef !== undefined) requireString(record.sourceSnapshotRef, "content-index resolver posture sourceSnapshotRef");
+  const resolutions = (record.resolutions === undefined ? [] : requireArray(record.resolutions, "content-index resolver posture resolutions"))
+    .map((entry, index) => assertContentIndexResolutionEntry(entry, `content-index resolver posture resolutions ${index}`));
+  for (const resolution of resolutions) {
+    if (resolution.contentIndexRef !== record.contentIndexRef) {
+      throw new Error("content-index resolver posture resolution contentIndexRef must match resolver contentIndexRef");
+    }
+  }
+  assertOptionalReferenceList(record.materializedProjectionRefs, "content-index resolver posture materializedProjectionRefs");
+  const transitionConflictRefs = assertOptionalReferenceList(record.transitionConflictRefs, "content-index resolver posture transitionConflictRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "content-index resolver posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "content-index resolver posture blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.CONTENT_INDEX_STATE.BLOCKED, FABRIC.CONTENT_INDEX_STATE.EXPIRED],
+    blockedReasons,
+    "content-index resolver posture",
+  );
+  if (state === FABRIC.CONTENT_INDEX_STATE.READY && resolutions.length === 0) {
+    throw new Error("ready content-index resolver posture requires resolutions");
+  }
+  if (state === FABRIC.CONTENT_INDEX_STATE.READY && (transitionConflictRefs.length || blockedReasons.length)) {
+    throw new Error("ready content-index resolver posture cannot carry transitionConflictRefs or blockedReasons");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "content-index resolver posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "content-index resolver posture");
+  assertFabricObservedWindow(record, "content-index resolver posture");
+  return { ...record, state, resolutions, transitionConflictRefs, blockedReasons };
+}
+
 export function assertContractIntentionPosture(record) {
   if (!isObject(record)) throw new Error("contract intention posture must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.CONTRACT_INTENTION_POSTURE, "contract intention posture");
@@ -4916,6 +6384,313 @@ export function assertContractIntentionPosture(record) {
   assertSurfaceManagerSensitiveBoundary(record, "contract intention posture");
   assertFabricObservedWindow(record, "contract intention posture");
   return { ...record, state, contentIndexRefs, sourceGraphRefs, blockedReasons };
+}
+
+export function assertLifecycleManifestSeed(record) {
+  if (!isObject(record)) throw new Error("lifecycle manifest seed must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.LIFECYCLE_MANIFEST_SEED, "lifecycle manifest seed");
+  requireString(record.manifestRef, "lifecycle manifest seed manifestRef");
+  const state = assertEnumValue(record.state, FABRIC.LIFECYCLE_MANIFEST_STATE, "lifecycle manifest seed state");
+  const promotionState = assertEnumValue(record.promotionState, FABRIC.LIFECYCLE_PROMOTION_STATE, "lifecycle manifest seed promotionState");
+  if (record.targetRef !== undefined) requireString(record.targetRef, "lifecycle manifest seed targetRef");
+  const candidateRefs = assertOptionalReferenceList(record.candidateRefs, "lifecycle manifest seed candidateRefs");
+  const sourceSnapshotRefs = assertOptionalReferenceList(record.sourceSnapshotRefs, "lifecycle manifest seed sourceSnapshotRefs");
+  const contentIndexRefs = assertOptionalReferenceList(record.contentIndexRefs, "lifecycle manifest seed contentIndexRefs");
+  const buildRefs = assertOptionalReferenceList(record.buildRefs, "lifecycle manifest seed buildRefs");
+  assertOptionalReferenceList(record.buildRunRefs, "lifecycle manifest seed buildRunRefs");
+  assertOptionalReferenceList(record.artifactRefs, "lifecycle manifest seed artifactRefs");
+  assertOptionalReferenceList(record.storageRefs, "lifecycle manifest seed storageRefs");
+  assertOptionalReferenceList(record.proofRefs, "lifecycle manifest seed proofRefs");
+  assertOptionalReferenceList(record.logRefs, "lifecycle manifest seed logRefs");
+  assertOptionalReferenceList(record.metricRefs, "lifecycle manifest seed metricRefs");
+  assertOptionalReferenceList(record.releaseCandidateRefs, "lifecycle manifest seed releaseCandidateRefs");
+  assertOptionalReferenceList(record.rollbackRefs, "lifecycle manifest seed rollbackRefs");
+  assertOptionalReferenceList(record.cleanupRefs, "lifecycle manifest seed cleanupRefs");
+  assertOptionalReferenceList(record.proofGateRefs, "lifecycle manifest seed proofGateRefs");
+  assertOptionalReferenceList(record.governanceRefs, "lifecycle manifest seed governanceRefs");
+  const conflictRefs = assertOptionalReferenceList(record.conflictRefs, "lifecycle manifest seed conflictRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "lifecycle manifest seed evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "lifecycle manifest seed blockedReasons");
+  assertBlockedReasonsForState(
+    state,
+    [FABRIC.LIFECYCLE_MANIFEST_STATE.BLOCKED, FABRIC.LIFECYCLE_MANIFEST_STATE.EXPIRED],
+    blockedReasons,
+    "lifecycle manifest seed",
+  );
+  if (promotionState === FABRIC.LIFECYCLE_PROMOTION_STATE.BLOCKED && blockedReasons.length === 0) {
+    throw new Error("blocked lifecycle manifest promotion requires blockedReasons");
+  }
+  if (state === FABRIC.LIFECYCLE_MANIFEST_STATE.READY && !String(record.targetRef || "").trim()) {
+    throw new Error("ready lifecycle manifest seed requires targetRef");
+  }
+  if (state === FABRIC.LIFECYCLE_MANIFEST_STATE.READY && candidateRefs.length === 0) {
+    throw new Error("ready lifecycle manifest seed requires candidateRefs");
+  }
+  if (state === FABRIC.LIFECYCLE_MANIFEST_STATE.READY && sourceSnapshotRefs.length === 0) {
+    throw new Error("ready lifecycle manifest seed requires sourceSnapshotRefs");
+  }
+  if (state === FABRIC.LIFECYCLE_MANIFEST_STATE.READY && contentIndexRefs.length === 0) {
+    throw new Error("ready lifecycle manifest seed requires contentIndexRefs");
+  }
+  if (state === FABRIC.LIFECYCLE_MANIFEST_STATE.READY && buildRefs.length === 0) {
+    throw new Error("ready lifecycle manifest seed requires buildRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "lifecycle manifest seed safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "lifecycle manifest seed");
+  assertFabricObservedWindow(record, "lifecycle manifest seed");
+  return { ...record, state, promotionState, candidateRefs, sourceSnapshotRefs, contentIndexRefs, buildRefs, conflictRefs, blockedReasons };
+}
+
+function assertAdapterDebtDeletionWorkItem(record, context = "adapter-debt deletion work item") {
+  if (!isObject(record)) throw new Error(`${context} must be an object`);
+  if (record.kind !== undefined) assertRecordKind(record, "adapter.debt.deletion.work-item", context);
+  const order = Number(record.order);
+  if (!Number.isFinite(order) || order < 0) throw new Error(`${context} order must be non-negative`);
+  requireString(record.deletionSliceRef, `${context} deletionSliceRef`);
+  requireString(record.subjectRef, `${context} subjectRef`);
+  requireString(record.adapterRef, `${context} adapterRef`);
+  requireString(record.currentShim, `${context} currentShim`);
+  requireString(record.desiredPrimitive, `${context} desiredPrimitive`);
+  requireString(record.proofToRetire, `${context} proofToRetire`);
+  const blockingState = assertEnumValue(record.blockingState, FABRIC.ADAPTER_DEBT_BLOCKING_STATE, `${context} blockingState`);
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, `${context} blockedReasons`);
+  if (blockingState === FABRIC.ADAPTER_DEBT_BLOCKING_STATE.BLOCKING && blockedReasons.length === 0) {
+    throw new Error(`${context} blocking state requires blockedReasons`);
+  }
+  return { ...record, order, blockingState, blockedReasons };
+}
+
+export function assertAdapterDebtDeletionWorklist(record) {
+  if (!isObject(record)) throw new Error("adapter-debt deletion worklist must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ADAPTER_DEBT_DELETION_WORKLIST, "adapter-debt deletion worklist");
+  const state = assertEnumValue(record.state, FABRIC.ADAPTER_DEBT_STATE, "adapter-debt deletion worklist state");
+  const itemCount = Number(record.itemCount || 0);
+  const ownerCount = Number(record.ownerCount || 0);
+  const retiredAsBlockerCount = Number(record.retiredAsBlockerCount || 0);
+  if (!Number.isInteger(itemCount) || itemCount < 0) throw new Error("adapter-debt deletion worklist itemCount must be non-negative integer");
+  if (!Number.isInteger(ownerCount) || ownerCount < 0) throw new Error("adapter-debt deletion worklist ownerCount must be non-negative integer");
+  if (!Number.isInteger(retiredAsBlockerCount) || retiredAsBlockerCount < 0) throw new Error("adapter-debt deletion worklist retiredAsBlockerCount must be non-negative integer");
+  assertOptionalReferenceList(record.orderPolicy, "adapter-debt deletion worklist orderPolicy");
+  if (record.blockerPolicy !== undefined) requireString(record.blockerPolicy, "adapter-debt deletion worklist blockerPolicy");
+  const ownerGroups = (record.ownerGroups === undefined ? [] : requireArray(record.ownerGroups, "adapter-debt deletion worklist ownerGroups"))
+    .map((owner, index) => {
+      if (!isObject(owner)) throw new Error(`adapter-debt deletion worklist ownerGroups ${index} must be an object`);
+      requireString(owner.subjectRef, `adapter-debt deletion worklist ownerGroups ${index} subjectRef`);
+      assertEnumValue(owner.state, FABRIC.ADAPTER_DEBT_STATE, `adapter-debt deletion worklist ownerGroups ${index} state`);
+      assertOptionalReferenceList(owner.adapterRefs, `adapter-debt deletion worklist ownerGroups ${index} adapterRefs`);
+      assertOptionalReferenceList(owner.desiredPrimitiveRefs, `adapter-debt deletion worklist ownerGroups ${index} desiredPrimitiveRefs`);
+      assertOptionalReferenceList(owner.deletionSliceRefs, `adapter-debt deletion worklist ownerGroups ${index} deletionSliceRefs`);
+      assertOptionalReferenceList(owner.blockedReasons, `adapter-debt deletion worklist ownerGroups ${index} blockedReasons`);
+      if (owner.items !== undefined) requireArray(owner.items, `adapter-debt deletion worklist ownerGroups ${index} items`);
+      return owner;
+    });
+  const items = (record.items === undefined ? [] : requireArray(record.items, "adapter-debt deletion worklist items"))
+    .map((entry, index) => assertAdapterDebtDeletionWorkItem(entry, `adapter-debt deletion worklist items ${index}`));
+  if (itemCount !== items.length) throw new Error("adapter-debt deletion worklist itemCount must match items");
+  if (ownerCount !== ownerGroups.length) throw new Error("adapter-debt deletion worklist ownerCount must match ownerGroups");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "adapter-debt deletion worklist blockedReasons");
+  assertBlockedReasonsForState(state, [FABRIC.ADAPTER_DEBT_STATE.BLOCKED], blockedReasons, "adapter-debt deletion worklist");
+  return { ...record, state, itemCount, ownerCount, retiredAsBlockerCount, ownerGroups, items, blockedReasons };
+}
+
+export function assertAdapterDebtPosture(record) {
+  if (!isObject(record)) throw new Error("adapter-debt posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ADAPTER_DEBT_POSTURE, "adapter-debt posture");
+  const state = assertEnumValue(record.state, FABRIC.ADAPTER_DEBT_STATE, "adapter-debt posture state");
+  const debtItemCount = Number(record.debtItemCount || 0);
+  if (!Number.isInteger(debtItemCount) || debtItemCount < 0) throw new Error("adapter-debt posture debtItemCount must be non-negative integer");
+  if (record.familyCounts !== undefined) assertSafeObject(record.familyCounts, "adapter-debt posture familyCounts");
+  assertOptionalReferenceList(record.explicitAdapterRefs, "adapter-debt posture explicitAdapterRefs");
+  assertOptionalReferenceList(record.desiredPrimitiveRefs, "adapter-debt posture desiredPrimitiveRefs");
+  assertOptionalReferenceList(record.deletionSliceRefs, "adapter-debt posture deletionSliceRefs");
+  const retiredAsBlockers = (record.retiredAsBlockers === undefined ? [] : requireArray(record.retiredAsBlockers, "adapter-debt posture retiredAsBlockers"))
+    .map((entry, index) => {
+      if (!isObject(entry)) throw new Error(`adapter-debt posture retiredAsBlockers ${index} must be an object`);
+      requireString(entry.ref, `adapter-debt posture retiredAsBlockers ${index} ref`);
+      requireString(entry.state, `adapter-debt posture retiredAsBlockers ${index} state`);
+      requireString(entry.nativePrimitive, `adapter-debt posture retiredAsBlockers ${index} nativePrimitive`);
+      requireString(entry.evidenceRef, `adapter-debt posture retiredAsBlockers ${index} evidenceRef`);
+      return entry;
+    });
+  const deletionWorklist = record.deletionWorklist === undefined
+    ? undefined
+    : assertAdapterDebtDeletionWorklist(record.deletionWorklist);
+  const debtItems = (record.debtItems === undefined ? [] : requireArray(record.debtItems, "adapter-debt posture debtItems"))
+    .map((entry, index) => {
+      if (!isObject(entry)) throw new Error(`adapter-debt posture debtItems ${index} must be an object`);
+      requireString(entry.debtRef, `adapter-debt posture debtItems ${index} debtRef`);
+      requireString(entry.subjectRef, `adapter-debt posture debtItems ${index} subjectRef`);
+      requireString(entry.adapterRef, `adapter-debt posture debtItems ${index} adapterRef`);
+      requireString(entry.currentShim, `adapter-debt posture debtItems ${index} currentShim`);
+      requireString(entry.desiredPrimitive, `adapter-debt posture debtItems ${index} desiredPrimitive`);
+      requireString(entry.deletionSliceRef, `adapter-debt posture debtItems ${index} deletionSliceRef`);
+      requireString(entry.proofToRetire, `adapter-debt posture debtItems ${index} proofToRetire`);
+      return entry;
+    });
+  if (debtItemCount !== debtItems.length) throw new Error("adapter-debt posture debtItemCount must match debtItems");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "adapter-debt posture blockedReasons");
+  assertBlockedReasonsForState(state, [FABRIC.ADAPTER_DEBT_STATE.BLOCKED], blockedReasons, "adapter-debt posture");
+  if (state === FABRIC.ADAPTER_DEBT_STATE.CLEAR && debtItems.length !== 0) {
+    throw new Error("clear adapter-debt posture cannot carry debtItems");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "adapter-debt posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "adapter-debt posture");
+  assertFabricObservedWindow(record, "adapter-debt posture");
+  return { ...record, state, debtItemCount, retiredAsBlockers, deletionWorklist, debtItems, blockedReasons };
+}
+
+export function assertAdapterResidencyPosture(record) {
+  if (!isObject(record)) throw new Error("adapter-residency posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.ADAPTER_RESIDENCY_POSTURE, "adapter-residency posture");
+  const state = assertEnumValue(record.state, FABRIC.ADAPTER_RESIDENCY_STATE, "adapter-residency posture state");
+  requireString(record.adapterRef, "adapter-residency posture adapterRef");
+  requireString(record.adapterRole, "adapter-residency posture adapterRole");
+  const residencyCount = Number(record.residencyCount || 0);
+  if (!Number.isInteger(residencyCount) || residencyCount < 0) {
+    throw new Error("adapter-residency posture residencyCount must be non-negative integer");
+  }
+  const residencyRefs = assertOptionalReferenceList(record.residencyRefs, "adapter-residency posture residencyRefs");
+  const subjectRefs = assertOptionalReferenceList(record.subjectRefs, "adapter-residency posture subjectRefs");
+  const nativeDependencyRefs = assertOptionalReferenceList(record.nativeDependencyRefs, "adapter-residency posture nativeDependencyRefs");
+  const storageBackedInputRefs = assertOptionalReferenceList(record.storageBackedInputRefs, "adapter-residency posture storageBackedInputRefs");
+  const toolMaterializationRefs = assertOptionalReferenceList(record.toolMaterializationRefs, "adapter-residency posture toolMaterializationRefs");
+  const semanticConflictRefs = assertOptionalReferenceList(record.semanticConflictRefs, "adapter-residency posture semanticConflictRefs");
+  const legacyTransitionConflictRefs = assertOptionalReferenceList(record.legacyTransitionConflictRefs, "adapter-residency posture legacyTransitionConflictRefs");
+  const evidenceRefs = assertOptionalReferenceList(record.evidenceRefs, "adapter-residency posture evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "adapter-residency posture blockedReasons");
+  if (residencyCount !== residencyRefs.length) {
+    throw new Error("adapter-residency posture residencyCount must match residencyRefs");
+  }
+  if (state === FABRIC.ADAPTER_RESIDENCY_STATE.READY && residencyRefs.length === 0) {
+    throw new Error("ready adapter-residency posture requires residencyRefs");
+  }
+  if (state === FABRIC.ADAPTER_RESIDENCY_STATE.READY && semanticConflictRefs.length !== 0) {
+    throw new Error("ready adapter-residency posture cannot carry semanticConflictRefs");
+  }
+  if (state === FABRIC.ADAPTER_RESIDENCY_STATE.CLEAR && residencyCount !== 0) {
+    throw new Error("clear adapter-residency posture cannot carry residency refs");
+  }
+  assertBlockedReasonsForState(state, [FABRIC.ADAPTER_RESIDENCY_STATE.BLOCKED], blockedReasons, "adapter-residency posture");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "adapter-residency posture safeFacts");
+  rejectAdapterResidencyTransportFields(record, "adapter-residency posture");
+  assertSurfaceManagerSensitiveBoundary(record, "adapter-residency posture");
+  assertFabricObservedWindow(record, "adapter-residency posture");
+  return {
+    ...record,
+    state,
+    residencyCount,
+    residencyRefs,
+    subjectRefs,
+    nativeDependencyRefs,
+    storageBackedInputRefs,
+    toolMaterializationRefs,
+    semanticConflictRefs,
+    legacyTransitionConflictRefs,
+    evidenceRefs,
+    blockedReasons,
+  };
+}
+
+export function assertManifestSelectedOperationPosture(record) {
+  if (!isObject(record)) throw new Error("manifest-selected operation posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.MANIFEST_SELECTED_OPERATION_POSTURE, "manifest-selected operation posture");
+  const state = assertEnumValue(record.state, FABRIC.MANIFEST_SELECTED_OPERATION_STATE, "manifest-selected operation posture state");
+  requireString(record.lifecycleManifestRef, "manifest-selected operation posture lifecycleManifestRef");
+  requireString(record.promotionIntentRef, "manifest-selected operation posture promotionIntentRef");
+  assertOptionalReferenceList(record.buildRefs, "manifest-selected operation posture buildRefs");
+  assertOptionalReferenceList(record.buildRunRefs, "manifest-selected operation posture buildRunRefs");
+  assertOptionalReferenceList(record.artifactRefs, "manifest-selected operation posture artifactRefs");
+  assertOptionalReferenceList(record.storageRefs, "manifest-selected operation posture storageRefs");
+  assertStorageObjectRefList(
+    requireArray(record.storageObjectRefs || [], "manifest-selected operation posture storageObjectRefs"),
+    "manifest-selected operation posture storageObjectRefs",
+  );
+  assertOptionalReferenceList(record.executableRefs, "manifest-selected operation posture executableRefs");
+  assertOptionalReferenceList(record.executableHashRefs, "manifest-selected operation posture executableHashRefs");
+  requireString(record.runnerOperationRef, "manifest-selected operation posture runnerOperationRef");
+  requireString(record.runnerContractRef, "manifest-selected operation posture runnerContractRef");
+  requireString(record.hostPostureRef, "manifest-selected operation posture hostPostureRef");
+  requireString(record.fulfillmentSessionRef, "manifest-selected operation posture fulfillmentSessionRef");
+  requireString(record.fulfillmentSessionContractRef, "manifest-selected operation posture fulfillmentSessionContractRef");
+  requireString(record.fulfillmentSessionParentIntentRef, "manifest-selected operation posture fulfillmentSessionParentIntentRef");
+  assertOptionalReferenceList(record.transitionConflictRefs, "manifest-selected operation posture transitionConflictRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "manifest-selected operation posture blockedReasons");
+  assertBlockedReasonsForState(state, [FABRIC.MANIFEST_SELECTED_OPERATION_STATE.BLOCKED], blockedReasons, "manifest-selected operation posture");
+  if (record.runnerContractRef !== record.lifecycleManifestRef) {
+    throw new Error("manifest-selected operation posture runnerContractRef must match lifecycleManifestRef");
+  }
+  if (record.fulfillmentSessionContractRef !== record.lifecycleManifestRef) {
+    throw new Error("manifest-selected operation posture fulfillmentSessionContractRef must match lifecycleManifestRef");
+  }
+  if (record.fulfillmentSessionParentIntentRef !== record.promotionIntentRef) {
+    throw new Error("manifest-selected operation posture fulfillmentSessionParentIntentRef must match promotionIntentRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "manifest-selected operation posture safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "manifest-selected operation posture");
+  assertFabricObservedWindow(record, "manifest-selected operation posture");
+  return { ...record, state, blockedReasons };
+}
+
+export function assertRuntimeFulfillmentSessionProjection(record) {
+  if (!isObject(record)) throw new Error("runtime fulfillment-session projection must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.RUNTIME_FULFILLMENT_SESSION_PROJECTION, "runtime fulfillment-session projection");
+  requireString(record.projectionRef, "runtime fulfillment-session projection projectionRef");
+  const state = assertEnumValue(record.state, FABRIC.LIFECYCLE_MANIFEST_STATE, "runtime fulfillment-session projection state");
+  requireString(record.sessionId, "runtime fulfillment-session projection sessionId");
+  requireString(record.lifecycleManifestRef, "runtime fulfillment-session projection lifecycleManifestRef");
+  requireString(record.parentIntentRef, "runtime fulfillment-session projection parentIntentRef");
+  requireString(record.subjectRef, "runtime fulfillment-session projection subjectRef");
+  requireString(record.contractRef, "runtime fulfillment-session projection contractRef");
+  if (record.hostRef !== undefined) requireString(record.hostRef, "runtime fulfillment-session projection hostRef");
+  if (record.runnerRef !== undefined) requireString(record.runnerRef, "runtime fulfillment-session projection runnerRef");
+  assertOptionalReferenceList(record.storageAvailabilityRefs, "runtime fulfillment-session projection storageAvailabilityRefs");
+  assertOptionalReferenceList(record.storageRefs, "runtime fulfillment-session projection storageRefs");
+  assertOptionalReferenceList(record.executableRefs, "runtime fulfillment-session projection executableRefs");
+  if (record.adapterDebtState !== undefined) assertEnumValue(record.adapterDebtState, FABRIC.ADAPTER_DEBT_STATE, "runtime fulfillment-session projection adapterDebtState");
+  if (record.adapterDebtRef !== undefined) requireString(record.adapterDebtRef, "runtime fulfillment-session projection adapterDebtRef");
+  if (!isObject(record.queryKeys)) throw new Error("runtime fulfillment-session projection queryKeys must be an object");
+  requireString(record.queryKeys.bySession, "runtime fulfillment-session projection queryKeys.bySession");
+  requireString(record.queryKeys.byManifest, "runtime fulfillment-session projection queryKeys.byManifest");
+  requireString(record.queryKeys.byParentIntent, "runtime fulfillment-session projection queryKeys.byParentIntent");
+  requireString(record.queryKeys.bySubject, "runtime fulfillment-session projection queryKeys.bySubject");
+  if (record.queryKeys.byHost !== undefined) requireString(record.queryKeys.byHost, "runtime fulfillment-session projection queryKeys.byHost");
+  if (record.queryKeys.byRunner !== undefined) requireString(record.queryKeys.byRunner, "runtime fulfillment-session projection queryKeys.byRunner");
+  if (record.queryKeys.byStorageAvailability !== undefined) {
+    assertOptionalReferenceList(record.queryKeys.byStorageAvailability, "runtime fulfillment-session projection queryKeys.byStorageAvailability");
+  }
+  if (record.queryKeys.byAdapterDebt !== undefined) assertEnumValue(record.queryKeys.byAdapterDebt, FABRIC.ADAPTER_DEBT_STATE, "runtime fulfillment-session projection queryKeys.byAdapterDebt");
+  if (record.currentPosture !== undefined) assertSafeObject(record.currentPosture, "runtime fulfillment-session projection currentPosture");
+  assertOptionalReferenceList(record.evidenceRefs, "runtime fulfillment-session projection evidenceRefs");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "runtime fulfillment-session projection blockedReasons");
+  assertBlockedReasonsForState(state, [FABRIC.LIFECYCLE_MANIFEST_STATE.BLOCKED, FABRIC.LIFECYCLE_MANIFEST_STATE.EXPIRED], blockedReasons, "runtime fulfillment-session projection");
+  if (record.contractRef !== record.lifecycleManifestRef) {
+    throw new Error("runtime fulfillment-session projection contractRef must match lifecycleManifestRef");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "runtime fulfillment-session projection safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "runtime fulfillment-session projection");
+  assertFabricObservedWindow(record, "runtime fulfillment-session projection");
+  return { ...record, state, blockedReasons };
+}
+
+export function assertControlInversionProof(record) {
+  if (!isObject(record)) throw new Error("control inversion proof must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.CONTROL_INVERSION_PROOF, "control inversion proof");
+  requireString(record.roleRef, "control inversion proof roleRef");
+  const state = assertEnumValue(record.state, FABRIC.CONTROL_INVERSION_PROOF_STATE, "control inversion proof state");
+  requireString(record.primaryControl, "control inversion proof primaryControl");
+  const primaryRefs = assertOptionalReferenceList(record.primaryRefs, "control inversion proof primaryRefs");
+  assertOptionalReferenceList(record.legacyFallbackRefs, "control inversion proof legacyFallbackRefs");
+  requireString(record.legacyPathState, "control inversion proof legacyPathState");
+  if (record.adapterDebtState !== undefined) assertEnumValue(record.adapterDebtState, FABRIC.ADAPTER_DEBT_STATE, "control inversion proof adapterDebtState");
+  const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "control inversion proof blockedReasons");
+  assertBlockedReasonsForState(state, [FABRIC.CONTROL_INVERSION_PROOF_STATE.BLOCKED], blockedReasons, "control inversion proof");
+  if (state === FABRIC.CONTROL_INVERSION_PROOF_STATE.PROVED && primaryRefs.length === 0) {
+    throw new Error("proved control inversion proof requires primaryRefs");
+  }
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "control inversion proof safeFacts");
+  assertSurfaceManagerSensitiveBoundary(record, "control inversion proof");
+  assertFabricObservedWindow(record, "control inversion proof");
+  return { ...record, state, primaryRefs, blockedReasons };
 }
 
 export function assertUniqueEdgeClassification(record) {
@@ -5674,6 +7449,9 @@ export function assertPrivateContentEnvelope(record) {
     record.caacEnvelopeRef,
   ].map((value) => String(value || "").trim()).filter(Boolean);
   if (bodyRefs.length === 0) throw new Error("private content envelope requires a content reference");
+  if (record.storageObjectRef !== undefined) {
+    assertStorageObjectRef(record.storageObjectRef, "private content envelope storageObjectRef");
+  }
   assertOptionalReferenceList(record.recipientRefs, "private content envelope recipientRefs");
   if (record.keyRef !== undefined) requireString(record.keyRef, "private content envelope keyRef");
   if (record.summarySafeFacts !== undefined) {
@@ -6182,6 +7960,8 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.SWARM_ACTIVATION,
     SWARM.RECORD_KIND.ROUTE_PROMISE,
     SWARM.RECORD_KIND.CONTRIBUTION_LIFECYCLE,
+    SWARM.RECORD_KIND.OPERATION_INSTANCE_POSTURE,
+    SWARM.RECORD_KIND.FULFILLMENT_SESSION,
     SWARM.RECORD_KIND.MATERIALIZATION_BUDGET,
     SWARM.RECORD_KIND.CONSUMER_FLOOR,
     SWARM.RECORD_KIND.MEDIA_TRANSPORT_PATH,
@@ -6194,6 +7974,10 @@ export function assertSwarmIdentityGraph(records) {
     SWARM.RECORD_KIND.HOST_FABRIC_LEGACY_CONTROL_BRIDGE,
     SWARM.RECORD_KIND.HOST_FABRIC_ADAPTER_EXECUTION_EVIDENCE,
     SWARM.RECORD_KIND.LIFECYCLE_PLAN_POSTURE,
+    SWARM.RECORD_KIND.LIFECYCLE_MANIFEST_SEED,
+    SWARM.RECORD_KIND.MANIFEST_SELECTED_OPERATION_POSTURE,
+    SWARM.RECORD_KIND.RUNTIME_FULFILLMENT_SESSION_PROJECTION,
+    SWARM.RECORD_KIND.CONTROL_INVERSION_PROOF,
     "stream.session.offer",
     "stream.session.answer",
     "stream.session.candidate",
@@ -6362,7 +8146,10 @@ export function assertAppRelease(record) {
   const artifactRefs = assertOptionalReferenceList(record.artifactRefs, "app release artifactRefs");
   const proofRefs = assertOptionalReferenceList(record.proofRefs, "app release proofRefs");
   assertOptionalReferenceList(record.moduleRoleRefs, "app release moduleRoleRefs");
-  const storageRefs = assertOptionalReferenceList(record.storageRefs, "app release storageRefs");
+  const storageRefs = assertStorageObjectRefList(
+    assertOptionalReferenceList(record.storageRefs, "app release storageRefs"),
+    "app release storageRefs",
+  );
   const compatibilityRefs = assertOptionalReferenceList(record.compatibilityRefs, "app release compatibilityRefs");
   assertOptionalReferenceList(record.evidenceRefs, "app release evidenceRefs");
   const blockedReasons = assertOptionalReferenceList(record.blockedReasons, "app release blockedReasons");
@@ -6395,7 +8182,10 @@ export function assertAppReleaseResolution(record) {
   if (record.selectedActivityRef !== undefined) requireString(record.selectedActivityRef, "app release resolution selectedActivityRef");
   const selectedArtifactRefs = assertOptionalReferenceList(record.selectedArtifactRefs, "app release resolution selectedArtifactRefs");
   const selectedModuleRoleRefs = assertOptionalReferenceList(record.selectedModuleRoleRefs, "app release resolution selectedModuleRoleRefs");
-  const selectedStorageRefs = assertOptionalReferenceList(record.selectedStorageRefs, "app release resolution selectedStorageRefs");
+  const selectedStorageRefs = assertStorageObjectRefList(
+    assertOptionalReferenceList(record.selectedStorageRefs, "app release resolution selectedStorageRefs"),
+    "app release resolution selectedStorageRefs",
+  );
   const sourceDigestRefs = assertOptionalReferenceList(record.sourceDigestRefs, "app release resolution sourceDigestRefs");
   if (record.sourceSnapshotRef !== undefined) requireString(record.sourceSnapshotRef, "app release resolution sourceSnapshotRef");
   const buildProofRefs = assertOptionalReferenceList(record.buildProofRefs, "app release resolution buildProofRefs");
@@ -6635,7 +8425,10 @@ export function assertSurfaceAppDistributionPosture(record, name = "surface app 
     throw new Error(`invalid ${name} sourceMode`);
   }
   const sourceRefs = assertOptionalReferenceList(posture.sourceRefs, `${name} sourceRefs`);
-  const storageRefs = assertOptionalReferenceList(posture.storageRefs, `${name} storageRefs`);
+  const storageRefs = assertStorageObjectRefList(
+    assertOptionalReferenceList(posture.storageRefs, `${name} storageRefs`),
+    `${name} storageRefs`,
+  );
   const pinIntentRefs = assertOptionalReferenceList(posture.pinIntentRefs, `${name} pinIntentRefs`);
   const pinProjectionRefs = assertOptionalReferenceList(posture.pinProjectionRefs, `${name} pinProjectionRefs`);
   assertOptionalReferenceList(posture.releaseContractRefs, `${name} releaseContractRefs`);
@@ -7067,6 +8860,32 @@ export function assertServiceManagerOperationPosture(record) {
   return record;
 }
 
+export function assertServiceManagerControlRequestPosture(record) {
+  if (!isObject(record)) throw new Error("service manager control request posture must be an object");
+  assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_CONTROL_REQUEST_POSTURE, "service manager control request posture");
+  requireString(record.requestId, "service manager control request posture requestId");
+  const operation = requireString(record.operation, "service manager control request posture operation");
+  if (!Object.values(SURFACE_APP.SERVICE_MANAGER_OPERATION).includes(operation)) {
+    throw new Error("invalid service manager control request operation");
+  }
+  requireString(record.subjectRef, "service manager control request posture subjectRef");
+  requireString(record.serviceManagerRef, "service manager control request posture serviceManagerRef");
+  requireString(record.requesterRef, "service manager control request posture requesterRef");
+  if (record.fabricControlRoleRef !== undefined) requireString(record.fabricControlRoleRef, "service manager control request posture fabricControlRoleRef");
+  assertOptionalReferenceList(record.serviceRefs, "service manager control request posture serviceRefs");
+  assertOptionalCapabilityList(record.capabilityRefs, "service manager control request posture capabilityRefs");
+  assertOptionalReferenceList(record.authorityRefs, "service manager control request posture authorityRefs");
+  assertOptionalReferenceList(record.grantRefs, "service manager control request posture grantRefs");
+  assertOptionalReferenceList(record.evidenceRefs, "service manager control request posture evidenceRefs");
+  assertOptionalReferenceList(record.proofRefs, "service manager control request posture proofRefs");
+  assertOptionalReferenceList(record.blockedReasons, "service manager control request posture blockedReasons");
+  if (record.safeFacts !== undefined) assertSafeObject(record.safeFacts, "service manager control request posture safeFacts");
+  rejectAdapterResidencyTransportFields(record, "service manager control request posture");
+  assertSurfaceManagerSensitiveBoundary(record, "service manager control request posture");
+  assertSurfaceOperationTimeline(record, "service manager control request posture", "requestedAt");
+  return record;
+}
+
 export function assertServiceManagerProofDigest(record) {
   if (!isObject(record)) throw new Error("service manager proof digest must be an object");
   assertRecordKind(record, SWARM.RECORD_KIND.SERVICE_MANAGER_PROOF_DIGEST, "service manager proof digest");
@@ -7462,7 +9281,10 @@ export function assertSurfaceAppSourceCandidatePosture(record) {
   assertOptionalReferenceList(record.candidateRefs, "surface app source candidate posture candidateRefs");
   assertOptionalReferenceList(record.bundledSourceRefs, "surface app source candidate posture bundledSourceRefs");
   assertOptionalReferenceList(record.remoteSourceRefs, "surface app source candidate posture remoteSourceRefs");
-  assertOptionalReferenceList(record.storageObjectRefs, "surface app source candidate posture storageObjectRefs");
+  assertStorageObjectRefList(
+    assertOptionalReferenceList(record.storageObjectRefs, "surface app source candidate posture storageObjectRefs"),
+    "surface app source candidate posture storageObjectRefs",
+  );
   assertOptionalReferenceList(record.releaseSourceRefs, "surface app source candidate posture releaseSourceRefs");
   assertOptionalReferenceList(record.swarmSourceRefs, "surface app source candidate posture swarmSourceRefs");
   assertOptionalReferenceList(record.digestRefs, "surface app source candidate posture digestRefs");
@@ -7570,6 +9392,9 @@ export function assertSurfaceAppRuntimeSelectionPosture(record) {
   if (record.appContractResolution !== undefined) assertSafeObject(record.appContractResolution, "surface app runtime contract resolution");
   if (record.sourceCandidatePosture !== undefined) assertSurfaceAppSourceCandidatePosture(record.sourceCandidatePosture);
   if (record.sourceTrustResult !== undefined) assertSurfaceAppReadiness(record.sourceTrustResult, "surface app runtime source trust result");
+  if (record.moduleResolverPosture !== undefined && record.moduleResolverPosture !== null) {
+    assertSafeObject(record.moduleResolverPosture, "surface app runtime module resolver posture");
+  }
   requireArray(record.modulePostures || [], "surface app runtime selection posture modulePostures").forEach(assertSurfaceModuleRolePosture);
   if (record.runnerReadiness !== undefined) assertSurfaceAppReadiness(record.runnerReadiness, "surface app runtime runner readiness");
   if (record.serviceManagerReadiness !== undefined) assertSurfaceAppReadiness(record.serviceManagerReadiness, "surface app runtime service manager readiness");
